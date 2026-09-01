@@ -1,0 +1,6 @@
+node_modules/
+.env
+backend/uploads/evidencias/*
+!backend/uploads/evidencias/.gitkeep
+.DS_Store
+*.log
