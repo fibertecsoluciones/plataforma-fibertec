@@ -17,6 +17,10 @@
     q: ''
   };
 
+  let listaCompleta = [];
+  let paginaActual = 1;
+  const porPagina = 15;
+
   cont.innerHTML = `<div class="cargando">Cargando clientes…</div>`;
 
   try {
@@ -97,20 +101,37 @@
 
     try {
       const lista = await API.get('/api/clientes?' + qs.toString());
-      if (!lista.length) {
-        tabla.innerHTML = `<div class="estado-vacio">No se encontraron clientes con esos filtros.</div>`;
-        return;
-      }
-      tabla.innerHTML = `
+      listaCompleta = lista;
+      paginaActual = 1;
+      renderTablaPaginada();
+    } catch (err) {
+      tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+  }
+
+  function renderTablaPaginada() {
+    const tabla = document.getElementById('tabla-clientes');
+
+    if (!listaCompleta.length) {
+      tabla.innerHTML = `<div class="estado-vacio">No se encontraron clientes con esos filtros.</div>`;
+      return;
+    }
+
+    const totalPaginas = Math.max(1, Math.ceil(listaCompleta.length / porPagina));
+    paginaActual = Math.min(Math.max(1, paginaActual), totalPaginas);
+    const inicio = (paginaActual - 1) * porPagina;
+    const pagina = listaCompleta.slice(inicio, inicio + porPagina);
+
+    tabla.innerHTML = `
         <table class="tabla">
           <thead>
             <tr>
               <th>Folio</th><th>Cliente</th><th>Zona</th><th>Plan</th><th>IP</th>
-              <th>Día pago</th><th>Vence</th><th>Estado pago</th><th>Cliente</th><th></th>
+              <th>Día pago</th><th>Vence</th><th>Estado pago</th><th>Cliente</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${lista.map(c => `
+            ${pagina.map(c => `
               <tr>
                 <td><span class="folio">${c.cliente_id}</span></td>
                 <td>${c.nombre}<br><span class="texto-gris" style="font-size:12px;">${c.telefono || '—'}</span></td>
@@ -122,7 +143,7 @@
                 <td><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span></td>
                 <td><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
                 <td>
-                  <div class="flex-gap">
+                  <div class="fila-acciones">
                     <a class="btn btn-secundario btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a>
                     ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-editar="${c.cliente_id_pk}">Editar</button>` : ''}
                   </div>
@@ -131,13 +152,54 @@
             `).join('')}
           </tbody>
         </table>
+        <div class="paginacion">
+          <div class="paginacion-info">
+            Mostrando ${inicio + 1}–${Math.min(inicio + porPagina, listaCompleta.length)} de ${listaCompleta.length} clientes
+          </div>
+          <div class="paginacion-botones" id="paginacion-botones"></div>
+        </div>
       `;
-      tabla.querySelectorAll('[data-editar]').forEach(btn => {
-        btn.addEventListener('click', () => abrirModal(btn.dataset.editar));
-      });
-    } catch (err) {
-      tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
+
+    tabla.querySelectorAll('[data-editar]').forEach(btn => {
+      btn.addEventListener('click', () => abrirModal(btn.dataset.editar));
+    });
+
+    renderBotonesPaginacion(totalPaginas);
+  }
+
+  function renderBotonesPaginacion(totalPaginas) {
+    const cont = document.getElementById('paginacion-botones');
+    if (!cont) return;
+
+    if (totalPaginas <= 1) { cont.innerHTML = ''; return; }
+
+    const irA = (p) => { paginaActual = p; renderTablaPaginada(); document.getElementById('tabla-clientes').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+    // Construye una lista corta de números de página (con "…" si hay muchas)
+    const paginas = [];
+    const ventana = 1; // páginas visibles alrededor de la actual
+    for (let p = 1; p <= totalPaginas; p++) {
+      if (p === 1 || p === totalPaginas || (p >= paginaActual - ventana && p <= paginaActual + ventana)) {
+        paginas.push(p);
+      } else if (paginas[paginas.length - 1] !== '…') {
+        paginas.push('…');
+      }
     }
+
+    cont.innerHTML = `
+      <button id="pg-prev" ${paginaActual === 1 ? 'disabled' : ''} title="Anterior">‹</button>
+      ${paginas.map(p => p === '…'
+        ? `<span class="texto-gris" style="padding:0 4px;">…</span>`
+        : `<button data-pagina="${p}" class="${p === paginaActual ? 'activa' : ''}">${p}</button>`
+      ).join('')}
+      <button id="pg-next" ${paginaActual === totalPaginas ? 'disabled' : ''} title="Siguiente">›</button>
+    `;
+
+    cont.querySelector('#pg-prev').addEventListener('click', () => irA(paginaActual - 1));
+    cont.querySelector('#pg-next').addEventListener('click', () => irA(paginaActual + 1));
+    cont.querySelectorAll('[data-pagina]').forEach(btn => {
+      btn.addEventListener('click', () => irA(Number(btn.dataset.pagina)));
+    });
   }
 
   async function abrirModal(clienteId) {
