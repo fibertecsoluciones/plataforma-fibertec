@@ -362,6 +362,7 @@
       const resultadoBox = document.getElementById('resultado-importacion');
       const errores = resultado.detalle.filter(d => d.error);
       const exitosos = resultado.detalle.filter(d => !d.error);
+      const conAdvertencia = exitosos.filter(d => d.advertencias && d.advertencias.length);
 
       resultadoBox.innerHTML = `
         <div class="${resultado.fallidos ? 'error-msg' : 'exito-msg'}" style="margin-top:16px;">
@@ -376,6 +377,27 @@
               ${exitosos.slice(0, 10).map(e => `${e.cliente_id} — ${e.nombre}`).join('<br>')}
               ${exitosos.length > 10 ? `<br>… y ${exitosos.length - 10} más.` : ''}
             </div>
+          </div>` : ''}
+
+        ${conAdvertencia.length ? `
+          <div style="margin-bottom:14px; padding:10px 12px; background:var(--sem-amarillo-bg); border-radius:6px;">
+            <b style="color:var(--sem-amarillo);">⚠️ ${conAdvertencia.length} cliente(s) se importaron con datos pendientes por corregir:</b>
+            <div class="tabla-envoltura" style="margin-top:8px;">
+              <table class="tabla">
+                <thead><tr><th>Fila</th><th>Cliente</th><th>Pendiente</th></tr></thead>
+                <tbody>
+                  ${conAdvertencia.map(e => `
+                    <tr>
+                      <td><span class="folio">${e.cliente_id}</span></td>
+                      <td>${e.nombre}</td>
+                      <td class="texto-gris" style="font-size:12.5px;">${e.advertencias.join(' ')}</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+            <p class="texto-gris" style="font-size:12.5px; margin-bottom:0;">
+              Entra a cada uno desde Clientes → Editar, y corrige su zona, plan y/o día de pago reales.
+            </p>
           </div>` : ''}
 
         ${errores.length ? `

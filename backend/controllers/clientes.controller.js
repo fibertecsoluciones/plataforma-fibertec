@@ -205,6 +205,36 @@ async function importarClientes(req, res) {
   zonas.forEach(z => mapaZonas.set(normalizarClave(z.codigo), z.id)); // también acepta el código
   const mapaPlanes = new Map(planes.map(p => [normalizarClave(p.nombre), p.id]));
 
+  const esVacio = (v) => v === undefined || v === null || String(v).trim() === '';
+
+  // Si la zona/plan viene vacía en la fila, en vez de rechazar la fila completa se asigna
+  // a un catálogo temporal "SIN ZONA" / "SIN PLAN" (se crea la primera vez que se necesita)
+  // para que el cliente sí se pueda importar y luego se corrija manualmente desde Clientes.
+  let zonaPlaceholderId = null;
+  async function obtenerZonaPlaceholder() {
+    if (zonaPlaceholderId) return zonaPlaceholderId;
+    const existente = mapaZonas.get(normalizarClave('SIN ZONA'));
+    if (existente) { zonaPlaceholderId = existente; return existente; }
+    let codigo = 'SZ';
+    let n = 1;
+    while ([...mapaZonas.keys()].includes(normalizarClave(codigo))) { codigo = 'SZ' + (++n); }
+    const r = await db.query('INSERT INTO zonas (nombre, codigo) VALUES ($1,$2) RETURNING id', ['SIN ZONA', codigo]);
+    zonaPlaceholderId = r.rows[0].id;
+    mapaZonas.set(normalizarClave('SIN ZONA'), zonaPlaceholderId);
+    return zonaPlaceholderId;
+  }
+
+  let planPlaceholderId = null;
+  async function obtenerPlanPlaceholder() {
+    if (planPlaceholderId) return planPlaceholderId;
+    const existente = mapaPlanes.get(normalizarClave('SIN PLAN'));
+    if (existente) { planPlaceholderId = existente; return existente; }
+    const r = await db.query(`INSERT INTO planes (nombre, velocidad, precio) VALUES ('SIN PLAN', NULL, 0) RETURNING id`);
+    planPlaceholderId = r.rows[0].id;
+    mapaPlanes.set(normalizarClave('SIN PLAN'), planPlaceholderId);
+    return planPlaceholderId;
+  }
+
   const resultado = { total: filas.length, insertados: 0, fallidos: 0, detalle: [] };
 
   for (let i = 0; i < filas.length; i++) {
@@ -219,35 +249,56 @@ async function importarClientes(req, res) {
     const zonaTexto = String(fila['zona'] || '').trim();
     const planTexto = String(fila['plan'] || '').trim();
     const diaPagoRaw = fila['diapago'];
+    const advertencias = [];
 
     if (!nombre) {
       resultado.fallidos++;
-      resultado.detalle.push({ fila: numeroFila, nombre: nombre || '(sin nombre)', error: 'Falta el nombre del cliente.' });
+      resultado.detalle.push({ fila: numeroFila, nombre: nombre || '(sin nombre)', error: 'Falta el nombre del cliente (este campo sí es obligatorio).' });
       continue;
     }
 
-    const zonaId = mapaZonas.get(normalizarClave(zonaTexto));
-    if (!zonaId) {
-      resultado.fallidos++;
-      resultado.detalle.push({ fila: numeroFila, nombre, error: `La zona "${zonaTexto}" no existe. Revisa la hoja "Zonas disponibles" o créala primero en Ajustes.` });
-      continue;
+    // ---- Zona: si viene vacía, se usa el placeholder; si viene escrita pero no existe, sí es error ----
+    let zonaId;
+    if (esVacio(zonaTexto)) {
+      zonaId = await obtenerZonaPlaceholder();
+      advertencias.push('Sin zona (se asignó "SIN ZONA", corrígela luego en el cliente).');
+    } else {
+      zonaId = mapaZonas.get(normalizarClave(zonaTexto));
+      if (!zonaId) {
+        resultado.fallidos++;
+        resultado.detalle.push({ fila: numeroFila, nombre, error: `La zona "${zonaTexto}" no existe. Revisa la hoja "Zonas disponibles" o créala primero en Ajustes (o deja la celda vacía para corregirla después).` });
+        continue;
+      }
     }
 
-    const planId = mapaPlanes.get(normalizarClave(planTexto));
-    if (!planId) {
-      resultado.fallidos++;
-      resultado.detalle.push({ fila: numeroFila, nombre, error: `El plan "${planTexto}" no existe. Revisa la hoja "Planes disponibles" o créalo primero en Ajustes.` });
-      continue;
+    // ---- Plan: mismo criterio que zona ----
+    let planId;
+    if (esVacio(planTexto)) {
+      planId = await obtenerPlanPlaceholder();
+      advertencias.push('Sin plan (se asignó "SIN PLAN" con precio $0, corrígelo luego en el cliente).');
+    } else {
+      planId = mapaPlanes.get(normalizarClave(planTexto));
+      if (!planId) {
+        resultado.fallidos++;
+        resultado.detalle.push({ fila: numeroFila, nombre, error: `El plan "${planTexto}" no existe. Revisa la hoja "Planes disponibles" o créalo primero en Ajustes (o deja la celda vacía para corregirlo después).` });
+        continue;
+      }
     }
 
-    const diaPago = parseInt(diaPagoRaw, 10);
-    if (!diaPago || diaPago < 1 || diaPago > 31) {
-      resultado.fallidos++;
-      resultado.detalle.push({ fila: numeroFila, nombre, error: `El día de pago "${diaPagoRaw}" no es válido (debe ser un número entre 1 y 31).` });
-      continue;
+    // ---- Día de pago: si viene vacío, se usa 1 temporalmente; si viene escrito pero inválido, sí es error ----
+    let diaPago;
+    if (esVacio(diaPagoRaw)) {
+      diaPago = 1;
+      advertencias.push('Sin día de pago (se puso "1" por defecto, corrígelo luego en el cliente).');
+    } else {
+      diaPago = parseInt(diaPagoRaw, 10);
+      if (!diaPago || diaPago < 1 || diaPago > 31) {
+        resultado.fallidos++;
+        resultado.detalle.push({ fila: numeroFila, nombre, error: `El día de pago "${diaPagoRaw}" no es válido (debe ser un número entre 1 y 31, o dejarse vacío).` });
+        continue;
+      }
     }
 
-    const estadoRaw = normalizarClave(fila['estado']);
     const estado = ['activo', 'suspendido', 'baja'].includes(String(fila['estado']).trim().toLowerCase())
       ? String(fila['estado']).trim().toLowerCase() : 'activo';
 
@@ -271,7 +322,10 @@ async function importarClientes(req, res) {
         ]
       );
       resultado.insertados++;
-      resultado.detalle.push({ fila: numeroFila, nombre, cliente_id: r.rows[0].cliente_id, error: null });
+      resultado.detalle.push({
+        fila: numeroFila, nombre, cliente_id: r.rows[0].cliente_id, error: null,
+        advertencias: advertencias.length ? advertencias : undefined
+      });
     } catch (err) {
       console.error(err);
       resultado.fallidos++;
