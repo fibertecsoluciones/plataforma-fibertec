@@ -276,6 +276,7 @@ table.tabla td{
   padding: 11px 14px;
   border-bottom: 1px solid var(--gris-claro);
   vertical-align:middle;
+  font-size: 12.5px;
 }
 table.tabla tbody tr:hover{ background: var(--fondo); }
 .folio{
