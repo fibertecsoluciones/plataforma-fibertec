@@ -130,27 +130,36 @@
     const pagina = listaCompleta.slice(inicio, inicio + porPagina);
 
     tabla.innerHTML = `
-        <table class="tabla">
+        <table class="tabla tabla-clientes">
           <thead>
             <tr>
-              <th>Folio</th><th>Cliente</th><th>Zona</th><th>Plan</th><th>IP</th>
-              <th>Día pago</th><th>Vence</th><th>Estado pago</th><th>Adeudo</th><th>Cliente</th><th>Acciones</th>
+              <th>Folio</th>
+              <th>Cliente</th>
+              <th>IP</th>
+              <th>Pago</th>
+              <th>Adeudo</th>
+              <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             ${pagina.map(c => `
               <tr>
                 <td><span class="folio">${c.cliente_id}</span></td>
-                <td>${c.nombre}<br><span class="texto-gris" style="font-size:12px;">${c.telefono || '—'}</span></td>
-                <td>${c.zona}</td>
-                <td>${c.plan}</td>
+                <td>
+                  <div class="celda-principal">${c.nombre}</div>
+                  <div class="celda-meta">${c.zona} · ${c.plan}${c.telefono ? ' · ' + c.telefono : ''}</div>
+                </td>
                 <td class="mono">${c.ip || '—'}</td>
-                <td>${c.dia_pago}</td>
-                <td>${fechaCorta(c.fecha_vencimiento)}</td>
-                <td><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span></td>
-                <td>${c.meses_adeudados > 0
-                  ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''} — ${mxn(c.saldo_pendiente)}</span>`
-                  : `<span class="texto-gris">Al día</span>`}</td>
+                <td>
+                  <span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span>
+                  <div class="celda-meta">Día ${c.dia_pago} · vence ${fechaCorta(c.fecha_vencimiento)}</div>
+                </td>
+                <td>
+                  ${c.meses_adeudados > 0
+                    ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}</div>`
+                    : `<span class="texto-gris">Al día</span>`}
+                </td>
                 <td><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
                 <td>
                   <div class="fila-acciones">
