@@ -68,7 +68,30 @@ const API = {
   get(ruta) { return this.solicitar(ruta, { method: 'GET' }); },
   post(ruta, body) { return this.solicitar(ruta, { method: 'POST', body }); },
   put(ruta, body) { return this.solicitar(ruta, { method: 'PUT', body }); },
-  del(ruta) { return this.solicitar(ruta, { method: 'DELETE' }); }
+  del(ruta) { return this.solicitar(ruta, { method: 'DELETE' }); },
+
+  // Descarga un archivo que requiere sesión (ej. la plantilla de importación) y
+  // dispara la descarga en el navegador, ya que un <a href> normal no puede mandar el token.
+  async descargarArchivo(ruta, nombreSugerido) {
+    const headers = {};
+    const token = this.token();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(this.base() + ruta, { headers });
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || 'No se pudo descargar el archivo.');
+    }
+    const blob = await resp.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreSugerido || 'archivo';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
 };
 
 // Protege una página: si no hay sesión, redirige al login.

@@ -47,7 +47,12 @@
               <option value="rojo">Vencido</option>
             </select>
           </div>
-          ${esAdmin ? `<button class="btn btn-verde" id="btn-nuevo">+ Nuevo cliente</button>` : ''}
+          ${esAdmin ? `
+            <div class="flex-gap">
+              <button class="btn btn-secundario" id="btn-importar">📥 Importar clientes</button>
+              <button class="btn btn-verde" id="btn-nuevo">+ Nuevo cliente</button>
+            </div>
+          ` : ''}
         </div>
       </div>
     </div>
@@ -77,6 +82,7 @@
 
   if (esAdmin) {
     document.getElementById('btn-nuevo').addEventListener('click', () => abrirModal());
+    document.getElementById('btn-importar').addEventListener('click', () => abrirModalImportar());
   }
 
   await cargarTabla();
@@ -267,5 +273,121 @@
   function debounce(fn, ms) {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
+
+  // ==========================================================
+  // IMPORTAR CLIENTES DESDE EXCEL/CSV
+  // ==========================================================
+  function abrirModalImportar() {
+    const modalCont = document.getElementById('modal-contenedor');
+    modalCont.innerHTML = `
+      <div class="modal-fondo">
+        <div class="modal">
+          <div class="modal-cabecera">
+            <h3>Importar clientes</h3>
+            <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+          </div>
+          <div class="modal-cuerpo">
+            <p class="texto-gris" style="margin-top:0;">
+              1. Descarga la plantilla, 2. llénala con tus clientes (respeta los nombres exactos
+              de zona y plan que aparecen en las hojas de referencia), 3. súbela aquí. El
+              <b>Cliente-ID (folio)</b> se genera automáticamente para cada uno.
+            </p>
+
+            <button class="btn btn-secundario btn-sm" id="btn-descargar-plantilla" style="margin-bottom:18px;">
+              ⬇️ Descargar plantilla (.xlsx)
+            </button>
+
+            <div class="campo">
+              <label>Archivo lleno (.xlsx, .xls o .csv)</label>
+              <input type="file" id="archivo-importar" accept=".xlsx,.xls,.csv" />
+            </div>
+
+            <div id="resultado-importacion"></div>
+          </div>
+          <div class="modal-pie">
+            <button class="btn btn-secundario" id="cerrar-abajo">Cerrar</button>
+            <button class="btn btn-primario" id="btn-subir-importar">Subir e importar</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cerrar = () => { modalCont.innerHTML = ''; cargarTabla(); };
+    document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+    document.getElementById('cerrar-abajo').addEventListener('click', cerrar);
+
+    document.getElementById('btn-descargar-plantilla').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const textoOriginal = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Descargando…';
+      try {
+        await API.descargarArchivo('/api/clientes/plantilla', 'plantilla_clientes_fibertec.xlsx');
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = textoOriginal;
+      }
+    });
+
+    document.getElementById('btn-subir-importar').addEventListener('click', async () => {
+      const inputArchivo = document.getElementById('archivo-importar');
+      const resultadoBox = document.getElementById('resultado-importacion');
+      const archivo = inputArchivo.files[0];
+
+      if (!archivo) {
+        resultadoBox.innerHTML = `<div class="error-msg">Selecciona primero un archivo.</div>`;
+        return;
+      }
+
+      const btn = document.getElementById('btn-subir-importar');
+      btn.disabled = true;
+      btn.textContent = 'Importando…';
+      resultadoBox.innerHTML = `<div class="cargando">Procesando tu archivo, puede tardar unos segundos…</div>`;
+
+      try {
+        const formData = new FormData();
+        formData.append('archivo', archivo);
+        const resultado = await API.solicitarConArchivo('/api/clientes/importar', formData, 'POST');
+        pintarResultadoImportacion(resultado);
+      } catch (err) {
+        resultadoBox.innerHTML = `<div class="error-msg">${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Subir e importar';
+      }
+    });
+
+    function pintarResultadoImportacion(resultado) {
+      const resultadoBox = document.getElementById('resultado-importacion');
+      const errores = resultado.detalle.filter(d => d.error);
+      const exitosos = resultado.detalle.filter(d => !d.error);
+
+      resultadoBox.innerHTML = `
+        <div class="${resultado.fallidos ? 'error-msg' : 'exito-msg'}" style="margin-top:16px;">
+          Se importaron <b>${resultado.insertados}</b> de ${resultado.total} filas.
+          ${resultado.fallidos ? `${resultado.fallidos} fila(s) tuvieron errores y no se importaron (ver detalle abajo).` : '¡Todos los clientes se importaron correctamente! 🎉'}
+        </div>
+
+        ${exitosos.length ? `
+          <div class="tarjeta-cliente-encontrado" style="margin-bottom:12px;">
+            <b>Folios generados (primeros ${Math.min(10, exitosos.length)}):</b>
+            <div class="mono texto-gris" style="margin-top:6px; font-size:12.5px;">
+              ${exitosos.slice(0, 10).map(e => `${e.cliente_id} — ${e.nombre}`).join('<br>')}
+              ${exitosos.length > 10 ? `<br>… y ${exitosos.length - 10} más.` : ''}
+            </div>
+          </div>` : ''}
+
+        ${errores.length ? `
+          <div class="tabla-envoltura">
+            <table class="tabla">
+              <thead><tr><th>Fila</th><th>Nombre</th><th>Error</th></tr></thead>
+              <tbody>
+                ${errores.map(e => `<tr><td>${e.fila}</td><td>${e.nombre}</td><td class="texto-gris">${e.error}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>` : ''}
+      `;
+    }
   }
 })();

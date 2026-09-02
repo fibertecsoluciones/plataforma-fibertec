@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const XLSX = require('xlsx');
 
 // Lista de clientes con su estado de pago (semáforo) - para el dashboard general
 async function listarClientes(req, res) {
@@ -129,8 +130,161 @@ async function resumenSemaforo(req, res) {
   res.json(base);
 }
 
+// ============================================================
+// IMPORTACIÓN MASIVA DE CLIENTES (Excel/CSV)
+// ============================================================
+
+function normalizarClave(str) {
+  return String(str || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .replace(/[^a-z0-9]/g, ''); // quita espacios, guiones bajos, etc.
+}
+
+// Genera y descarga una plantilla .xlsx con las columnas esperadas y, en hojas
+// adicionales, las zonas y planes que ya existen en el sistema (para que el
+// usuario sepa exactamente qué nombres escribir).
+async function descargarPlantilla(req, res) {
+  const zonas = await db.query('SELECT nombre, codigo FROM zonas WHERE activo = TRUE ORDER BY nombre');
+  const planes = await db.query('SELECT nombre, precio FROM planes WHERE activo = TRUE ORDER BY nombre');
+
+  const encabezados = ['Nombre', 'Telefono', 'Telefono_Alterno', 'Direccion', 'Zona', 'Plan', 'IP', 'Dia_Pago', 'Dias_Tolerancia', 'Estado', 'Notas'];
+  const filaEjemplo = ['Juan Pérez', '9611234567', '', 'Calle Reforma #12', zonas.rows[0]?.nombre || 'POPOTLA', planes.rows[0]?.nombre || 'NAVEGA', '', 15, 5, 'activo', ''];
+
+  const hojaClientes = XLSX.utils.aoa_to_sheet([encabezados, filaEjemplo]);
+  hojaClientes['!cols'] = encabezados.map(() => ({ wch: 18 }));
+
+  const hojaZonas = XLSX.utils.aoa_to_sheet([
+    ['Zonas disponibles (escribe el nombre exacto en la columna "Zona")'],
+    [],
+    ...zonas.rows.map(z => [z.nombre, z.codigo])
+  ]);
+
+  const hojaPlanes = XLSX.utils.aoa_to_sheet([
+    ['Planes disponibles (escribe el nombre exacto en la columna "Plan")'],
+    [],
+    ...planes.rows.map(p => [p.nombre, `$${p.precio}/mes`])
+  ]);
+
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hojaClientes, 'Clientes');
+  XLSX.utils.book_append_sheet(libro, hojaZonas, 'Zonas disponibles');
+  XLSX.utils.book_append_sheet(libro, hojaPlanes, 'Planes disponibles');
+
+  const buffer = XLSX.write(libro, { type: 'buffer', bookType: 'xlsx' });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="plantilla_clientes_fibertec.xlsx"');
+  res.send(buffer);
+}
+
+// Recibe el archivo lleno, valida cada fila y da de alta a los clientes.
+// El Cliente-ID (folio) se genera solo, vía el mismo trigger que usa el alta manual.
+async function importarClientes(req, res) {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
+
+  let libro;
+  try {
+    libro = XLSX.read(req.file.buffer, { type: 'buffer' });
+  } catch (err) {
+    return res.status(400).json({ error: 'No se pudo leer el archivo. Verifica que sea un .xlsx, .xls o .csv válido.' });
+  }
+
+  const hoja = libro.Sheets[libro.SheetNames[0]];
+  const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
+
+  if (!filas.length) {
+    return res.status(400).json({ error: 'El archivo no tiene filas de datos (o está usando la hoja equivocada).' });
+  }
+
+  // Precargamos zonas y planes para no consultar la base en cada fila.
+  const zonas = (await db.query('SELECT id, nombre, codigo FROM zonas')).rows;
+  const planes = (await db.query('SELECT id, nombre FROM planes')).rows;
+  const mapaZonas = new Map(zonas.map(z => [normalizarClave(z.nombre), z.id]));
+  zonas.forEach(z => mapaZonas.set(normalizarClave(z.codigo), z.id)); // también acepta el código
+  const mapaPlanes = new Map(planes.map(p => [normalizarClave(p.nombre), p.id]));
+
+  const resultado = { total: filas.length, insertados: 0, fallidos: 0, detalle: [] };
+
+  for (let i = 0; i < filas.length; i++) {
+    const numeroFila = i + 2; // +2 porque la fila 1 es el encabezado
+    const filaOriginal = filas[i];
+
+    // Normalizamos las llaves de esta fila (para aceptar variaciones de mayúsculas/acentos/espacios)
+    const fila = {};
+    Object.entries(filaOriginal).forEach(([clave, valor]) => { fila[normalizarClave(clave)] = valor; });
+
+    const nombre = String(fila['nombre'] || '').trim();
+    const zonaTexto = String(fila['zona'] || '').trim();
+    const planTexto = String(fila['plan'] || '').trim();
+    const diaPagoRaw = fila['diapago'];
+
+    if (!nombre) {
+      resultado.fallidos++;
+      resultado.detalle.push({ fila: numeroFila, nombre: nombre || '(sin nombre)', error: 'Falta el nombre del cliente.' });
+      continue;
+    }
+
+    const zonaId = mapaZonas.get(normalizarClave(zonaTexto));
+    if (!zonaId) {
+      resultado.fallidos++;
+      resultado.detalle.push({ fila: numeroFila, nombre, error: `La zona "${zonaTexto}" no existe. Revisa la hoja "Zonas disponibles" o créala primero en Ajustes.` });
+      continue;
+    }
+
+    const planId = mapaPlanes.get(normalizarClave(planTexto));
+    if (!planId) {
+      resultado.fallidos++;
+      resultado.detalle.push({ fila: numeroFila, nombre, error: `El plan "${planTexto}" no existe. Revisa la hoja "Planes disponibles" o créalo primero en Ajustes.` });
+      continue;
+    }
+
+    const diaPago = parseInt(diaPagoRaw, 10);
+    if (!diaPago || diaPago < 1 || diaPago > 31) {
+      resultado.fallidos++;
+      resultado.detalle.push({ fila: numeroFila, nombre, error: `El día de pago "${diaPagoRaw}" no es válido (debe ser un número entre 1 y 31).` });
+      continue;
+    }
+
+    const estadoRaw = normalizarClave(fila['estado']);
+    const estado = ['activo', 'suspendido', 'baja'].includes(String(fila['estado']).trim().toLowerCase())
+      ? String(fila['estado']).trim().toLowerCase() : 'activo';
+
+    const diasTolerancia = parseInt(fila['diastolerancia'], 10) || 5;
+
+    try {
+      const r = await db.query(
+        `INSERT INTO clientes
+          (nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, estado, notas)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         RETURNING cliente_id`,
+        [
+          nombre,
+          String(fila['telefono'] || '').trim(),
+          String(fila['telefonoalterno'] || '').trim(),
+          String(fila['direccion'] || '').trim(),
+          zonaId, planId,
+          String(fila['ip'] || '').trim(),
+          diaPago, diasTolerancia, estado,
+          String(fila['notas'] || '').trim()
+        ]
+      );
+      resultado.insertados++;
+      resultado.detalle.push({ fila: numeroFila, nombre, cliente_id: r.rows[0].cliente_id, error: null });
+    } catch (err) {
+      console.error(err);
+      resultado.fallidos++;
+      resultado.detalle.push({ fila: numeroFila, nombre, error: 'Error al guardar en la base de datos. Revisa los datos de esta fila.' });
+    }
+  }
+
+  res.json(resultado);
+}
+
 module.exports = {
   listarClientes, obtenerCliente, buscarPorFolio,
   crearCliente, actualizarCliente, eliminarCliente,
-  resumenSemaforo
+  resumenSemaforo,
+  descargarPlantilla, importarClientes
 };
