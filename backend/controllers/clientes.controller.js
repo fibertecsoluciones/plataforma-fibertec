@@ -25,20 +25,22 @@ async function listarClientes(req, res) {
     sql += ` AND (LOWER(nombre) LIKE $${params.length} OR LOWER(cliente_id) LIKE $${params.length} OR ip LIKE $${params.length})`;
   }
 
-  sql += ' ORDER BY semaforo = \'rojo\' DESC, semaforo = \'naranja\' DESC, semaforo = \'amarillo\' DESC, nombre ASC';
+  sql += ' ORDER BY semaforo = \'rojo\' DESC, meses_adeudados DESC, semaforo = \'naranja\' DESC, semaforo = \'amarillo\' DESC, nombre ASC';
 
   const r = await db.query(sql, params);
   res.json(r.rows);
 }
 
-// Detalle completo de un cliente (para edición)
+// Detalle completo de un cliente (para edición y para la pantalla de pagos)
 async function obtenerCliente(req, res) {
   const { id } = req.params;
   const r = await db.query(
-    `SELECT c.*, z.nombre AS zona_nombre, pl.nombre AS plan_nombre, pl.precio
+    `SELECT c.*, z.nombre AS zona_nombre, pl.nombre AS plan_nombre, pl.precio,
+            v.semaforo, v.meses_adeudados, v.saldo_pendiente, v.fecha_vencimiento
      FROM clientes c
      JOIN zonas z ON z.id = c.zona_id
      JOIN planes pl ON pl.id = c.plan_id
+     LEFT JOIN vw_estado_pago v ON v.cliente_id_pk = c.id
      WHERE c.id = $1`,
     [id]
   );
@@ -122,12 +124,21 @@ async function eliminarCliente(req, res) {
   res.json({ mensaje: 'Cliente dado de baja.', cliente: r.rows[0] });
 }
 
-// Resumen de conteos por semáforo, para tarjetas del dashboard
+// Resumen de conteos por semáforo, más el total de cartera vencida acumulada, para el dashboard
 async function resumenSemaforo(req, res) {
   const r = await db.query(`SELECT semaforo, COUNT(*)::int AS total FROM vw_estado_pago GROUP BY semaforo`);
+  const cartera = await db.query(
+    `SELECT COUNT(*) FILTER (WHERE meses_adeudados > 0)::int AS clientes_con_deuda,
+            COALESCE(SUM(saldo_pendiente), 0)::numeric(12,2) AS saldo_total
+     FROM vw_estado_pago`
+  );
   const base = { verde: 0, amarillo: 0, naranja: 0, rojo: 0 };
   r.rows.forEach((row) => { base[row.semaforo] = row.total; });
-  res.json(base);
+  res.json({
+    ...base,
+    clientes_con_deuda: cartera.rows[0].clientes_con_deuda,
+    saldo_total: Number(cartera.rows[0].saldo_total)
+  });
 }
 
 // ============================================================

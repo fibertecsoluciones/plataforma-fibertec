@@ -78,6 +78,7 @@
               <div class="flex-gap" style="margin-bottom:6px;">
                 <span class="folio">${cliente.cliente_id}</span>
                 <h3 style="margin:0;">${cliente.nombre}</h3>
+                ${cliente.meses_adeudados > 0 ? `<span class="pill baja">Debe ${cliente.meses_adeudados} mes${cliente.meses_adeudados > 1 ? 'es' : ''} — ${mxn(cliente.saldo_pendiente)}</span>` : `<span class="pill activo">Al día</span>`}
               </div>
               <div class="texto-gris">${cliente.zona_nombre} · Plan ${cliente.plan_nombre} (${mxn(cliente.precio)}) · Día de pago ${cliente.dia_pago}</div>
             </div>

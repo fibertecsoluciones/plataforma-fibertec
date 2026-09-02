@@ -55,6 +55,17 @@
         </div>
       </div>
 
+      <div class="grid-kpi">
+        <div class="kpi borde-rojo">
+          <div class="kpi-etiqueta">Clientes con adeudo acumulado</div>
+          <div class="kpi-valor">${resumenPagos.clientes_con_deuda}</div>
+        </div>
+        <div class="kpi borde-rojo">
+          <div class="kpi-etiqueta">Cartera vencida total (todos los meses)</div>
+          <div class="kpi-valor">${mxn(resumenPagos.saldo_total)}</div>
+        </div>
+      </div>
+
       <div class="tarjeta">
         <div class="tarjeta-cabecera">
           <h3>🔴 Clientes vencidos (fuera de tolerancia)</h3>
@@ -101,11 +112,12 @@
         <td>${c.plan}</td>
         <td>${fechaCorta(c.fecha_vencimiento)}</td>
         <td><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span></td>
+        <td>${c.meses_adeudados > 0 ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>` : '—'}</td>
       </tr>
     `).join('');
     return `
       <table class="tabla">
-        <thead><tr><th>Folio</th><th>Cliente</th><th>Zona</th><th>Plan</th><th>Vence</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Folio</th><th>Cliente</th><th>Zona</th><th>Plan</th><th>Vence</th><th>Estado</th><th>Adeudo</th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
     `;

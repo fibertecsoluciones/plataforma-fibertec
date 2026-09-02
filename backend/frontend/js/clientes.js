@@ -50,6 +50,10 @@
               <option value="naranja">En tolerancia</option>
               <option value="rojo">Vencido</option>
             </select>
+            <label class="flex-gap" style="font-size:13px; color:var(--tinta-suave); cursor:pointer;">
+              <input type="checkbox" id="filtro-adeudo" style="width:16px; height:16px;" />
+              Solo con 2+ meses de adeudo
+            </label>
           </div>
           ${esAdmin ? `
             <div class="flex-gap">
@@ -83,6 +87,9 @@
   document.getElementById('filtro-semaforo').addEventListener('change', (e) => {
     filtroActual.semaforo = e.target.value; cargarTabla();
   });
+  document.getElementById('filtro-adeudo').addEventListener('change', (e) => {
+    filtroActual.soloAdeudo = e.target.checked; cargarTabla();
+  });
 
   if (esAdmin) {
     document.getElementById('btn-nuevo').addEventListener('click', () => abrirModal());
@@ -101,7 +108,7 @@
 
     try {
       const lista = await API.get('/api/clientes?' + qs.toString());
-      listaCompleta = lista;
+      listaCompleta = filtroActual.soloAdeudo ? lista.filter(c => c.meses_adeudados >= 2) : lista;
       paginaActual = 1;
       renderTablaPaginada();
     } catch (err) {
@@ -127,7 +134,7 @@
           <thead>
             <tr>
               <th>Folio</th><th>Cliente</th><th>Zona</th><th>Plan</th><th>IP</th>
-              <th>Día pago</th><th>Vence</th><th>Estado pago</th><th>Cliente</th><th>Acciones</th>
+              <th>Día pago</th><th>Vence</th><th>Estado pago</th><th>Adeudo</th><th>Cliente</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -141,6 +148,9 @@
                 <td>${c.dia_pago}</td>
                 <td>${fechaCorta(c.fecha_vencimiento)}</td>
                 <td><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span></td>
+                <td>${c.meses_adeudados > 0
+                  ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''} — ${mxn(c.saldo_pendiente)}</span>`
+                  : `<span class="texto-gris">Al día</span>`}</td>
                 <td><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
                 <td>
                   <div class="fila-acciones">
