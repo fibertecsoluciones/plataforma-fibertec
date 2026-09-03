@@ -10,7 +10,7 @@ async function historialCliente(req, res) {
   res.json(r.rows);
 }
 
-// Lista de pagos con filtros (por periodo, por cliente, etc.) — útil para reportes
+// Lista de pagos con filtros (por periodo, por cliente, etc.) — útil para reportess
 async function listarPagos(req, res) {
   const { desde, hasta, clienteId } = req.query;
   let sql = `
