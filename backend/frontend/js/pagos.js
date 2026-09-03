@@ -235,7 +235,7 @@
   }
 
   function mesLegible(periodo) {
-    const d = fechaLocalDesdeTexto(periodo);
+    const d = new Date(periodo + (String(periodo).length === 7 ? '-01' : ''));
     return d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
   }
 })();
