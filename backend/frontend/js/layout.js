@@ -51,6 +51,16 @@ function renderLayout(paginaActiva, tituloTopbar) {
           <button class="btn-menu" id="btn-menu">☰</button>
           <h2>${tituloTopbar}</h2>
         </div>
+        <div class="notif-envoltura">
+          <button class="btn-notif" id="btn-notif" title="Clientes con adeudo">
+            🔔
+            <span class="notif-badge oculto" id="notif-badge">0</span>
+          </button>
+          <div class="notif-panel oculto" id="notif-panel">
+            <div class="notif-panel-cabecera">Clientes con adeudo</div>
+            <div id="notif-panel-cuerpo" class="cargando">Cargando…</div>
+          </div>
+        </div>
       </header>
       <main class="pagina" id="pagina-contenido"></main>
     </div>
@@ -66,6 +76,57 @@ function renderLayout(paginaActiva, tituloTopbar) {
     btnMenu.addEventListener('click', () => {
       document.getElementById('sidebar').classList.toggle('abierta');
     });
+  }
+
+  configurarNotificaciones();
+}
+
+// Campanita de notificaciones en la barra superior: avisa de clientes con adeudo
+// (a partir de 1 mes) en cualquier página, sin tener que entrar a Clientes a revisar.
+async function configurarNotificaciones() {
+  const btn = document.getElementById('btn-notif');
+  const panel = document.getElementById('notif-panel');
+  if (!btn || !panel) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.toggle('oculto');
+  });
+  document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target) && e.target !== btn) panel.classList.add('oculto');
+  });
+
+  try {
+    const lista = await API.get('/api/clientes');
+    const conAdeudo = lista
+      .filter(c => c.meses_adeudados > 0)
+      .sort((a, b) => b.meses_adeudados - a.meses_adeudados);
+
+    const badge = document.getElementById('notif-badge');
+    if (conAdeudo.length > 0) {
+      badge.textContent = conAdeudo.length > 99 ? '99+' : conAdeudo.length;
+      badge.classList.remove('oculto');
+    }
+
+    const cuerpo = document.getElementById('notif-panel-cuerpo');
+    if (!conAdeudo.length) {
+      cuerpo.innerHTML = `<div class="notif-vacio">🎉 Ningún cliente tiene adeudo por ahora.</div>`;
+      return;
+    }
+
+    cuerpo.innerHTML = conAdeudo.slice(0, 15).map(c => `
+      <a class="notif-item" href="/pagos.html?cliente=${c.cliente_id_pk}">
+        <div class="flex-entre">
+          <span><b>${c.nombre}</b> <span class="texto-gris" style="font-size:11px;">(${c.cliente_id})</span></span>
+          <span class="notif-item-meses">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>
+        </div>
+        <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">${c.zona} · debe ${mxn(c.saldo_pendiente)}</div>
+      </a>
+    `).join('') + `
+      <div class="notif-panel-pie"><a href="/clientes.html?adeudo=1">Ver todos los ${conAdeudo.length} clientes con adeudo →</a></div>
+    `;
+  } catch (err) {
+    console.error('No se pudieron cargar las notificaciones:', err);
   }
 }
 
