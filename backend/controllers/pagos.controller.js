@@ -89,13 +89,16 @@ async function desgloseCliente(req, res) {
   const { clienteId } = req.params;
 
   const clienteRes = await db.query(
-    `SELECT c.fecha_alta, c.fecha_inicio_conteo, p.precio FROM clientes c JOIN planes p ON p.id = c.plan_id WHERE c.id = $1`,
+    `SELECT c.fecha_alta, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio
+     FROM clientes c JOIN planes p ON p.id = c.plan_id WHERE c.id = $1`,
     [clienteId]
   );
   const cliente = clienteRes.rows[0];
   if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
 
   const precio = Number(cliente.precio);
+  const diaPago = Number(cliente.dia_pago);
+  const diasTolerancia = Number(cliente.dias_tolerancia);
   const hoy = new Date();
   const actual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
@@ -112,24 +115,44 @@ async function desgloseCliente(req, res) {
   );
   const mapaPagos = new Map(pagosRes.rows.map(r => [new Date(r.periodo).toISOString().slice(0, 10), r]));
 
+  // Misma regla que usa el semáforo: el día de vencimiento de un mes se ajusta si ese
+  // mes no tiene ese día (ej. día 31 en un mes de 30), y hay que sumarle la tolerancia.
+  function fechaLimiteDelMes(periodoDate) {
+    const ultimoDia = new Date(periodoDate.getFullYear(), periodoDate.getMonth() + 1, 0).getDate();
+    const dia = Math.min(diaPago, ultimoDia);
+    const vencimiento = new Date(periodoDate.getFullYear(), periodoDate.getMonth(), dia);
+    vencimiento.setDate(vencimiento.getDate() + diasTolerancia);
+    return vencimiento;
+  }
+
   const desglose = [];
   const cursor = new Date(inicio);
   while (cursor <= actual) {
     const clave = cursor.toISOString().slice(0, 10);
     const registro = mapaPagos.get(clave);
     const pagado = registro ? Number(registro.pagado) : 0;
+    const esMesActual = cursor.getTime() === actual.getTime();
+
     let estado = 'sin_pago';
-    if (pagado >= precio) estado = 'completo';
-    else if (pagado > 0) estado = 'parcial';
+    if (pagado >= precio) {
+      estado = 'completo';
+    } else if (pagado > 0) {
+      estado = 'parcial';
+    } else if (esMesActual) {
+      // El mes en curso solo cuenta como "vencido sin pago" si ya pasó su fecha límite
+      // (día de pago + tolerancia). Si todavía no llega esa fecha, no se debe marcar como deuda.
+      const limite = fechaLimiteDelMes(cursor);
+      estado = hoy > limite ? 'sin_pago' : 'pendiente';
+    }
 
     desglose.push({
       periodo: clave,
       esperado: precio,
       pagado,
-      saldo: Math.max(precio - pagado, 0),
+      saldo: estado === 'pendiente' ? 0 : Math.max(precio - pagado, 0),
       abonos: registro ? registro.abonos : 0,
       estado,
-      esMesActual: clave === actual.toISOString().slice(0, 10)
+      esMesActual
     });
     cursor.setMonth(cursor.getMonth() + 1);
   }

@@ -107,6 +107,7 @@
                       ${m.estado === 'completo' ? '<span class="pill activo">Completo</span>' : ''}
                       ${m.estado === 'parcial' ? '<span class="pill suspendido">Parcial</span>' : ''}
                       ${m.estado === 'sin_pago' ? '<span class="pill baja">Sin pago</span>' : ''}
+                      ${m.estado === 'pendiente' ? '<span class="pill">Pendiente (aún no vence)</span>' : ''}
                     </td>
                   </tr>
                 `).join('')}
