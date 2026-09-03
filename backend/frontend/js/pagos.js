@@ -70,6 +70,7 @@
     try {
       const cliente = await API.get(`/api/clientes/${id}`);
       const historial = await API.get(`/api/pagos/cliente/${id}`);
+      const { desglose } = await API.get(`/api/pagos/cliente/${id}/desglose`);
 
       cont.innerHTML = `
         <div class="tarjeta">
@@ -81,13 +82,41 @@
                 ${cliente.meses_adeudados > 0 ? `<span class="pill baja">Debe ${cliente.meses_adeudados} mes${cliente.meses_adeudados > 1 ? 'es' : ''} — ${mxn(cliente.saldo_pendiente)}</span>` : `<span class="pill activo">Al día</span>`}
               </div>
               <div class="texto-gris">${cliente.zona_nombre} · Plan ${cliente.plan_nombre} (${mxn(cliente.precio)}) · Día de pago ${cliente.dia_pago}</div>
+              ${cliente.adeudo_manual_meses > 0 ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">📌 Incluye ${cliente.adeudo_manual_meses} mes(es) capturados a mano${cliente.adeudo_manual_detalle ? ': ' + cliente.adeudo_manual_detalle : ''}</div>` : ''}
             </div>
             ${esAdmin ? `<button class="btn btn-verde" id="btn-registrar-pago">+ Registrar pago</button>` : ''}
           </div>
         </div>
 
         <div class="tarjeta">
-          <div class="tarjeta-cabecera"><h3>Historial de pagos — mes a mes</h3></div>
+          <div class="tarjeta-cabecera">
+            <h3>Desglose mensual</h3>
+            <span class="texto-gris" style="font-size:12px;">Últimos 12 meses (o desde su alta, lo que sea más corto)</span>
+          </div>
+          <div class="tarjeta-cuerpo tabla-envoltura">
+            <table class="tabla">
+              <thead><tr><th>Mes</th><th>Esperado</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead>
+              <tbody>
+                ${desglose.map(m => `
+                  <tr>
+                    <td>${mesLegible(m.periodo)}${m.esMesActual ? ' <span class="texto-gris" style="font-size:11px;">(mes actual)</span>' : ''}</td>
+                    <td>${mxn(m.esperado)}</td>
+                    <td>${mxn(m.pagado)}${m.abonos > 1 ? ` <span class="texto-gris" style="font-size:11px;">(${m.abonos} abonos)</span>` : ''}</td>
+                    <td>${m.saldo > 0 ? mxn(m.saldo) : '—'}</td>
+                    <td>
+                      ${m.estado === 'completo' ? '<span class="pill activo">Completo</span>' : ''}
+                      ${m.estado === 'parcial' ? '<span class="pill suspendido">Parcial</span>' : ''}
+                      ${m.estado === 'sin_pago' ? '<span class="pill baja">Sin pago</span>' : ''}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tarjeta">
+          <div class="tarjeta-cabecera"><h3>Historial de abonos (todos los registros individuales)</h3></div>
           <div class="tarjeta-cuerpo tabla-envoltura">
             ${historial.length ? `
               <table class="tabla">
@@ -161,6 +190,10 @@
               <div class="campo">
                 <label>Monto total pagado</label>
                 <input type="number" id="p-monto" min="0" step="0.01" value="${cliente.precio}" required />
+                <div class="texto-gris" style="font-size:11.5px; margin-top:4px;">
+                  ¿Solo te dio una parte? Cambia este monto por lo que sí pagó — el sistema lo marcará como
+                  "parcial" y podrás registrar el resto después, para el mismo mes, cuando te complete.
+                </div>
               </div>
               <div class="campo">
                 <label>Método de pago</label>
@@ -235,7 +268,7 @@
   }
 
   function mesLegible(periodo) {
-    const d = new Date(periodo + (String(periodo).length === 7 ? '-01' : ''));
+    const d = fechaLocalDesdeTexto(periodo);
     return d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
   }
 })();

@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// Historial de pagos de un cliente (vista mes a mes)dsd
+// Historial de pagos de un cliente (vista mes a mes)
 async function historialCliente(req, res) {
   const { clienteId } = req.params;
   const r = await db.query(
@@ -10,7 +10,7 @@ async function historialCliente(req, res) {
   res.json(r.rows);
 }
 
-// Lista de pagos con filtros (por periodo, por cliente, etc.) — útil para reportess
+// Lista de pagos con filtros (por periodo, por cliente, etc.) — útil para reportes
 async function listarPagos(req, res) {
   const { desde, hasta, clienteId } = req.query;
   let sql = `
@@ -82,6 +82,61 @@ async function registrarPago(req, res) {
   }
 }
 
+// Desglose mes a mes de un cliente: cuánto se esperaba, cuánto pagó (sumando todos
+// sus abonos de ese mes) y cuánto le falta. Así se ve EXACTAMENTE a qué mes
+// corresponde cualquier saldo pendiente, en vez de solo un número suelto.
+async function desgloseCliente(req, res) {
+  const { clienteId } = req.params;
+
+  const clienteRes = await db.query(
+    `SELECT c.fecha_alta, p.precio FROM clientes c JOIN planes p ON p.id = c.plan_id WHERE c.id = $1`,
+    [clienteId]
+  );
+  const cliente = clienteRes.rows[0];
+  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
+
+  const precio = Number(cliente.precio);
+  const hoy = new Date();
+  const actual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+  // Ventana: desde que se dio de alta, o los últimos 12 meses (lo que sea más corto)
+  const limite12Meses = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1);
+  const fechaAlta = new Date(cliente.fecha_alta);
+  const inicio = fechaAlta > limite12Meses ? new Date(fechaAlta.getFullYear(), fechaAlta.getMonth(), 1) : limite12Meses;
+
+  const pagosRes = await db.query(
+    `SELECT periodo, SUM(monto)::numeric(10,2) AS pagado, COUNT(*)::int AS abonos
+     FROM pagos WHERE cliente_id = $1 AND periodo >= $2
+     GROUP BY periodo`,
+    [clienteId, inicio.toISOString().slice(0, 10)]
+  );
+  const mapaPagos = new Map(pagosRes.rows.map(r => [new Date(r.periodo).toISOString().slice(0, 10), r]));
+
+  const desglose = [];
+  const cursor = new Date(inicio);
+  while (cursor <= actual) {
+    const clave = cursor.toISOString().slice(0, 10);
+    const registro = mapaPagos.get(clave);
+    const pagado = registro ? Number(registro.pagado) : 0;
+    let estado = 'sin_pago';
+    if (pagado >= precio) estado = 'completo';
+    else if (pagado > 0) estado = 'parcial';
+
+    desglose.push({
+      periodo: clave,
+      esperado: precio,
+      pagado,
+      saldo: Math.max(precio - pagado, 0),
+      abonos: registro ? registro.abonos : 0,
+      estado,
+      esMesActual: clave === actual.toISOString().slice(0, 10)
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  res.json({ desglose: desglose.reverse() }); // más reciente primero
+}
+
 async function eliminarPago(req, res) {
   const { id } = req.params;
   const r = await db.query('DELETE FROM pagos WHERE id = $1 RETURNING *', [id]);
@@ -89,4 +144,4 @@ async function eliminarPago(req, res) {
   res.json({ mensaje: 'Pago eliminado.', pago: r.rows[0] });
 }
 
-module.exports = { historialCliente, listarPagos, registrarPago, eliminarPago };
+module.exports = { historialCliente, listarPagos, registrarPago, eliminarPago, desgloseCliente };

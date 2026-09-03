@@ -225,7 +225,7 @@
     let datos = {
       nombre: '', telefono: '', telefono_alt: '', direccion: '',
       zona_id: zonas[0]?.id || '', plan_id: planes[0]?.id || '',
-      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0
+      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0, adeudo_manual_detalle: ''
     };
 
     if (clienteId) {
@@ -289,6 +289,10 @@
                   <label>Meses de atraso previos (manual)</label>
                   <input type="number" id="c-adeudo-manual" min="0" max="60" value="${datos.adeudo_manual_meses || 0}" />
                 </div>
+                <div class="campo">
+                  <label>¿A qué meses corresponde?</label>
+                  <input type="text" id="c-adeudo-detalle" value="${valorSeguro(datos.adeudo_manual_detalle)}" placeholder="Ej. Julio y agosto 2026" />
+                </div>
                 <div class="campo ancho-total" style="margin-top:-8px;">
                   <span class="texto-gris" style="font-size:11.5px;">
                     Úsalo solo si el cliente ya te debía meses de <b>antes</b> de darlo de alta en este sistema
@@ -337,7 +341,8 @@
         dias_tolerancia: Number(document.getElementById('c-dias-tolerancia').value),
         estado: document.getElementById('c-estado').value,
         notas: document.getElementById('c-notas').value.trim(),
-        adeudo_manual_meses: Number(document.getElementById('c-adeudo-manual').value) || 0
+        adeudo_manual_meses: Number(document.getElementById('c-adeudo-manual').value) || 0,
+        adeudo_manual_detalle: document.getElementById('c-adeudo-detalle').value.trim()
       };
 
       if (!payload.nombre || !payload.dia_pago) {

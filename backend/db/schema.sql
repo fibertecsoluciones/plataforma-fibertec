@@ -54,6 +54,7 @@ CREATE TABLE clientes (
   dia_pago          SMALLINT NOT NULL CHECK (dia_pago BETWEEN 1 AND 31),
   dias_tolerancia   SMALLINT NOT NULL DEFAULT 5,
   adeudo_manual_meses SMALLINT NOT NULL DEFAULT 0, -- meses de atraso previos a usar el sistema, capturados a mano
+  adeudo_manual_detalle TEXT, -- nota libre: a qué meses corresponde ese adeudo manual (ej. "julio y agosto 2026")
   fecha_alta        DATE NOT NULL DEFAULT CURRENT_DATE,
   estado            VARCHAR(20) NOT NULL DEFAULT 'activo'
                       CHECK (estado IN ('activo','suspendido','baja')),
@@ -108,10 +109,11 @@ FOR EACH ROW EXECUTE FUNCTION fn_touch_actualizado();
 -- ============================================================
 -- PAGOS
 -- ============================================================
--- Un registro por CLIENTE + MES cubierto (periodo = primer día del mes).
--- Cuando un cliente paga 2 o 3 meses de una sola exhibición (excepción),
--- se generan varias filas (una por cada periodo cubierto) enlazadas por
--- grupo_pago (mismo folio de pago).
+-- Un registro por CADA ABONO de un cliente a un mes (periodo = primer día del mes).
+-- Un mismo mes puede tener VARIOS registros (pagos parciales/abonos) — se suman para
+-- saber si ese mes ya quedó cubierto. Cuando un cliente paga 2 o 3 meses de una sola
+-- exhibición (excepción autorizada), se generan varias filas -- una por cada periodo
+-- cubierto -- ligadas por el mismo grupo_pago (mismo folio de pago).
 
 CREATE TABLE pagos (
   id              SERIAL PRIMARY KEY,
@@ -126,8 +128,7 @@ CREATE TABLE pagos (
   comprobante_url TEXT,
   registrado_por  INTEGER REFERENCES usuarios(id),
   notas           TEXT,
-  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (cliente_id, periodo)                  -- no se puede pagar 2 veces el mismo mes
+  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_pagos_cliente ON pagos(cliente_id);
@@ -146,31 +147,55 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Cuenta cuántos meses, desde que el cliente se dio de alta hasta hoy, se quedaron
--- SIN pago registrado. Los meses ya totalmente pasados cuentan si no hay pago.
--- El mes en curso solo cuenta si ya está vencido y fuera de tolerancia (semáforo rojo),
--- para no marcar como "adeudado" un mes que todavía no se le vence al cliente.
+-- SIN CUBRIR (compara la SUMA de abonos de cada mes contra el precio del plan, para
+-- que un pago parcial no cuente como si el mes ya estuviera resuelto).
 CREATE OR REPLACE FUNCTION fn_meses_adeudados(
-  p_cliente_id INT, p_fecha_alta DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT
+  p_cliente_id INT, p_fecha_alta DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT, p_precio NUMERIC
 ) RETURNS INT AS $$
 DECLARE
   v_periodo DATE := date_trunc('month', p_fecha_alta)::date;
   v_actual  DATE := date_trunc('month', CURRENT_DATE)::date;
   v_meses   INT := 0;
+  v_pagado  NUMERIC;
 BEGIN
   WHILE v_periodo <= v_actual LOOP
+    SELECT COALESCE(SUM(monto), 0) INTO v_pagado FROM pagos WHERE cliente_id = p_cliente_id AND periodo = v_periodo;
     IF v_periodo < v_actual THEN
-      IF NOT EXISTS (SELECT 1 FROM pagos WHERE cliente_id = p_cliente_id AND periodo = v_periodo) THEN
-        v_meses := v_meses + 1;
-      END IF;
+      IF v_pagado < p_precio THEN v_meses := v_meses + 1; END IF;
     ELSE
-      IF NOT EXISTS (SELECT 1 FROM pagos WHERE cliente_id = p_cliente_id AND periodo = v_periodo)
-         AND CURRENT_DATE > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
+      IF v_pagado < p_precio AND CURRENT_DATE > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
         v_meses := v_meses + 1;
       END IF;
     END IF;
     v_periodo := v_periodo + INTERVAL '1 month';
   END LOOP;
   RETURN v_meses;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Suma en DINERO lo que falta por cubrir (más preciso que solo contar meses: un mes
+-- con pago parcial no debe el mes completo, solo la diferencia).
+CREATE OR REPLACE FUNCTION fn_saldo_pendiente_automatico(
+  p_cliente_id INT, p_fecha_alta DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT, p_precio NUMERIC
+) RETURNS NUMERIC AS $$
+DECLARE
+  v_periodo DATE := date_trunc('month', p_fecha_alta)::date;
+  v_actual  DATE := date_trunc('month', CURRENT_DATE)::date;
+  v_saldo   NUMERIC := 0;
+  v_pagado  NUMERIC;
+BEGIN
+  WHILE v_periodo <= v_actual LOOP
+    SELECT COALESCE(SUM(monto), 0) INTO v_pagado FROM pagos WHERE cliente_id = p_cliente_id AND periodo = v_periodo;
+    IF v_periodo < v_actual THEN
+      IF v_pagado < p_precio THEN v_saldo := v_saldo + (p_precio - v_pagado); END IF;
+    ELSE
+      IF v_pagado < p_precio AND CURRENT_DATE > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
+        v_saldo := v_saldo + (p_precio - v_pagado);
+      END IF;
+    END IF;
+    v_periodo := v_periodo + INTERVAL '1 month';
+  END LOOP;
+  RETURN v_saldo;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -185,7 +210,7 @@ $$ LANGUAGE plpgsql;
 --
 -- Ojo: todo lo anterior solo mira EL MES EN CURSO. Para saber si un cliente
 -- arrastra 2, 3 o más meses sin pagar, se usa fn_meses_adeudados() más abajo.
-CREATE OR REPLACE VIEW vw_estado_pago AS
+CREATE VIEW vw_estado_pago AS
 SELECT
   c.id                  AS cliente_id_pk,
   c.cliente_id,
@@ -199,32 +224,33 @@ SELECT
   c.dia_pago,
   c.dias_tolerancia,
   c.adeudo_manual_meses,
+  c.adeudo_manual_detalle,
   date_trunc('month', CURRENT_DATE)::date                                   AS periodo_actual,
   fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE)                            AS fecha_vencimiento,
   fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia        AS fecha_limite_tolerancia,
-  EXISTS (
-    SELECT 1 FROM pagos pg
-    WHERE pg.cliente_id = c.id
-      AND pg.periodo = date_trunc('month', CURRENT_DATE)::date
-  ) AS pagado_mes_actual,
+  COALESCE(pm.pagado, 0)                                                    AS pagado_mes_actual_monto,
+  (COALESCE(pm.pagado, 0) >= p.precio)                                      AS pagado_mes_actual,
+  (COALESCE(pm.pagado, 0) > 0 AND COALESCE(pm.pagado, 0) < p.precio)        AS pago_parcial_mes_actual,
+  GREATEST(p.precio - COALESCE(pm.pagado, 0), 0)                           AS saldo_mes_actual,
   (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) - CURRENT_DATE)           AS dias_para_vencer,
   (CURRENT_DATE - (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia)) AS dias_vencido,
   CASE
-    WHEN EXISTS (
-      SELECT 1 FROM pagos pg
-      WHERE pg.cliente_id = c.id
-        AND pg.periodo = date_trunc('month', CURRENT_DATE)::date
-    ) THEN 'verde'
+    WHEN COALESCE(pm.pagado, 0) >= p.precio THEN 'verde'
     WHEN CURRENT_DATE > (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia) THEN 'rojo'
     WHEN CURRENT_DATE > fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) THEN 'naranja'
     WHEN CURRENT_DATE >= (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) - 3) THEN 'amarillo'
     ELSE 'verde'
   END AS semaforo,
-  fn_meses_adeudados(c.id, c.fecha_alta, c.dia_pago, c.dias_tolerancia) + c.adeudo_manual_meses                    AS meses_adeudados,
-  ((fn_meses_adeudados(c.id, c.fecha_alta, c.dia_pago, c.dias_tolerancia) + c.adeudo_manual_meses) * p.precio)::numeric(10,2) AS saldo_pendiente
+  fn_meses_adeudados(c.id, c.fecha_alta, c.dia_pago, c.dias_tolerancia, p.precio) + c.adeudo_manual_meses AS meses_adeudados,
+  (fn_saldo_pendiente_automatico(c.id, c.fecha_alta, c.dia_pago, c.dias_tolerancia, p.precio)
+    + (c.adeudo_manual_meses * p.precio))::numeric(10,2)                   AS saldo_pendiente
 FROM clientes c
 JOIN zonas z   ON z.id = c.zona_id
 JOIN planes p  ON p.id = c.plan_id
+LEFT JOIN LATERAL (
+  SELECT SUM(monto) AS pagado FROM pagos pg
+  WHERE pg.cliente_id = c.id AND pg.periodo = date_trunc('month', CURRENT_DATE)::date
+) pm ON true
 WHERE c.estado <> 'baja';
 
 -- ============================================================
