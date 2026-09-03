@@ -76,9 +76,23 @@ function mxn(valor) {
 }
 
 // Formatea fecha corta legible
+// IMPORTANTE: las fechas que vienen de PostgreSQL (columnas DATE, sin hora) llegan como
+// texto tipo "2026-09-07T00:00:00.000Z". Si se le pasan tal cual a `new Date(...)`,
+// JavaScript las interpreta como medianoche en UTC y, al mostrarlas en una zona horaria
+// negativa (como México, UTC-6), se recorren un día hacia atrás. Por eso se arma la fecha
+// a mano con año/mes/día locales, sin pasar por esa conversión de huso horario.
+function fechaLocalDesdeTexto(f) {
+  if (!f) return null;
+  const soloFecha = String(f).slice(0, 10); // "2026-09-07"
+  const partes = soloFecha.split('-');
+  if (partes.length !== 3) return new Date(f);
+  const [anio, mes, dia] = partes.map(Number);
+  return new Date(anio, mes - 1, dia);
+}
+
 function fechaCorta(f) {
-  if (!f) return '—';
-  const d = new Date(f);
+  const d = fechaLocalDesdeTexto(f);
+  if (!d) return '—';
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
