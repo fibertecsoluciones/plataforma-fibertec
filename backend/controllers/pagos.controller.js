@@ -89,7 +89,7 @@ async function desgloseCliente(req, res) {
   const { clienteId } = req.params;
 
   const clienteRes = await db.query(
-    `SELECT c.fecha_alta, p.precio FROM clientes c JOIN planes p ON p.id = c.plan_id WHERE c.id = $1`,
+    `SELECT c.fecha_alta, c.fecha_inicio_conteo, p.precio FROM clientes c JOIN planes p ON p.id = c.plan_id WHERE c.id = $1`,
     [clienteId]
   );
   const cliente = clienteRes.rows[0];
@@ -99,10 +99,10 @@ async function desgloseCliente(req, res) {
   const hoy = new Date();
   const actual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
-  // Ventana: desde que se dio de alta, o los últimos 12 meses (lo que sea más corto)
+  // Ventana: desde la fecha de inicio de conteo (o los últimos 12 meses, lo que sea más corto)
   const limite12Meses = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1);
-  const fechaAlta = new Date(cliente.fecha_alta);
-  const inicio = fechaAlta > limite12Meses ? new Date(fechaAlta.getFullYear(), fechaAlta.getMonth(), 1) : limite12Meses;
+  const fechaBase = new Date(cliente.fecha_inicio_conteo || cliente.fecha_alta);
+  const inicio = fechaBase > limite12Meses ? new Date(fechaBase.getFullYear(), fechaBase.getMonth(), 1) : limite12Meses;
 
   const pagosRes = await db.query(
     `SELECT periodo, SUM(monto)::numeric(10,2) AS pagado, COUNT(*)::int AS abonos

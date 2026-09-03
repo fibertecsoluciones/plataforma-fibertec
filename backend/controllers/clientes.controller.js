@@ -64,7 +64,7 @@ async function buscarPorFolio(req, res) {
 }
 
 async function crearCliente(req, res) {
-  const { nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle } = req.body;
+  const { nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo } = req.body;
 
   if (!nombre || !zona_id || !plan_id || !dia_pago) {
     return res.status(400).json({ error: 'Nombre, zona, plan y día de pago son obligatorios.' });
@@ -76,10 +76,10 @@ async function crearCliente(req, res) {
   try {
     const r = await db.query(
       `INSERT INTO clientes
-        (nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,COALESCE($9,5),$10,COALESCE($11,0),$12)
+        (nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,COALESCE($9,5),$10,COALESCE($11,0),$12,COALESCE($13, CURRENT_DATE))
        RETURNING *`,
-      [nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle]
+      [nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo]
     );
     res.status(201).json(r.rows[0]);
   } catch (err) {
@@ -90,7 +90,7 @@ async function crearCliente(req, res) {
 
 async function actualizarCliente(req, res) {
   const { id } = req.params;
-  const campos = ['nombre','telefono','telefono_alt','direccion','zona_id','plan_id','ip','dia_pago','dias_tolerancia','estado','notas','adeudo_manual_meses','adeudo_manual_detalle'];
+  const campos = ['nombre','telefono','telefono_alt','direccion','zona_id','plan_id','ip','dia_pago','dias_tolerancia','estado','notas','adeudo_manual_meses','adeudo_manual_detalle','fecha_inicio_conteo'];
   const sets = [];
   const params = [];
 

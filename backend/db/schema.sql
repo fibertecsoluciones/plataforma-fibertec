@@ -55,6 +55,7 @@ CREATE TABLE clientes (
   dias_tolerancia   SMALLINT NOT NULL DEFAULT 5,
   adeudo_manual_meses SMALLINT NOT NULL DEFAULT 0, -- meses de atraso previos a usar el sistema, capturados a mano
   adeudo_manual_detalle TEXT, -- nota libre: a qué meses corresponde ese adeudo manual (ej. "julio y agosto 2026")
+  fecha_inicio_conteo DATE DEFAULT CURRENT_DATE, -- desde qué fecha se cuenta el adeudo automático (normalmente = fecha_alta)
   fecha_alta        DATE NOT NULL DEFAULT CURRENT_DATE,
   estado            VARCHAR(20) NOT NULL DEFAULT 'activo'
                       CHECK (estado IN ('activo','suspendido','baja')),
@@ -225,6 +226,7 @@ SELECT
   c.dias_tolerancia,
   c.adeudo_manual_meses,
   c.adeudo_manual_detalle,
+  c.fecha_inicio_conteo,
   date_trunc('month', CURRENT_DATE)::date                                   AS periodo_actual,
   fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE)                            AS fecha_vencimiento,
   fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia        AS fecha_limite_tolerancia,
@@ -241,8 +243,8 @@ SELECT
     WHEN CURRENT_DATE >= (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) - 3) THEN 'amarillo'
     ELSE 'verde'
   END AS semaforo,
-  fn_meses_adeudados(c.id, c.fecha_alta, c.dia_pago, c.dias_tolerancia, p.precio) + c.adeudo_manual_meses AS meses_adeudados,
-  (fn_saldo_pendiente_automatico(c.id, c.fecha_alta, c.dia_pago, c.dias_tolerancia, p.precio)
+  fn_meses_adeudados(c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio) + c.adeudo_manual_meses AS meses_adeudados,
+  (fn_saldo_pendiente_automatico(c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio)
     + (c.adeudo_manual_meses * p.precio))::numeric(10,2)                   AS saldo_pendiente
 FROM clientes c
 JOIN zonas z   ON z.id = c.zona_id

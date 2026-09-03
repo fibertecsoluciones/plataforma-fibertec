@@ -225,7 +225,7 @@
     let datos = {
       nombre: '', telefono: '', telefono_alt: '', direccion: '',
       zona_id: zonas[0]?.id || '', plan_id: planes[0]?.id || '',
-      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0, adeudo_manual_detalle: ''
+      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0, adeudo_manual_detalle: '', fecha_inicio_conteo: ''
     };
 
     if (clienteId) {
@@ -286,6 +286,19 @@
                   <input type="number" id="c-dias-tolerancia" min="0" max="30" value="${datos.dias_tolerancia}" />
                 </div>
                 <div class="campo">
+                  <label>Contar adeudo automático desde</label>
+                  <input type="date" id="c-fecha-inicio-conteo" value="${datos.fecha_inicio_conteo ? String(datos.fecha_inicio_conteo).slice(0,10) : ''}" />
+                </div>
+                <div class="campo ancho-total" style="margin-top:-8px;">
+                  <span class="texto-gris" style="font-size:11.5px;">
+                    Normalmente no la toques (es la fecha en que diste de alta al cliente). Solo recórrela hacia
+                    atrás si ya tienes en el sistema pagos o abonos de meses anteriores que quieres que el
+                    conteo automático SÍ tome en cuenta (por ejemplo, un abono parcial que ya registraste).
+                    Ojo: si la recorres a un mes donde el cliente en realidad no debía nada y no hay pago
+                    registrado, el sistema lo va a marcar como debido — solo recórrela hasta donde tengas certeza.
+                  </span>
+                </div>
+                <div class="campo">
                   <label>Meses de atraso previos (manual)</label>
                   <input type="number" id="c-adeudo-manual" min="0" max="60" value="${datos.adeudo_manual_meses || 0}" />
                 </div>
@@ -342,7 +355,8 @@
         estado: document.getElementById('c-estado').value,
         notas: document.getElementById('c-notas').value.trim(),
         adeudo_manual_meses: Number(document.getElementById('c-adeudo-manual').value) || 0,
-        adeudo_manual_detalle: document.getElementById('c-adeudo-detalle').value.trim()
+        adeudo_manual_detalle: document.getElementById('c-adeudo-detalle').value.trim(),
+        fecha_inicio_conteo: document.getElementById('c-fecha-inicio-conteo').value || null
       };
 
       if (!payload.nombre || !payload.dia_pago) {
