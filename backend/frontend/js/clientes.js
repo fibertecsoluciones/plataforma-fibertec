@@ -225,7 +225,7 @@
     let datos = {
       nombre: '', telefono: '', telefono_alt: '', direccion: '',
       zona_id: zonas[0]?.id || '', plan_id: planes[0]?.id || '',
-      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: ''
+      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0
     };
 
     if (clienteId) {
@@ -286,6 +286,17 @@
                   <input type="number" id="c-dias-tolerancia" min="0" max="30" value="${datos.dias_tolerancia}" />
                 </div>
                 <div class="campo">
+                  <label>Meses de atraso previos (manual)</label>
+                  <input type="number" id="c-adeudo-manual" min="0" max="60" value="${datos.adeudo_manual_meses || 0}" />
+                </div>
+                <div class="campo ancho-total" style="margin-top:-8px;">
+                  <span class="texto-gris" style="font-size:11.5px;">
+                    Úsalo solo si el cliente ya te debía meses de <b>antes</b> de darlo de alta en este sistema
+                    (el sistema no puede saber de esos meses solo). Se suma al conteo automático que se hace mes a mes;
+                    ponlo en 0 cuando ya lo hayas cobrado o corregido.
+                  </span>
+                </div>
+                <div class="campo">
                   <label>Estado</label>
                   <select id="c-estado">
                     <option value="activo" ${datos.estado === 'activo' ? 'selected' : ''}>Activo</option>
@@ -325,7 +336,8 @@
         dia_pago: Number(document.getElementById('c-dia-pago').value),
         dias_tolerancia: Number(document.getElementById('c-dias-tolerancia').value),
         estado: document.getElementById('c-estado').value,
-        notas: document.getElementById('c-notas').value.trim()
+        notas: document.getElementById('c-notas').value.trim(),
+        adeudo_manual_meses: Number(document.getElementById('c-adeudo-manual').value) || 0
       };
 
       if (!payload.nombre || !payload.dia_pago) {
