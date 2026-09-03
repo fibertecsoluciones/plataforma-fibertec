@@ -59,14 +59,14 @@
 
       <div class="seccion-titulo">Cartera vencida acumulada (todos los meses)</div>
       <div class="grid-kpi">
-        <div class="kpi borde-rojo">
+        <a href="/clientes.html?adeudo=1" class="kpi borde-rojo" style="text-decoration:none; color:inherit; cursor:pointer;">
           <div class="kpi-etiqueta">Clientes con adeudo acumulado</div>
           <div class="kpi-valor">${resumenPagos.clientes_con_deuda}</div>
-        </div>
-        <div class="kpi borde-rojo">
+        </a>
+        <a href="/clientes.html?adeudo=1" class="kpi borde-rojo" style="text-decoration:none; color:inherit; cursor:pointer;">
           <div class="kpi-etiqueta">Total en cartera vencida</div>
           <div class="kpi-valor">${mxn(resumenPagos.saldo_total)}</div>
-        </div>
+        </a>
       </div>
 
       <div class="seccion-titulo">Clientes que necesitan atención</div>

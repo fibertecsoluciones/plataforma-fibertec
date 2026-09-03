@@ -14,7 +14,8 @@
     zona: params.get('zona') || '',
     semaforo: params.get('semaforo') || '',
     estado: '',
-    q: ''
+    q: '',
+    adeudoMinimo: params.get('adeudo') || ''
   };
 
   let listaCompleta = [];
@@ -50,10 +51,12 @@
               <option value="naranja">En tolerancia</option>
               <option value="rojo">Vencido</option>
             </select>
-            <label class="flex-gap" style="font-size:13px; color:var(--tinta-suave); cursor:pointer;">
-              <input type="checkbox" id="filtro-adeudo" style="width:16px; height:16px;" />
-              Solo con 2+ meses de adeudo
-            </label>
+            <select id="filtro-adeudo" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
+              <option value="">Todos (con o sin adeudo)</option>
+              <option value="1">Con adeudo (1+ meses)</option>
+              <option value="2">Con adeudo (2+ meses)</option>
+              <option value="3">Con adeudo (3+ meses)</option>
+            </select>
           </div>
           ${esAdmin ? `
             <div class="flex-gap">
@@ -76,6 +79,7 @@
 
   document.getElementById('filtro-zona').value = filtroActual.zona;
   document.getElementById('filtro-semaforo').value = filtroActual.semaforo;
+  document.getElementById('filtro-adeudo').value = filtroActual.adeudoMinimo;
 
   document.getElementById('buscar').addEventListener('input', debounce((e) => {
     filtroActual.q = e.target.value;
@@ -88,7 +92,7 @@
     filtroActual.semaforo = e.target.value; cargarTabla();
   });
   document.getElementById('filtro-adeudo').addEventListener('change', (e) => {
-    filtroActual.soloAdeudo = e.target.checked; cargarTabla();
+    filtroActual.adeudoMinimo = e.target.value; cargarTabla();
   });
 
   if (esAdmin) {
@@ -108,7 +112,8 @@
 
     try {
       const lista = await API.get('/api/clientes?' + qs.toString());
-      listaCompleta = filtroActual.soloAdeudo ? lista.filter(c => c.meses_adeudados >= 2) : lista;
+      const minimo = Number(filtroActual.adeudoMinimo) || 0;
+      listaCompleta = minimo > 0 ? lista.filter(c => c.meses_adeudados >= minimo) : lista;
       paginaActual = 1;
       renderTablaPaginada();
     } catch (err) {
