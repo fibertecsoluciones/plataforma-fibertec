@@ -61,4 +61,50 @@ async function registrarInstalacion(req, res) {
   }
 }
 
-module.exports = { listarInstalaciones, obtenerInstalacionesDeCliente, registrarInstalacion };
+// Edita los datos técnicos de una instalación ya registrada (admin). La fecha, el
+// técnico y el cliente NO se pueden cambiar aquí — son el registro histórico de quién
+// hizo qué y cuándo; si algo de eso está mal, lo correcto es borrar y volver a capturar.
+async function actualizarInstalacion(req, res) {
+  const { id } = req.params;
+  const { ip_asignada, mac_modem, marca_modem, modelo_modem, serial_modem, notas } = req.body;
+
+  const sets = ['ip_asignada = $1', 'mac_modem = $2', 'marca_modem = $3', 'modelo_modem = $4', 'serial_modem = $5', 'notas = $6'];
+  const params = [ip_asignada, mac_modem, marca_modem, modelo_modem, serial_modem, notas];
+
+  if (req.file) {
+    params.push(`/uploads/evidencias/${req.file.filename}`);
+    sets.push(`evidencia_url = $${params.length}`);
+  }
+
+  params.push(id);
+
+  try {
+    const r = await db.query(
+      `UPDATE instalaciones SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+      params
+    );
+    if (!r.rows[0]) return res.status(404).json({ error: 'Instalación no encontrada.' });
+
+    // Si editó la IP, también se actualiza en la ficha del cliente (igual que al crearla)
+    if (ip_asignada) {
+      await db.query('UPDATE clientes SET ip = $1 WHERE id = $2', [ip_asignada, r.rows[0].cliente_id]);
+    }
+
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudo actualizar la instalación.' });
+  }
+}
+
+// Elimina un registro de instalación (solo admin). No borra el archivo de evidencia
+// del disco (queda huérfano mientras no se limpie el volumen), pero eso no afecta
+// el uso normal del sistema.
+async function eliminarInstalacion(req, res) {
+  const { id } = req.params;
+  const r = await db.query('DELETE FROM instalaciones WHERE id = $1 RETURNING *', [id]);
+  if (!r.rows[0]) return res.status(404).json({ error: 'Instalación no encontrada.' });
+  res.json({ mensaje: 'Instalación eliminada.', instalacion: r.rows[0] });
+}
+
+module.exports = { listarInstalaciones, obtenerInstalacionesDeCliente, registrarInstalacion, actualizarInstalacion, eliminarInstalacion };
