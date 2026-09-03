@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// Historial de pagos de un cliente (vista mes a mes)
+// Historial de pagos de un cliente (vista mes a mes)dsd
 async function historialCliente(req, res) {
   const { clienteId } = req.params;
   const r = await db.query(
