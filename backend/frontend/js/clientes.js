@@ -308,10 +308,17 @@
                 </div>
                 <div class="campo ancho-total" style="margin-top:-8px;">
                   <span class="texto-gris" style="font-size:11.5px;">
-                    Úsalo solo si el cliente ya te debía meses de <b>antes</b> de darlo de alta en este sistema
-                    (el sistema no puede saber de esos meses solo). Se suma al conteo automático que se hace mes a mes;
-                    ponlo en 0 cuando ya lo hayas cobrado o corregido.
+                    Úsalo SOLO para deuda de <b>antes</b> de la fecha de "contar adeudo automático desde" (de la
+                    que no tienes ningún pago registrado, ni completo ni parcial). Si el mes que quieres capturar
+                    aquí ya tiene algún pago registrado en el historial de este cliente, mejor recorre la fecha de
+                    arriba en vez de usar este campo — si usas los dos para el mismo mes, se va a contar doble.
+                    Ponlo en 0 cuando ya lo hayas cobrado o corregido.
                   </span>
+                  <div id="aviso-traslape" class="oculto" style="margin-top:8px; padding:9px 11px; background:var(--sem-amarillo-bg); color:var(--sem-amarillo); border-radius:6px; font-size:12px;">
+                    ⚠️ Tienes las dos cosas activas a la vez (fecha movida hacia atrás Y meses manuales). Revisa
+                    que el adeudo manual sea de meses <b>antes</b> de esa fecha, o podrías estar contando el mismo
+                    mes dos veces.
+                  </div>
                 </div>
                 <div class="campo">
                   <label>Estado</label>
@@ -339,6 +346,19 @@
     const cerrar = () => { modalCont.innerHTML = ''; };
     document.getElementById('cerrar-modal').addEventListener('click', cerrar);
     document.getElementById('cancelar-modal').addEventListener('click', cerrar);
+
+    // Avisa si están usando "fecha de inicio" recorrida hacia atrás Y "adeudo manual" al mismo
+    // tiempo, para que revisen que no se estén traslapando (contando el mismo mes dos veces).
+    const fechaAltaOriginal = datos.fecha_alta ? String(datos.fecha_alta).slice(0, 10) : null;
+    function actualizarAvisoTraslape() {
+      const fechaInicio = document.getElementById('c-fecha-inicio-conteo').value;
+      const mesesManual = Number(document.getElementById('c-adeudo-manual').value) || 0;
+      const seMovioFecha = fechaInicio && fechaAltaOriginal && fechaInicio < fechaAltaOriginal;
+      document.getElementById('aviso-traslape').classList.toggle('oculto', !(seMovioFecha && mesesManual > 0));
+    }
+    document.getElementById('c-fecha-inicio-conteo').addEventListener('input', actualizarAvisoTraslape);
+    document.getElementById('c-adeudo-manual').addEventListener('input', actualizarAvisoTraslape);
+    actualizarAvisoTraslape();
 
     document.getElementById('guardar-cliente').addEventListener('click', async () => {
       const errorBox = document.getElementById('error-modal');
