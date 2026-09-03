@@ -4,7 +4,12 @@
 
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS adeudo_manual_meses SMALLINT NOT NULL DEFAULT 0;
 
-CREATE OR REPLACE VIEW vw_estado_pago AS
+-- No se puede usar CREATE OR REPLACE aquí porque cambia el orden de las columnas
+-- de la vista (Postgres solo permite agregar columnas al final con REPLACE).
+-- Borrar y recrear la vista es seguro: las vistas no guardan datos, solo la consulta.
+DROP VIEW IF EXISTS vw_estado_pago;
+
+CREATE VIEW vw_estado_pago AS
 SELECT
   c.id                  AS cliente_id_pk,
   c.cliente_id,
