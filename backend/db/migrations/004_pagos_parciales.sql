@@ -13,7 +13,11 @@ ALTER TABLE pagos DROP CONSTRAINT IF EXISTS pagos_cliente_id_periodo_key;
 --    (ej. "Julio y agosto 2026"), además del número.
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS adeudo_manual_detalle TEXT;
 
--- 3) Las funciones de conteo ahora necesitan el precio del plan, para comparar
+-- 3) Hay que borrar primero la vista que usa la función vieja, antes de poder
+--    borrar esa función (si no, Postgres no deja por la dependencia).
+DROP VIEW IF EXISTS vw_estado_pago;
+
+-- 4) Las funciones de conteo ahora necesitan el precio del plan, para comparar
 --    la SUMA de abonos de cada mes contra lo que en realidad cuesta ese plan.
 DROP FUNCTION IF EXISTS fn_meses_adeudados(INT, DATE, SMALLINT, SMALLINT);
 
