@@ -45,11 +45,17 @@
               ${zonas.map(z => `<option value="${z.nombre}">${z.nombre}</option>`).join('')}
             </select>
             <select id="filtro-semaforo" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
-              <option value="">Todos los estados</option>
+              <option value="">Todos los estados de pago</option>
               <option value="verde">Al corriente</option>
               <option value="amarillo">Por vencer</option>
               <option value="naranja">En tolerancia</option>
               <option value="rojo">Vencido</option>
+            </select>
+            <select id="filtro-estado" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
+              <option value="">Activos y suspendidos</option>
+              <option value="activo">Solo activos</option>
+              <option value="suspendido">Solo suspendidos</option>
+              <option value="baja">Solo dados de baja</option>
             </select>
             <select id="filtro-adeudo" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
               <option value="">Todos (con o sin adeudo)</option>
@@ -79,6 +85,7 @@
 
   document.getElementById('filtro-zona').value = filtroActual.zona;
   document.getElementById('filtro-semaforo').value = filtroActual.semaforo;
+  document.getElementById('filtro-estado').value = filtroActual.estado;
   document.getElementById('filtro-adeudo').value = filtroActual.adeudoMinimo;
 
   document.getElementById('buscar').addEventListener('input', debounce((e) => {
@@ -90,6 +97,9 @@
   });
   document.getElementById('filtro-semaforo').addEventListener('change', (e) => {
     filtroActual.semaforo = e.target.value; cargarTabla();
+  });
+  document.getElementById('filtro-estado').addEventListener('change', (e) => {
+    filtroActual.estado = e.target.value; cargarTabla();
   });
   document.getElementById('filtro-adeudo').addEventListener('change', (e) => {
     filtroActual.adeudoMinimo = e.target.value; cargarTabla();
@@ -108,6 +118,7 @@
     const qs = new URLSearchParams();
     if (filtroActual.zona) qs.set('zona', filtroActual.zona);
     if (filtroActual.semaforo) qs.set('semaforo', filtroActual.semaforo);
+    if (filtroActual.estado) qs.set('estado', filtroActual.estado);
     if (filtroActual.q) qs.set('q', filtroActual.q);
 
     try {
@@ -170,6 +181,7 @@
                   <div class="fila-acciones">
                     <a class="btn btn-secundario btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a>
                     ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-editar="${c.cliente_id_pk}">Editar</button>` : ''}
+                    ${esAdmin && c.estado_cliente !== 'baja' ? `<button class="btn btn-peligro btn-sm" data-baja="${c.cliente_id_pk}">Dar de baja</button>` : ''}
                   </div>
                 </td>
               </tr>
@@ -186,6 +198,16 @@
 
     tabla.querySelectorAll('[data-editar]').forEach(btn => {
       btn.addEventListener('click', () => abrirModal(btn.dataset.editar));
+    });
+
+    tabla.querySelectorAll('[data-baja]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('¿Dar de baja a este cliente? No se borra su historial de pagos ni instalaciones — solo deja de aparecer en la lista normal y en el semáforo. Puedes reactivarlo después desde Editar (o filtrando "Solo dados de baja").')) return;
+        try {
+          await API.del(`/api/clientes/${btn.dataset.baja}`);
+          cargarTabla();
+        } catch (err) { alert(err.message); }
+      });
     });
 
     renderBotonesPaginacion(totalPaginas);

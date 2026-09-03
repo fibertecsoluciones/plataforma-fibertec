@@ -15,6 +15,9 @@ async function listarClientes(req, res) {
   if (estado) {
     params.push(estado);
     sql += ` AND estado_cliente = $${params.length}`;
+  } else {
+    // Por default, no mostrar clientes dados de baja (hay que pedirlo explícitamente)
+    sql += ` AND estado_cliente <> 'baja'`;
   }
   if (semaforo) {
     params.push(semaforo);
@@ -126,11 +129,11 @@ async function eliminarCliente(req, res) {
 
 // Resumen de conteos por semáforo, más el total de cartera vencida acumulada, para el dashboard
 async function resumenSemaforo(req, res) {
-  const r = await db.query(`SELECT semaforo, COUNT(*)::int AS total FROM vw_estado_pago GROUP BY semaforo`);
+  const r = await db.query(`SELECT semaforo, COUNT(*)::int AS total FROM vw_estado_pago WHERE estado_cliente <> 'baja' GROUP BY semaforo`);
   const cartera = await db.query(
     `SELECT COUNT(*) FILTER (WHERE meses_adeudados > 0)::int AS clientes_con_deuda,
             COALESCE(SUM(saldo_pendiente), 0)::numeric(12,2) AS saldo_total
-     FROM vw_estado_pago`
+     FROM vw_estado_pago WHERE estado_cliente <> 'baja'`
   );
   const base = { verde: 0, amarillo: 0, naranja: 0, rojo: 0 };
   r.rows.forEach((row) => { base[row.semaforo] = row.total; });

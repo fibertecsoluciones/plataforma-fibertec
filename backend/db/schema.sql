@@ -252,8 +252,7 @@ JOIN planes p  ON p.id = c.plan_id
 LEFT JOIN LATERAL (
   SELECT SUM(monto) AS pagado FROM pagos pg
   WHERE pg.cliente_id = c.id AND pg.periodo = date_trunc('month', CURRENT_DATE)::date
-) pm ON true
-WHERE c.estado <> 'baja';
+) pm ON true;
 
 -- ============================================================
 -- INSTALACIONES (módulo de técnicos)
