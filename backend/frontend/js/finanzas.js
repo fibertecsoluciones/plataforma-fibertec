@@ -111,12 +111,12 @@
           <tbody>
             ${egresos.map(e => `
               <tr>
-                <td>${e.concepto}</td>
-                <td>${e.categoria_nombre || '—'}</td>
-                <td>${mxn(e.monto)}</td>
-                <td>${fechaCorta(e.fecha)}</td>
-                <td>${e.comprobante_url ? `<a href="${e.comprobante_url}" target="_blank">Ver</a>` : '—'}</td>
-                <td><button class="btn btn-peligro btn-sm" data-borrar="${e.id}">Eliminar</button></td>
+                <td class="celda-tarjeta-titulo">${e.concepto}</td>
+                <td data-label="Categoría">${e.categoria_nombre || '—'}</td>
+                <td data-label="Monto">${mxn(e.monto)}</td>
+                <td data-label="Fecha">${fechaCorta(e.fecha)}</td>
+                <td data-label="Comprobante">${e.comprobante_url ? `<a href="${e.comprobante_url}" target="_blank">Ver</a>` : '—'}</td>
+                <td class="celda-acciones-movil"><button class="btn btn-peligro btn-sm" data-borrar="${e.id}">Eliminar</button></td>
               </tr>
             `).join('')}
           </tbody>

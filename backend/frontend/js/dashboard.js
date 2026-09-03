@@ -111,13 +111,13 @@
     }
     const filas = lista.slice(0, 8).map(c => `
       <tr>
-        <td><span class="folio">${c.cliente_id}</span></td>
-        <td>${c.nombre}</td>
-        <td>${c.zona}</td>
-        <td>${c.plan}</td>
-        <td>${fechaCorta(c.fecha_vencimiento)}</td>
-        <td><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span></td>
-        <td>${c.meses_adeudados > 0 ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>` : '—'}</td>
+        <td data-label="Folio"><span class="folio">${c.cliente_id}</span></td>
+        <td class="celda-tarjeta-titulo">${c.nombre}</td>
+        <td data-label="Zona">${c.zona}</td>
+        <td data-label="Plan">${c.plan}</td>
+        <td data-label="Vence">${fechaCorta(c.fecha_vencimiento)}</td>
+        <td data-label="Estado"><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span></td>
+        <td data-label="Adeudo">${c.meses_adeudados > 0 ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>` : '—'}</td>
       </tr>
     `).join('');
     return `

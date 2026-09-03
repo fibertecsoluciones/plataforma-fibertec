@@ -468,6 +468,63 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 .estado-vacio{ text-align:center; padding: 40px 20px; color: var(--gris); }
 .cargando{ text-align:center; padding: 30px; color: var(--gris); font-size: 13px; }
 
+/* ==========================================================
+   TABLAS EN MODO TARJETA (celular / pantallas angostas)
+   ========================================================== */
+@media (max-width: 700px){
+  table.tabla thead{ display:none; }
+  table.tabla, table.tabla tbody, table.tabla tr, table.tabla td{ display:block; width:100%; }
+
+  table.tabla tbody tr{
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    box-shadow: var(--sombra);
+  }
+  table.tabla tbody tr:nth-child(even){ background: var(--superficie); } /* sin rayado en modo tarjeta */
+
+  table.tabla td{
+    padding: 6px 0;
+    border-bottom: none;
+    text-align: left;
+    white-space: normal;
+  }
+  table.tabla td:empty{ display:none; }
+
+  /* Etiqueta chica gris arriba del valor, tomada del atributo data-label */
+  table.tabla td[data-label]::before{
+    content: attr(data-label);
+    display:block;
+    font-weight:700;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing:.04em;
+    color: var(--gris);
+    margin-bottom: 3px;
+  }
+
+  /* La celda "título" de cada tarjeta (nombre / concepto principal): sin etiqueta,
+     más grande, con una línea separándola del resto de los datos de abajo */
+  table.tabla td.celda-tarjeta-titulo{
+    font-size: 14.5px;
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--gris-claro);
+  }
+
+  /* Celda de botones de acción: separada del resto, permite que los botones bajen de línea */
+  table.tabla td.celda-acciones-movil{
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gris-claro);
+  }
+  table.tabla td.celda-acciones-movil .fila-acciones{ flex-wrap: wrap; }
+
+  .paginacion{ flex-direction: column; align-items: flex-start; }
+}
+
 /* responsive: sidebar colapsable en móvil */
 @media (max-width: 900px){
   .sidebar{ transform: translateX(-100%); transition: transform .2s; z-index: 200; }

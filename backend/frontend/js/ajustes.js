@@ -50,9 +50,9 @@
         <thead><tr><th>Nombre</th><th>Código (prefijo de folio)</th><th></th></tr></thead>
         <tbody>${zonas.map(z => `
           <tr>
-            <td>${z.nombre}</td>
-            <td class="mono">${z.codigo}</td>
-            <td>
+            <td class="celda-tarjeta-titulo">${z.nombre}</td>
+            <td class="mono" data-label="Código">${z.codigo}</td>
+            <td class="celda-acciones-movil">
               <div class="flex-gap">
                 <button class="btn btn-secundario btn-sm" data-editar-zona='${JSON.stringify(z)}'>Editar</button>
                 <button class="btn btn-peligro btn-sm" data-borrar-zona="${z.id}">Desactivar</button>
@@ -111,10 +111,10 @@
         <thead><tr><th>Nombre</th><th>Velocidad</th><th>Precio mensual</th><th></th></tr></thead>
         <tbody>${planes.map(p => `
           <tr>
-            <td>${p.nombre}</td>
-            <td>${p.velocidad || '—'}</td>
-            <td>${mxn(p.precio)}</td>
-            <td>
+            <td class="celda-tarjeta-titulo">${p.nombre}</td>
+            <td data-label="Velocidad">${p.velocidad || '—'}</td>
+            <td data-label="Precio mensual">${mxn(p.precio)}</td>
+            <td class="celda-acciones-movil">
               <div class="flex-gap">
                 <button class="btn btn-secundario btn-sm" data-editar-plan='${JSON.stringify(p)}'>Editar</button>
                 <button class="btn btn-peligro btn-sm" data-borrar-plan="${p.id}">Desactivar</button>
@@ -175,12 +175,12 @@
         <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead>
         <tbody>${tecnicos.map(t => `
           <tr>
-            <td>${t.nombre}</td>
-            <td class="mono">${t.usuario}</td>
-            <td><span class="pill">${t.rol}</span></td>
-            <td>${t.telefono || '—'}</td>
-            <td><span class="pill ${t.activo ? 'activo' : 'baja'}">${t.activo ? 'activo' : 'inactivo'}</span></td>
-            <td>
+            <td class="celda-tarjeta-titulo">${t.nombre}</td>
+            <td class="mono" data-label="Usuario">${t.usuario}</td>
+            <td data-label="Rol"><span class="pill">${t.rol}</span></td>
+            <td data-label="Teléfono">${t.telefono || '—'}</td>
+            <td data-label="Estado"><span class="pill ${t.activo ? 'activo' : 'baja'}">${t.activo ? 'activo' : 'inactivo'}</span></td>
+            <td class="celda-acciones-movil">
               <div class="flex-gap">
                 <button class="btn btn-secundario btn-sm" data-editar-usuario='${JSON.stringify(t)}'>Editar</button>
                 ${t.activo

@@ -150,23 +150,23 @@
           <tbody>
             ${pagina.map(c => `
               <tr>
-                <td><span class="folio">${c.cliente_id}</span></td>
-                <td>
+                <td data-label="Folio"><span class="folio">${c.cliente_id}</span></td>
+                <td class="celda-tarjeta-titulo">
                   <div class="celda-principal">${c.nombre}</div>
                   <div class="celda-meta">${c.zona} · ${c.plan}${c.telefono ? ' · ' + c.telefono : ''}</div>
                 </td>
-                <td class="mono">${c.ip || '—'}</td>
-                <td>
+                <td class="mono" data-label="IP">${c.ip || '—'}</td>
+                <td data-label="Pago">
                   <span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span>
                   <div class="celda-meta">Día ${c.dia_pago} · vence ${fechaCorta(c.fecha_vencimiento)}</div>
                 </td>
-                <td>
+                <td data-label="Adeudo">
                   ${c.meses_adeudados > 0
                     ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}</div>`
                     : `<span class="texto-gris">Al día</span>`}
                 </td>
-                <td><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
-                <td>
+                <td data-label="Estado"><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
+                <td class="celda-acciones-movil">
                   <div class="fila-acciones">
                     <a class="btn btn-secundario btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a>
                     ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-editar="${c.cliente_id_pk}">Editar</button>` : ''}
@@ -525,9 +525,9 @@
                 <tbody>
                   ${conAdvertencia.map(e => `
                     <tr>
-                      <td><span class="folio">${e.cliente_id}</span></td>
-                      <td>${e.nombre}</td>
-                      <td class="texto-gris" style="font-size:12.5px;">${e.advertencias.join(' ')}</td>
+                      <td data-label="Fila">${e.fila}</td>
+                      <td class="celda-tarjeta-titulo"><span class="folio">${e.cliente_id}</span> ${e.nombre}</td>
+                      <td data-label="Pendiente" class="texto-gris" style="font-size:12.5px;">${e.advertencias.join(' ')}</td>
                     </tr>`).join('')}
                 </tbody>
               </table>
@@ -542,7 +542,7 @@
             <table class="tabla">
               <thead><tr><th>Fila</th><th>Nombre</th><th>Error</th></tr></thead>
               <tbody>
-                ${errores.map(e => `<tr><td>${e.fila}</td><td>${e.nombre}</td><td class="texto-gris">${e.error}</td></tr>`).join('')}
+                ${errores.map(e => `<tr><td data-label="Fila">${e.fila}</td><td class="celda-tarjeta-titulo">${e.nombre}</td><td data-label="Error" class="texto-gris">${e.error}</td></tr>`).join('')}
               </tbody>
             </table>
           </div>` : ''}

@@ -44,13 +44,13 @@
           <tbody>
             ${pagos.map(p => `
               <tr>
-                <td><span class="folio">${p.folio}</span></td>
-                <td>${p.cliente_nombre}</td>
-                <td>${mesLegible(p.periodo)}</td>
-                <td>${mxn(p.monto)}</td>
-                <td>${fechaCorta(p.fecha_pago)}</td>
-                <td>${p.metodo_pago}</td>
-                <td>${p.es_excepcion ? `<span class="pill suspendido">${p.meses_cubiertos} meses en 1 pago</span>` : '—'}</td>
+                <td data-label="Folio"><span class="folio">${p.folio}</span></td>
+                <td class="celda-tarjeta-titulo">${p.cliente_nombre}</td>
+                <td data-label="Periodo">${mesLegible(p.periodo)}</td>
+                <td data-label="Monto">${mxn(p.monto)}</td>
+                <td data-label="Fecha de pago">${fechaCorta(p.fecha_pago)}</td>
+                <td data-label="Método">${p.metodo_pago}</td>
+                <td data-label="Excepción">${p.es_excepcion ? `<span class="pill suspendido">${p.meses_cubiertos} meses en 1 pago</span>` : '—'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -99,11 +99,11 @@
               <tbody>
                 ${desglose.map(m => `
                   <tr>
-                    <td>${mesLegible(m.periodo)}${m.esMesActual ? ' <span class="texto-gris" style="font-size:11px;">(mes actual)</span>' : ''}</td>
-                    <td>${mxn(m.esperado)}</td>
-                    <td>${mxn(m.pagado)}${m.abonos > 1 ? ` <span class="texto-gris" style="font-size:11px;">(${m.abonos} abonos)</span>` : ''}</td>
-                    <td>${m.saldo > 0 ? mxn(m.saldo) : '—'}</td>
-                    <td>
+                    <td class="celda-tarjeta-titulo">${mesLegible(m.periodo)}${m.esMesActual ? ' <span class="texto-gris" style="font-size:11px;">(mes actual)</span>' : ''}</td>
+                    <td data-label="Esperado">${mxn(m.esperado)}</td>
+                    <td data-label="Pagado">${mxn(m.pagado)}${m.abonos > 1 ? ` <span class="texto-gris" style="font-size:11px;">(${m.abonos} abonos)</span>` : ''}</td>
+                    <td data-label="Saldo">${m.saldo > 0 ? mxn(m.saldo) : '—'}</td>
+                    <td data-label="Estado">
                       ${m.estado === 'completo' ? '<span class="pill activo">Completo</span>' : ''}
                       ${m.estado === 'parcial' ? '<span class="pill suspendido">Parcial</span>' : ''}
                       ${m.estado === 'sin_pago' ? '<span class="pill baja">Sin pago</span>' : ''}
@@ -125,12 +125,12 @@
                 <tbody>
                   ${historial.map(p => `
                     <tr>
-                      <td>${mesLegible(p.periodo)}</td>
-                      <td>${mxn(p.monto)}</td>
-                      <td>${fechaCorta(p.fecha_pago)}</td>
-                      <td>${p.metodo_pago}</td>
-                      <td>${p.es_excepcion ? `<span class="pill suspendido">Pago de ${p.meses_cubiertos} meses</span>` : '—'}</td>
-                      ${esAdmin ? `<td><button class="btn btn-peligro btn-sm" data-borrar="${p.id}">Eliminar</button></td>` : ''}
+                      <td class="celda-tarjeta-titulo">${mesLegible(p.periodo)}</td>
+                      <td data-label="Monto">${mxn(p.monto)}</td>
+                      <td data-label="Fecha de pago">${fechaCorta(p.fecha_pago)}</td>
+                      <td data-label="Método">${p.metodo_pago}</td>
+                      <td data-label="Excepción">${p.es_excepcion ? `<span class="pill suspendido">Pago de ${p.meses_cubiertos} meses</span>` : '—'}</td>
+                      ${esAdmin ? `<td class="celda-acciones-movil"><button class="btn btn-peligro btn-sm" data-borrar="${p.id}">Eliminar</button></td>` : ''}
                     </tr>
                   `).join('')}
                 </tbody>

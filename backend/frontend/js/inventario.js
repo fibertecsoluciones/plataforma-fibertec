@@ -60,11 +60,11 @@
           <tbody>
             ${items.map(i => `
               <tr>
-                <td>${i.nombre}</td>
-                <td>${i.categoria_nombre || '—'}</td>
-                <td class="${Number(i.stock_actual) <= Number(i.stock_minimo) ? 'stock-bajo' : ''}">${i.stock_actual} ${i.unidad}</td>
-                <td>${i.stock_minimo} ${i.unidad}</td>
-                <td>${i.ubicacion || '—'}</td>
+                <td class="celda-tarjeta-titulo">${i.nombre}</td>
+                <td data-label="Categoría">${i.categoria_nombre || '—'}</td>
+                <td data-label="Stock actual" class="${Number(i.stock_actual) <= Number(i.stock_minimo) ? 'stock-bajo' : ''}">${i.stock_actual} ${i.unidad}</td>
+                <td data-label="Stock mínimo">${i.stock_minimo} ${i.unidad}</td>
+                <td data-label="Ubicación">${i.ubicacion || '—'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -89,12 +89,12 @@
           <tbody>
             ${movs.map(m => `
               <tr>
-                <td>${m.item_nombre}</td>
-                <td><span class="pill ${m.tipo === 'entrada' ? 'activo' : 'suspendido'}">${m.tipo}</span></td>
-                <td>${m.cantidad}</td>
-                <td>${m.motivo || '—'}</td>
-                <td>${m.tecnico_nombre || '—'}</td>
-                <td>${fechaCorta(m.fecha)}</td>
+                <td class="celda-tarjeta-titulo">${m.item_nombre}</td>
+                <td data-label="Tipo"><span class="pill ${m.tipo === 'entrada' ? 'activo' : 'suspendido'}">${m.tipo}</span></td>
+                <td data-label="Cantidad">${m.cantidad}</td>
+                <td data-label="Motivo">${m.motivo || '—'}</td>
+                <td data-label="Registrado por">${m.tecnico_nombre || '—'}</td>
+                <td data-label="Fecha">${fechaCorta(m.fecha)}</td>
               </tr>
             `).join('')}
           </tbody>

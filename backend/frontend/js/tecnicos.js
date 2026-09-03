@@ -209,13 +209,13 @@
           <tbody>
             ${lista.slice(0, 15).map(i => `
               <tr>
-                <td><span class="folio">${i.folio}</span></td>
-                <td>${i.cliente_nombre}</td>
-                <td>${i.tecnico_nombre}</td>
-                <td>${i.marca_modem || '—'} ${i.modelo_modem || ''}</td>
-                <td class="mono">${i.ip_asignada || '—'}</td>
-                <td>${fechaCorta(i.fecha_instalacion)}</td>
-                <td>${i.evidencia_url ? `<a href="${i.evidencia_url}" target="_blank">Ver</a>` : '—'}</td>
+                <td data-label="Folio"><span class="folio">${i.folio}</span></td>
+                <td class="celda-tarjeta-titulo">${i.cliente_nombre}</td>
+                <td data-label="Técnico">${i.tecnico_nombre}</td>
+                <td data-label="Modem">${i.marca_modem || '—'} ${i.modelo_modem || ''}</td>
+                <td class="mono" data-label="IP">${i.ip_asignada || '—'}</td>
+                <td data-label="Fecha">${fechaCorta(i.fecha_instalacion)}</td>
+                <td data-label="Evidencia">${i.evidencia_url ? `<a href="${i.evidencia_url}" target="_blank">Ver</a>` : '—'}</td>
               </tr>
             `).join('')}
           </tbody>
