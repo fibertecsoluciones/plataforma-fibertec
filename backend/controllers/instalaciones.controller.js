@@ -1,5 +1,24 @@
 const db = require('../config/db');
 
+// Calcula el día de pago automático a partir de la fecha/hora de la instalación,
+// usando la hora de México (independientemente de en qué zona horaria corra el
+// servidor de Railway). Regla: si ya son las 5:00 PM o después, se usa el día
+// siguiente (para no cobrarle "el mismo día" a alguien instalado ya entrada la tarde).
+function calcularDiaDePagoAutomatico() {
+  const ahora = new Date();
+  const zona = 'America/Mexico_City';
+
+  const horaLocal = Number(new Intl.DateTimeFormat('en-US', { timeZone: zona, hour: 'numeric', hour12: false }).format(ahora));
+
+  let instanteBase = ahora;
+  if (horaLocal >= 17) {
+    instanteBase = new Date(ahora.getTime() + 24 * 60 * 60 * 1000); // +1 día
+  }
+
+  const dia = Number(new Intl.DateTimeFormat('en-US', { timeZone: zona, day: 'numeric' }).format(instanteBase));
+  return dia;
+}
+
 async function listarInstalaciones(req, res) {
   const r = await db.query(
     `SELECT i.*, c.cliente_id AS folio, c.nombre AS cliente_nombre, u.nombre AS tecnico_nombre
@@ -39,6 +58,10 @@ async function registrarInstalacion(req, res) {
   const evidencia_url = req.file ? `/uploads/evidencias/${req.file.filename}` : null;
 
   try {
+    // ¿Es la primera instalación que se le registra a este cliente? (se checa ANTES de insertar la nueva)
+    const previasRes = await db.query('SELECT COUNT(*)::int AS total FROM instalaciones WHERE cliente_id = $1', [cliente_id]);
+    const esPrimeraInstalacion = previasRes.rows[0].total === 0;
+
     const r = await db.query(
       `INSERT INTO instalaciones
         (cliente_id, tecnico_id, ip_asignada, mac_modem, marca_modem, modelo_modem, serial_modem,
@@ -54,7 +77,16 @@ async function registrarInstalacion(req, res) {
       await db.query('UPDATE clientes SET ip = $1 WHERE id = $2', [ip_asignada, cliente_id]);
     }
 
-    res.status(201).json(r.rows[0]);
+    // Solo en la PRIMERA instalación de un cliente se le asigna el día de pago
+    // automáticamente (para no pisar el ciclo de cobro de alguien que ya es cliente
+    // y solo le están cambiando el módem o dándole mantenimiento).
+    let diaPagoAsignado = null;
+    if (esPrimeraInstalacion) {
+      diaPagoAsignado = calcularDiaDePagoAutomatico();
+      await db.query('UPDATE clientes SET dia_pago = $1 WHERE id = $2', [diaPagoAsignado, cliente_id]);
+    }
+
+    res.status(201).json({ ...r.rows[0], dia_pago_asignado: diaPagoAsignado });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'No se pudo registrar la instalación.' });

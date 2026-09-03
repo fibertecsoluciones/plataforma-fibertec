@@ -56,6 +56,14 @@
               <label>Notas</label>
               <textarea id="i-notas" rows="2"></textarea>
             </div>
+            <div class="campo ancho-total">
+              <span class="texto-gris" style="font-size:12px;">
+                📌 Si este es el <b>primer</b> registro de instalación para este cliente, su día de pago se va a
+                establecer automáticamente con base en la fecha de hoy (si ya son las 5:00 PM o más tarde, se usa
+                el día de mañana). Si el cliente ya tenía instalaciones previas (ej. solo le estás cambiando el
+                módem), su día de pago actual NO se toca.
+              </span>
+            </div>
           </div>
 
           <div class="tarjeta-cuerpo" style="padding:0; margin-top:6px;">
@@ -113,10 +121,12 @@
           <div class="fila"><span>Plan</span><b>${cliente.plan_nombre}</b></div>
           <div class="fila"><span>Teléfono</span><b>${cliente.telefono || '—'}</b></div>
           <div class="fila"><span>Dirección</span><b>${cliente.direccion || '—'}</b></div>
+          <div class="fila"><span>Día de pago actual</span><b>${cliente.dia_pago}</b></div>
         </div>
       `;
       document.getElementById('tarjeta-formulario').classList.remove('oculto');
       document.getElementById('i-ip').value = cliente.ip || '';
+      document.getElementById('dia-hoy-etiqueta').textContent = new Date().getDate();
       solicitarUbicacion();
     } catch (err) {
       clienteEncontrado = null;
@@ -178,9 +188,11 @@
       const archivo = document.getElementById('i-evidencia').files[0];
       if (archivo) formData.append('evidencia', archivo);
 
-      await API.solicitarConArchivo('/api/instalaciones', formData, 'POST');
+      const resultado = await API.solicitarConArchivo('/api/instalaciones', formData, 'POST');
 
-      exitoBox.textContent = 'Instalación registrada correctamente.';
+      exitoBox.textContent = resultado.dia_pago_asignado
+        ? `Instalación registrada correctamente. Como es la primera instalación de este cliente, se le asignó el día de pago: ${resultado.dia_pago_asignado} de cada mes.`
+        : 'Instalación registrada correctamente.';
       exitoBox.classList.remove('oculto');
       document.getElementById('form-instalacion').reset();
       document.getElementById('tarjeta-formulario').classList.add('oculto');
