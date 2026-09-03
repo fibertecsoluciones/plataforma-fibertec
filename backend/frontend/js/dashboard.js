@@ -17,6 +17,7 @@
     const clientesEnTolerancia = await API.get('/api/clientes?semaforo=naranja');
 
     cont.innerHTML = `
+      <div class="seccion-titulo">Finanzas del mes</div>
       <div class="grid-kpi">
         <div class="kpi borde-azul">
           <div class="kpi-etiqueta">Clientes activos</div>
@@ -36,6 +37,7 @@
         </div>
       </div>
 
+      <div class="seccion-titulo">Estado de pagos (mes en curso)</div>
       <div class="grid-kpi">
         <div class="kpi borde-verde">
           <div class="kpi-etiqueta">Al corriente</div>
@@ -55,16 +57,19 @@
         </div>
       </div>
 
+      <div class="seccion-titulo">Cartera vencida acumulada (todos los meses)</div>
       <div class="grid-kpi">
         <div class="kpi borde-rojo">
           <div class="kpi-etiqueta">Clientes con adeudo acumulado</div>
           <div class="kpi-valor">${resumenPagos.clientes_con_deuda}</div>
         </div>
         <div class="kpi borde-rojo">
-          <div class="kpi-etiqueta">Cartera vencida total (todos los meses)</div>
+          <div class="kpi-etiqueta">Total en cartera vencida</div>
           <div class="kpi-valor">${mxn(resumenPagos.saldo_total)}</div>
         </div>
       </div>
+
+      <div class="seccion-titulo">Clientes que necesitan atención</div>
 
       <div class="tarjeta">
         <div class="tarjeta-cabecera">
