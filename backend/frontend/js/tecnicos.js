@@ -126,7 +126,6 @@
       `;
       document.getElementById('tarjeta-formulario').classList.remove('oculto');
       document.getElementById('i-ip').value = cliente.ip || '';
-      document.getElementById('dia-hoy-etiqueta').textContent = new Date().getDate();
       solicitarUbicacion();
     } catch (err) {
       clienteEncontrado = null;
