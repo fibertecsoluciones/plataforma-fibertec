@@ -90,6 +90,10 @@
               ${esAdmin ? `<span>👷 ${a.tecnico_nombre}</span>` : ''}
               ${a.cliente_folio ? `<span class="folio">${a.cliente_folio}</span> ${a.cliente_nombre}` : ''}
               ${a.fecha_limite ? `<span>📅 ${fechaCorta(a.fecha_limite)}</span>` : ''}
+              ${a.latitud && a.longitud ? `
+                <a href="${linkGoogleMaps(a.latitud, a.longitud)}" target="_blank" class="pill ${a.ubicacion_confirmada ? 'ubicacion-confirmada' : 'ubicacion-estimada'}">
+                  ${a.ubicacion_confirmada ? '✅ Ubicación confirmada' : '📍 Ubicación estimada'}
+                </a>` : ''}
               ${a.instalacion_relacionada_fecha ? `<span style="color:var(--sem-verde);">✅ Instalación registrada el ${fechaCorta(a.instalacion_relacionada_fecha)}</span>` : ''}
             </div>
           </div>
@@ -222,6 +226,15 @@
                 <div id="na-cliente-sugerencias" class="autocomplete-lista oculto"></div>
               </div>
               <div class="campo ancho-total">
+                <label>Ubicación (opcional)</label>
+                <div id="na-mapa" class="mapa-selector"></div>
+                <div class="ubicacion-campo" style="margin-top:8px;">
+                  <input type="text" id="na-texto" placeholder="O pega aquí un link de Google Maps" />
+                  <button type="button" class="btn btn-secundario btn-sm" id="na-usar-mi-ubicacion">📍 Usar la mía</button>
+                </div>
+                <div id="na-preview" class="ubicacion-vista-previa oculto"></div>
+              </div>
+              <div class="campo ancho-total">
                 <label>Checklist (opcional — déjalo vacío si es una tarea simple)</label>
                 <div id="lista-puntos-nuevos"></div>
                 <button type="button" class="btn btn-secundario btn-sm" id="btn-agregar-punto-nuevo">+ Agregar punto</button>
@@ -236,7 +249,7 @@
       </div>
     `;
 
-    const cerrar = () => { modalCont.innerHTML = ''; };
+    const cerrar = () => { mapaActividad.remove(); modalCont.innerHTML = ''; };
     document.getElementById('cerrar-modal').addEventListener('click', cerrar);
     document.getElementById('cancelar-actividad').addEventListener('click', cerrar);
 
@@ -250,6 +263,11 @@
     }
     document.getElementById('btn-agregar-punto-nuevo').addEventListener('click', agregarFilaPunto);
     agregarFilaPunto(); // arranca con una fila lista
+
+    // Ubicación: mapa interactivo (clic o arrastrar el pin), con opción de pegar
+    // un link de Maps o usar la ubicación actual de quien está capturando.
+    let ubicacionNuevaActividad = { lat: null, lng: null };
+    const mapaActividad = activarSelectorUbicacion('na', null, null, (lat, lng) => { ubicacionNuevaActividad = { lat, lng }; });
 
     // Autocompletar de cliente: busca por nombre o folio conforme se escribe
     const inputBusquedaCliente = document.getElementById('na-cliente-busqueda');
@@ -313,6 +331,8 @@
         prioridad: document.getElementById('na-prioridad').value,
         fecha_limite: document.getElementById('na-fecha-limite').value || null,
         cliente_folio: document.getElementById('na-cliente-folio').value || document.getElementById('na-cliente-busqueda').value.trim(),
+        latitud: ubicacionNuevaActividad.lat,
+        longitud: ubicacionNuevaActividad.lng,
         puntos
       };
 

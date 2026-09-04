@@ -15,7 +15,7 @@
   let planes = [];
   let tecnicosDisponibles = [];
   let filtroEstado = '';
-  let ubicacionCaptura = { lat: null, lng: null };
+  let ubicacionNueva = { lat: null, lng: null };
 
   cont.innerHTML = `<div class="cargando">Cargando…</div>`;
 
@@ -70,6 +70,15 @@
             <input type="text" id="ns-direccion" placeholder="Ej. Junto a la tienda de don Beto" />
           </div>
           <div class="campo ancho-total">
+            <label>Ubicación (opcional)</label>
+            <div id="ns-mapa" class="mapa-selector"></div>
+            <div class="ubicacion-campo" style="margin-top:8px;">
+              <input type="text" id="ns-texto" placeholder="O pega aquí un link de Google Maps" />
+              <button type="button" class="btn btn-secundario btn-sm" id="ns-usar-mi-ubicacion">📍 Usar la mía</button>
+            </div>
+            <div id="ns-preview" class="ubicacion-vista-previa oculto"></div>
+          </div>
+          <div class="campo ancho-total">
             <label>Notas</label>
             <textarea id="ns-notas" rows="2" placeholder="Cualquier detalle que te haya dado el prospecto"></textarea>
           </div>
@@ -98,13 +107,11 @@
     <div id="modal-contenedor"></div>
   `;
 
-  // Captura la ubicación en cuanto se abre la página, para que quede lista al guardar
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { ubicacionCaptura.lat = pos.coords.latitude; ubicacionCaptura.lng = pos.coords.longitude; },
-      () => { /* si no se puede, se guarda sin ubicación, sin problema */ }
-    );
-  }
+  // Ubicación: el mapa deja marcar el punto exacto con clic o arrastrando el pin.
+  // También se puede pegar un link de Maps o usar el GPS de quien está capturando
+  // (útil para el técnico parado en el sitio; la oficina normalmente usará el mapa
+  // o pegará el link que le compartió el cliente).
+  activarSelectorUbicacion('ns', null, null, (lat, lng) => { ubicacionNueva = { lat, lng }; });
 
   document.getElementById('filtro-estado-sol').addEventListener('change', (e) => {
     filtroEstado = e.target.value; cargarLista();
@@ -134,14 +141,16 @@
         plan_interes_id: document.getElementById('ns-plan').value || null,
         direccion: document.getElementById('ns-direccion').value.trim(),
         notas: document.getElementById('ns-notas').value.trim(),
-        latitud: ubicacionCaptura.lat,
-        longitud: ubicacionCaptura.lng
+        latitud: ubicacionNueva.lat,
+        longitud: ubicacionNueva.lng
       });
       exitoBox.textContent = 'Solicitud guardada. La oficina ya la puede ver en sus notificaciones.';
       exitoBox.classList.remove('oculto');
-      ['ns-nombre','ns-telefono','ns-direccion','ns-notas'].forEach(id => document.getElementById(id).value = '');
+      ['ns-nombre','ns-telefono','ns-direccion','ns-notas','ns-texto'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('ns-zona').value = '';
       document.getElementById('ns-plan').value = '';
+      ubicacionNueva = { lat: null, lng: null };
+      document.getElementById('ns-preview').classList.add('oculto');
       cargarLista();
     } catch (err) {
       errorBox.textContent = err.message;
@@ -177,10 +186,12 @@
                 <td data-label="Estado">
                   <span class="pill ${s.estado}">${ETIQUETA_ESTADO_SOL[s.estado]}</span>
                   ${s.cliente_generado_folio ? `<div class="celda-meta"><a href="/pagos.html?cliente=${s.cliente_generado_id}" class="folio">${s.cliente_generado_folio}</a></div>` : ''}
+                  ${s.latitud && s.longitud ? `<div class="celda-meta"><a href="${linkGoogleMaps(s.latitud, s.longitud)}" target="_blank">📍 Ver ubicación</a></div>` : ''}
                 </td>
                 ${esAdmin ? `
                   <td class="celda-acciones-movil">
                     <div class="fila-acciones">
+                      <button class="btn btn-secundario btn-sm" data-ubicacion="${s.id}" data-lat="${s.latitud || ''}" data-lng="${s.longitud || ''}" title="Marcar ubicación">📍</button>
                       ${s.estado !== 'convertida' && s.estado !== 'descartada' ? `
                         <button class="btn btn-verde btn-sm" data-convertir="${s.id}">Convertir en cliente</button>
                         <button class="btn btn-secundario btn-sm" data-estado-sol="${s.id}" data-nuevo-estado="${s.estado === 'nueva' ? 'contactada' : 'agendada'}">
@@ -188,7 +199,7 @@
                         </button>
                         <button class="btn btn-peligro btn-sm" data-estado-sol="${s.id}" data-nuevo-estado="descartada">Descartar</button>
                       ` : ''}
-                      <button class="btn btn-peligro btn-sm" data-borrar-solicitud="${s.id}">Eliminar</button>
+                      <button class="btn btn-peligro btn-sm btn-icono" data-borrar-solicitud="${s.id}" data-convertida="${s.estado === 'convertida'}" data-cliente-folio="${s.cliente_generado_folio || ''}" title="Eliminar solicitud">🗑️</button>
                     </div>
                   </td>` : ''}
               </tr>
@@ -215,11 +226,28 @@
     document.querySelectorAll('[data-borrar-solicitud]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('¿Eliminar esta solicitud?')) return;
+
+        let eliminarCliente = false;
+        if (btn.dataset.convertida === 'true') {
+          eliminarCliente = confirm(
+            `Esta solicitud ya generó al cliente ${btn.dataset.clienteFolio}.\n\n` +
+            `¿Quieres eliminar TAMBIÉN ese cliente y su actividad relacionada?\n\n` +
+            `Aceptar = sí, borrar todo (solo funciona si ese cliente aún no tiene pagos ni instalaciones registradas).\n` +
+            `Cancelar = solo borrar esta solicitud, dejando al cliente como está.`
+          );
+        }
+
         try {
-          await API.del(`/api/solicitudes/${btn.dataset.borrarSolicitud}`);
+          const qs = eliminarCliente ? '?eliminarCliente=true' : '';
+          const resultado = await API.del(`/api/solicitudes/${btn.dataset.borrarSolicitud}${qs}`);
+          if (resultado.mensaje) alert(resultado.mensaje);
           cargarLista();
         } catch (err) { alert(err.message); }
       });
+    });
+
+    document.querySelectorAll('[data-ubicacion]').forEach(btn => {
+      btn.addEventListener('click', () => abrirModalUbicacion(btn.dataset.ubicacion, btn.dataset.lat, btn.dataset.lng));
     });
 
     document.querySelectorAll('[data-convertir]').forEach(btn => {
@@ -229,6 +257,61 @@
           abrirModalConvertir(solicitud);
         } catch (err) { alert(err.message); }
       });
+    });
+  }
+
+  function abrirModalUbicacion(idSolicitud, latActual, lngActual) {
+    const modalCont = document.getElementById('modal-contenedor');
+    const lat = latActual ? Number(latActual) : null;
+    const lng = lngActual ? Number(lngActual) : null;
+
+    modalCont.innerHTML = `
+      <div class="modal-fondo">
+        <div class="modal">
+          <div class="modal-cabecera">
+            <h3>📍 Ubicación de la solicitud</h3>
+            <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+          </div>
+          <div class="modal-cuerpo">
+            <div id="error-ubicacion" class="error-msg oculto"></div>
+            <p class="texto-gris" style="margin-top:0; font-size:12.5px;">Haz clic en el mapa o arrastra el pin para marcar el punto exacto.</p>
+            <div id="mu-mapa" class="mapa-selector"></div>
+            <div class="ubicacion-campo" style="margin-top:8px;">
+              <input type="text" id="mu-texto" placeholder="O pega aquí un link de Google Maps" />
+              <button type="button" class="btn btn-secundario btn-sm" id="mu-usar-mi-ubicacion">📍 Usar la mía</button>
+            </div>
+            <div id="mu-preview" class="ubicacion-vista-previa oculto"></div>
+          </div>
+          <div class="modal-pie">
+            <button class="btn btn-secundario" id="cancelar-ubicacion">Cancelar</button>
+            <button class="btn btn-primario" id="guardar-ubicacion">Guardar ubicación</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    let coords = { lat, lng };
+    const mapaInstancia = activarSelectorUbicacion('mu', lat, lng, (la, ln) => { coords = { lat: la, lng: ln }; });
+
+    const cerrar = () => { mapaInstancia.remove(); modalCont.innerHTML = ''; };
+    document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+    document.getElementById('cancelar-ubicacion').addEventListener('click', cerrar);
+
+    document.getElementById('guardar-ubicacion').addEventListener('click', async () => {
+      const errorBox = document.getElementById('error-ubicacion');
+      if (!coords.lat || !coords.lng) {
+        errorBox.textContent = 'Marca un punto en el mapa antes de guardar.';
+        errorBox.classList.remove('oculto');
+        return;
+      }
+      try {
+        await API.put(`/api/solicitudes/${idSolicitud}`, { latitud: coords.lat, longitud: coords.lng });
+        cerrar();
+        cargarLista();
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('oculto');
+      }
     });
   }
 

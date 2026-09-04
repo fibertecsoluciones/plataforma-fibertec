@@ -555,6 +555,20 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 .autocomplete-folio{ font-family:'JetBrains Mono', monospace; color:var(--azul-oscuro); font-weight:600; font-size:12px; }
 
 /* ==========================================================
+   UBICACIÓN (estimada por oficina / confirmada en sitio)
+   ========================================================== */
+.ubicacion-campo{ display:flex; gap:8px; }
+.ubicacion-campo input{ flex:1; }
+.ubicacion-vista-previa{
+  margin-top:8px; padding:9px 12px;
+  background: var(--fondo); border:1px solid var(--borde); border-radius: var(--radio-sm);
+  font-size:12.5px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.pill.ubicacion-estimada{ background: var(--sem-amarillo-bg); color: var(--sem-amarillo); }
+.pill.ubicacion-confirmada{ background: var(--sem-verde-bg); color: var(--sem-verde); }
+.mapa-selector{ width:100%; height:230px; border-radius: var(--radio-sm); border:1px solid var(--borde); z-index:1; }
+
+/* ==========================================================
    TABLAS EN MODO TARJETA (celular / pantallas angostas)
    ========================================================== */
 @media (max-width: 700px){

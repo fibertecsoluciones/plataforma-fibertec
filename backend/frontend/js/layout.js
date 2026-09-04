@@ -198,6 +198,100 @@ const ETIQUETA_SEMAFORO = {
   rojo: 'Vencido'
 };
 
+// Intenta sacar latitud/longitud de un link de Google Maps pegado, o de un texto
+// escrito directo como "16.7500, -93.1167". Cubre los formatos más comunes de Maps.
+function extraerCoordenadasDeTexto(texto) {
+  if (!texto) return null;
+  const patrones = [
+    /@(-?\d+\.\d+),(-?\d+\.\d+)/,          // .../@16.75,-93.11,15z
+    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,     // ?q=16.75,-93.11
+    /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,    // ?ll=16.75,-93.11
+    /^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/ // "16.75, -93.11" tal cual
+  ];
+  for (const patron of patrones) {
+    const match = texto.match(patron);
+    if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+  }
+  return null;
+}
+
+function linkGoogleMaps(lat, lng) {
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
+// Crea un mapa interactivo (Leaflet + OpenStreetMap, sin necesidad de API de pago)
+// dentro del elemento con id `${prefijo}-mapa`. El usuario puede hacer clic en
+// cualquier parte del mapa o arrastrar el pin para marcar la ubicación; también
+// puede pegar un link de Maps o usar su propio GPS, si esos campos existen en el
+// formulario (son opcionales). Llama a onCambio(lat, lng) cada vez que se mueve.
+// Centro por defecto: Tuxtla Gutiérrez, Chiapas (zona donde opera el ISP).
+function activarSelectorUbicacion(prefijo, latInicial, lngInicial, onCambio) {
+  const lat = latInicial || 16.7530;
+  const lng = lngInicial || -93.1136;
+
+  const mapa = L.map(`${prefijo}-mapa`).setView([lat, lng], latInicial ? 16 : 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+  }).addTo(mapa);
+
+  const marcador = L.marker([lat, lng], { draggable: true }).addTo(mapa);
+
+  function actualizar(la, ln) {
+    onCambio(la, ln);
+    const preview = document.getElementById(`${prefijo}-preview`);
+    if (preview) {
+      preview.innerHTML = `📍 ${la.toFixed(5)}, ${ln.toFixed(5)} — <a href="${linkGoogleMaps(la, ln)}" target="_blank">Ver en Google Maps</a>`;
+      preview.classList.remove('oculto');
+    }
+  }
+
+  marcador.on('dragend', () => {
+    const pos = marcador.getLatLng();
+    actualizar(pos.lat, pos.lng);
+  });
+
+  mapa.on('click', (e) => {
+    marcador.setLatLng(e.latlng);
+    actualizar(e.latlng.lat, e.latlng.lng);
+  });
+
+  const inputTexto = document.getElementById(`${prefijo}-texto`);
+  if (inputTexto) {
+    inputTexto.addEventListener('input', (e) => {
+      const coords = extraerCoordenadasDeTexto(e.target.value);
+      if (coords) {
+        marcador.setLatLng([coords.lat, coords.lng]);
+        mapa.setView([coords.lat, coords.lng], 16);
+        actualizar(coords.lat, coords.lng);
+      }
+    });
+  }
+
+  const btnMiUbicacion = document.getElementById(`${prefijo}-usar-mi-ubicacion`);
+  if (btnMiUbicacion) {
+    btnMiUbicacion.addEventListener('click', () => {
+      if (!navigator.geolocation) { alert('Este dispositivo no soporta ubicación.'); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          marcador.setLatLng([pos.coords.latitude, pos.coords.longitude]);
+          mapa.setView([pos.coords.latitude, pos.coords.longitude], 16);
+          actualizar(pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => alert('No se pudo obtener tu ubicación: ' + err.message)
+      );
+    });
+  }
+
+  if (latInicial && lngInicial) actualizar(latInicial, lngInicial);
+
+  // El mapa se crea a veces dentro de un modal recién abierto (todavía sin su tamaño
+  // final calculado); esto obliga a Leaflet a recalcular su tamaño un instante después.
+  setTimeout(() => mapa.invalidateSize(), 250);
+
+  return mapa;
+}
+
 // Presionar Escape cierra cualquier modal/formulario abierto, en cualquier página
 // (todas usan el mismo patrón: un contenedor #modal-contenedor donde se inyecta el modal).
 document.addEventListener('keydown', (e) => {
