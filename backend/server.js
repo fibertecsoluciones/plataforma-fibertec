@@ -26,7 +26,7 @@ app.use('/api/finanzas', require('./routes/finanzas.routes'));
 app.get('/api/health', (req, res) => res.json({ ok: true, servicio: 'FiberTec ISP API' }));
 
 // ---------- Servir el frontend estático (opcional, si lo despliegas junto al backend) ----------
-const frontendPath = path.join(__dirname, '..', 'frontend');
+const frontendPath = path.join(__dirname, 'frontend');
 app.use(express.static(frontendPath));
 app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
