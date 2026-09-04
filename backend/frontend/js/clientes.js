@@ -182,7 +182,7 @@
                     <a class="btn btn-secundario btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a>
                     ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-editar="${c.cliente_id_pk}">Editar</button>` : ''}
                     ${esAdmin && c.estado_cliente !== 'baja' ? `<button class="btn btn-peligro btn-sm" data-baja="${c.cliente_id_pk}">Dar de baja</button>` : ''}
-                    ${esAdmin ? `<button class="btn btn-peligro btn-sm" data-eliminar-permanente="${c.cliente_id_pk}" data-folio="${c.cliente_id}">Eliminar definitivamente</button>` : ''}
+                    ${esAdmin ? `<button class="btn btn-peligro btn-sm btn-icono" data-eliminar-permanente="${c.cliente_id_pk}" data-folio="${c.cliente_id}" title="Eliminar definitivamente">🗑️</button>` : ''}
                   </div>
                 </td>
               </tr>

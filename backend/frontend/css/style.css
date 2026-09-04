@@ -125,6 +125,7 @@ input, select, textarea{ font-family: inherit; font-size: 14px; }
 .btn-secundario:hover{ background: var(--gris-claro); }
 .btn-peligro{ background: var(--sem-rojo-bg); color: var(--sem-rojo); }
 .btn-sm{ padding: 6px 12px; font-size: 12.5px; }
+.btn-icono{ padding: 6px 9px; line-height:1; font-size:14px; }
 .error-msg{
   background: var(--sem-rojo-bg); color:var(--sem-rojo);
   padding: 10px 12px; border-radius: var(--radio-sm); font-size:13px; margin-bottom:14px;
