@@ -94,7 +94,7 @@ async function obtenerActividad(req, res) {
 
 // Crea una actividad (solo admin), con su checklist de puntos opcional.
 async function crearActividad(req, res) {
-  const { titulo, descripcion, tecnico_id, cliente_id, cliente_folio, prioridad, fecha_limite, puntos } = req.body;
+  const { titulo, descripcion, tecnico_id, cliente_id, cliente_folio, prioridad, fecha_limite, puntos, latitud, longitud } = req.body;
 
   if (!titulo || !tecnico_id) {
     return res.status(400).json({ error: 'Título y técnico asignado son obligatorios.' });
@@ -115,10 +115,10 @@ async function crearActividad(req, res) {
     await client.query('BEGIN');
 
     const r = await client.query(
-      `INSERT INTO actividades (titulo, descripcion, tecnico_id, cliente_id, prioridad, fecha_limite, creado_por)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'media'),$6,$7)
+      `INSERT INTO actividades (titulo, descripcion, tecnico_id, cliente_id, prioridad, fecha_limite, creado_por, latitud, longitud)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'media'),$6,$7,$8,$9)
        RETURNING *`,
-      [titulo, descripcion, tecnico_id, clienteIdResuelto, prioridad, fecha_limite || null, req.usuario.id]
+      [titulo, descripcion, tecnico_id, clienteIdResuelto, prioridad, fecha_limite || null, req.usuario.id, latitud || null, longitud || null]
     );
     const actividad = r.rows[0];
 
@@ -145,7 +145,7 @@ async function crearActividad(req, res) {
 async function actualizarActividad(req, res) {
   try {
     const { id } = req.params;
-    const campos = ['titulo', 'descripcion', 'tecnico_id', 'cliente_id', 'prioridad', 'fecha_limite'];
+    const campos = ['titulo', 'descripcion', 'tecnico_id', 'cliente_id', 'prioridad', 'fecha_limite', 'latitud', 'longitud'];
     const sets = []; const params = [];
 
     campos.forEach((campo) => {
@@ -185,7 +185,7 @@ async function marcarEstadoActividad(req, res) {
     }
 
     const r = await db.query(
-      `UPDATE actividades SET estado = $1, completado_en = CASE WHEN $1 = 'completada' THEN now() ELSE NULL END
+      `UPDATE actividades SET estado = $1, completado_en = CASE WHEN $1::varchar = 'completada' THEN now() ELSE NULL END
        WHERE id = $2 RETURNING *`,
       [estado, id]
     );
