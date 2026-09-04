@@ -590,6 +590,8 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
   .paginacion{ flex-direction: column; align-items: flex-start; }
 }
 
+.btn-menu{ display:none; background:none; border:none; font-size:20px; color:var(--tinta); }
+
 /* responsive: sidebar colapsable en móvil */
 @media (max-width: 900px){
   .sidebar{ transform: translateX(-100%); transition: transform .2s; z-index: 200; }
@@ -597,4 +599,3 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
   .contenido{ margin-left: 0; }
   .btn-menu{ display:inline-flex; }
 }
-.btn-menu{ display:none; background:none; border:none; font-size:20px; color:var(--tinta); }
