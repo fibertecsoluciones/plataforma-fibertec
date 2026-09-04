@@ -173,7 +173,7 @@
                 </td>
                 <td data-label="Adeudo">
                   ${c.meses_adeudados > 0
-                    ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}</div>`
+                    ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}${c.estado_cliente === 'suspendido' ? ' · 🧊 congelado' : ''}</div>`
                     : `<span class="texto-gris">Al día</span>`}
                 </td>
                 <td data-label="Estado"><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
@@ -355,6 +355,19 @@
                     <option value="baja" ${datos.estado === 'baja' ? 'selected' : ''}>Baja</option>
                   </select>
                 </div>
+                <div class="campo">
+                  <label>Fecha de suspensión (si aplica)</label>
+                  <input type="date" id="c-fecha-suspension" value="${datos.fecha_suspension ? String(datos.fecha_suspension).slice(0, 10) : ''}" />
+                </div>
+                <div class="campo ancho-total" style="margin-top:-8px;">
+                  <span class="texto-gris" style="font-size:11.5px;">
+                    Solo tiene efecto si el Estado está en "Suspendido": desde esa fecha se congela su adeudo
+                    automático (no le sigue sumando meses nuevos mientras siga así). Si dejas este campo vacío y
+                    cambias el Estado a "Suspendido" y guardas, el sistema usa automáticamente el día de hoy.
+                    Solo llénalo a mano si necesitas corregir la fecha real de un cliente que ya estaba suspendido
+                    de antes (para que el congelamiento le aplique desde su fecha real, no desde hoy).
+                  </span>
+                </div>
                 <div class="campo ancho-total">
                   <label>Notas</label>
                   <textarea id="c-notas" rows="2">${valorSeguro(datos.notas)}</textarea>
@@ -411,6 +424,9 @@
         errorBox.classList.remove('oculto');
         return;
       }
+
+      const fechaSuspensionManual = document.getElementById('c-fecha-suspension').value;
+      if (fechaSuspensionManual) payload.fecha_suspension = fechaSuspensionManual;
 
       try {
         if (clienteId) {

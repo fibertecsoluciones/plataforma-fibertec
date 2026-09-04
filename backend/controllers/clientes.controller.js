@@ -97,6 +97,27 @@ async function actualizarCliente(req, res) {
   const sets = [];
   const params = [];
 
+  // Si el admin manda una fecha_suspension explícita (desde el formulario), esa manda
+  // sobre la lógica automática — sirve para corregir clientes que ya estaban suspendidos
+  // ANTES de que existiera esta función, poniéndoles su fecha real de suspensión.
+  if (req.body.fecha_suspension !== undefined) {
+    params.push(req.body.fecha_suspension || null);
+    sets.push(`fecha_suspension = $${params.length}`);
+  } else if (req.body.estado !== undefined) {
+    // Si no la mandó a mano, se sigue la regla automática de siempre: revisamos el
+    // estado ANTERIOR para saber si hay que congelar (entra a "suspendido") o
+    // descongelar (vuelve a "activo") el conteo.
+    const actual = await db.query('SELECT estado FROM clientes WHERE id = $1', [id]);
+    const estadoAnterior = actual.rows[0]?.estado;
+    const estadoNuevo = req.body.estado;
+
+    if (estadoNuevo === 'suspendido' && estadoAnterior !== 'suspendido') {
+      sets.push(`fecha_suspension = CURRENT_DATE`); // entra a suspendido: se congela desde hoy
+    } else if (estadoNuevo === 'activo') {
+      sets.push(`fecha_suspension = NULL`); // siempre que se reactiva, se descongela (venga de donde venga)
+    }
+  }
+
   campos.forEach((campo) => {
     if (req.body[campo] !== undefined) {
       params.push(req.body[campo]);
