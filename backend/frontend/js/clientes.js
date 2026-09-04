@@ -1,5 +1,5 @@
 (async function () {
-  const usuario = protegerPagina();
+  const usuario = protegerPagina(['admin']);
   if (!usuario) return;
 
   renderLayout('clientes', 'Clientes');
@@ -182,6 +182,7 @@
                     <a class="btn btn-secundario btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a>
                     ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-editar="${c.cliente_id_pk}">Editar</button>` : ''}
                     ${esAdmin && c.estado_cliente !== 'baja' ? `<button class="btn btn-peligro btn-sm" data-baja="${c.cliente_id_pk}">Dar de baja</button>` : ''}
+                    ${esAdmin ? `<button class="btn btn-peligro btn-sm" data-eliminar-permanente="${c.cliente_id_pk}" data-folio="${c.cliente_id}">Eliminar definitivamente</button>` : ''}
                   </div>
                 </td>
               </tr>
@@ -208,6 +209,10 @@
           cargarTabla();
         } catch (err) { alert(err.message); }
       });
+    });
+
+    tabla.querySelectorAll('[data-eliminar-permanente]').forEach(btn => {
+      btn.addEventListener('click', () => abrirModalEliminarPermanente(btn.dataset.eliminarPermanente, btn.dataset.folio));
     });
 
     renderBotonesPaginacion(totalPaginas);
@@ -444,6 +449,63 @@
   }
 
   function valorSeguro(v) { return v === null || v === undefined ? '' : String(v).replace(/"/g, '&quot;'); }
+
+  function abrirModalEliminarPermanente(idCliente, folio) {
+    const modalCont = document.getElementById('modal-contenedor');
+    modalCont.innerHTML = `
+      <div class="modal-fondo">
+        <div class="modal">
+          <div class="modal-cabecera">
+            <h3 style="color:var(--sem-rojo);">⚠️ Eliminar cliente definitivamente</h3>
+            <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+          </div>
+          <div class="modal-cuerpo">
+            <div class="error-msg">
+              Esto borra al cliente <b>${folio}</b> para siempre, junto con <b>todo su historial de pagos e instalaciones</b>.
+              No es como "Dar de baja" — esto NO se puede deshacer. Úsalo solo si estás 100% seguro
+              (por ejemplo, un cliente que se dio de alta por error).
+            </div>
+            <div class="campo">
+              <label>Para confirmar, escribe el folio exacto: <span class="folio">${folio}</span></label>
+              <input type="text" id="confirmar-folio-eliminar" placeholder="Escribe ${folio}" style="text-transform:uppercase;" />
+            </div>
+            <div id="error-eliminar-permanente" class="error-msg oculto"></div>
+          </div>
+          <div class="modal-pie">
+            <button class="btn btn-secundario" id="cancelar-eliminar-permanente">Cancelar</button>
+            <button class="btn btn-peligro" id="confirmar-eliminar-permanente" disabled>Eliminar para siempre</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cerrar = () => { modalCont.innerHTML = ''; };
+    document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+    document.getElementById('cancelar-eliminar-permanente').addEventListener('click', cerrar);
+
+    const input = document.getElementById('confirmar-folio-eliminar');
+    const btnConfirmar = document.getElementById('confirmar-eliminar-permanente');
+    input.addEventListener('input', () => {
+      btnConfirmar.disabled = input.value.trim().toUpperCase() !== folio.toUpperCase();
+    });
+
+    btnConfirmar.addEventListener('click', async () => {
+      const errorBox = document.getElementById('error-eliminar-permanente');
+      btnConfirmar.disabled = true;
+      btnConfirmar.textContent = 'Eliminando…';
+      try {
+        const resultado = await API.del(`/api/clientes/${idCliente}/permanente`);
+        cerrar();
+        alert(resultado.mensaje);
+        cargarTabla();
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('oculto');
+        btnConfirmar.disabled = false;
+        btnConfirmar.textContent = 'Eliminar para siempre';
+      }
+    });
+  }
 
   function debounce(fn, ms) {
     let t;

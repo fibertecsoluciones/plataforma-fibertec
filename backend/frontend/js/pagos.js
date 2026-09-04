@@ -1,5 +1,5 @@
 (async function () {
-  const usuario = protegerPagina();
+  const usuario = protegerPagina(['admin']);
   if (!usuario) return;
 
   renderLayout('pagos', 'Pagos');
@@ -83,6 +83,7 @@
               </div>
               <div class="texto-gris">${cliente.zona_nombre} · Plan ${cliente.plan_nombre} (${mxn(cliente.precio)}) · Día de pago ${cliente.dia_pago}</div>
               ${cliente.adeudo_manual_meses > 0 ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">📌 Incluye ${cliente.adeudo_manual_meses} mes(es) capturados a mano${cliente.adeudo_manual_detalle ? ': ' + cliente.adeudo_manual_detalle : ''}</div>` : ''}
+              ${cliente.estado === 'suspendido' && cliente.fecha_suspension ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">🧊 Suspendido desde ${fechaCorta(cliente.fecha_suspension)} — el adeudo está congelado desde esa fecha (no le siguen sumando meses nuevos mientras siga suspendido).</div>` : ''}
             </div>
             ${esAdmin ? `<button class="btn btn-verde" id="btn-registrar-pago">+ Registrar pago</button>` : ''}
           </div>

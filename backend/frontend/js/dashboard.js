@@ -1,5 +1,5 @@
 (async function () {
-  const usuario = protegerPagina();
+  const usuario = protegerPagina(['admin']);
   if (!usuario) return;
 
   renderLayout('dashboard', 'Panel general');

@@ -215,9 +215,11 @@
                 <label>Fecha límite (opcional)</label>
                 <input type="date" id="na-fecha-limite" />
               </div>
-              <div class="campo">
-                <label>Folio de cliente relacionado (opcional)</label>
-                <input type="text" id="na-cliente-folio" placeholder="Ej. POP-014" style="text-transform:uppercase;" />
+              <div class="campo ancho-total" style="position:relative;">
+                <label>Cliente relacionado (opcional)</label>
+                <input type="text" id="na-cliente-busqueda" placeholder="Escribe el nombre o folio para buscar…" autocomplete="off" />
+                <input type="hidden" id="na-cliente-folio" />
+                <div id="na-cliente-sugerencias" class="autocomplete-lista oculto"></div>
               </div>
               <div class="campo ancho-total">
                 <label>Checklist (opcional — déjalo vacío si es una tarea simple)</label>
@@ -249,6 +251,48 @@
     document.getElementById('btn-agregar-punto-nuevo').addEventListener('click', agregarFilaPunto);
     agregarFilaPunto(); // arranca con una fila lista
 
+    // Autocompletar de cliente: busca por nombre o folio conforme se escribe
+    const inputBusquedaCliente = document.getElementById('na-cliente-busqueda');
+    const inputFolioOculto = document.getElementById('na-cliente-folio');
+    const listaSugerencias = document.getElementById('na-cliente-sugerencias');
+    let debounceCliente;
+
+    inputBusquedaCliente.addEventListener('input', () => {
+      inputFolioOculto.value = ''; // si vuelve a escribir, invalida la selección anterior
+      clearTimeout(debounceCliente);
+      const q = inputBusquedaCliente.value.trim();
+      if (q.length < 2) { listaSugerencias.classList.add('oculto'); listaSugerencias.innerHTML = ''; return; }
+
+      debounceCliente = setTimeout(async () => {
+        try {
+          const resultados = await API.get('/api/clientes?q=' + encodeURIComponent(q));
+          if (!resultados.length) {
+            listaSugerencias.innerHTML = `<div class="autocomplete-item texto-gris">Sin resultados</div>`;
+          } else {
+            listaSugerencias.innerHTML = resultados.slice(0, 8).map(c => `
+              <div class="autocomplete-item" data-folio="${c.cliente_id}" data-nombre="${c.nombre.replace(/"/g, '&quot;')}">
+                <span class="autocomplete-folio">${c.cliente_id}</span> — ${c.nombre}
+              </div>
+            `).join('');
+            listaSugerencias.querySelectorAll('[data-folio]').forEach(item => {
+              item.addEventListener('click', () => {
+                inputBusquedaCliente.value = `${item.dataset.folio} — ${item.dataset.nombre}`;
+                inputFolioOculto.value = item.dataset.folio;
+                listaSugerencias.classList.add('oculto');
+              });
+            });
+          }
+          listaSugerencias.classList.remove('oculto');
+        } catch (err) { /* silencioso, no bloquea el formulario */ }
+      }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!listaSugerencias.contains(e.target) && e.target !== inputBusquedaCliente) {
+        listaSugerencias.classList.add('oculto');
+      }
+    });
+
     document.getElementById('guardar-actividad').addEventListener('click', async () => {
       const errorBox = document.getElementById('error-actividad');
       const titulo = document.getElementById('na-titulo').value.trim();
@@ -268,7 +312,7 @@
         tecnico_id: Number(document.getElementById('na-tecnico').value),
         prioridad: document.getElementById('na-prioridad').value,
         fecha_limite: document.getElementById('na-fecha-limite').value || null,
-        cliente_folio: document.getElementById('na-cliente-folio').value.trim(),
+        cliente_folio: document.getElementById('na-cliente-folio').value || document.getElementById('na-cliente-busqueda').value.trim(),
         puntos
       };
 

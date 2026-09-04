@@ -30,6 +30,12 @@
     return;
   }
 
+  // Para "Plan de interés" de un prospecto nuevo, solo se ofrecen los planes vigentes
+  // que sí se venden hoy en día — no los planes viejos/especiales que ya solo tienen
+  // clientes antiguos (esos se asignan directo al convertir, no aquí).
+  const NOMBRES_PLANES_NUEVOS = ['NAVEGA', 'VUELO', 'ELITE'];
+  const planesParaNuevos = planes.filter(p => NOMBRES_PLANES_NUEVOS.includes(String(p.nombre).toUpperCase().trim()));
+
   cont.innerHTML = `
     <div class="tarjeta">
       <div class="tarjeta-cabecera"><h3>📞 Nueva solicitud (captura rápida en campo)</h3></div>
@@ -56,7 +62,7 @@
             <label>Plan de interés (opcional)</label>
             <select id="ns-plan">
               <option value="">Sin especificar</option>
-              ${planes.map(p => `<option value="${p.id}">${p.nombre} — ${mxn(p.precio)}</option>`).join('')}
+              ${planesParaNuevos.map(p => `<option value="${p.id}">${p.nombre} — ${mxn(p.precio)}</option>`).join('')}
             </select>
           </div>
           <div class="campo ancho-total">

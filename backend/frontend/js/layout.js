@@ -3,9 +3,9 @@
 
 const NAV_ITEMS = [
   { grupo: 'Operación', items: [
-    { id: 'dashboard', href: '/dashboard.html', icono: '📊', label: 'Panel general' },
-    { id: 'clientes',  href: '/clientes.html',  icono: '👥', label: 'Clientes' },
-    { id: 'pagos',     href: '/pagos.html',     icono: '💳', label: 'Pagos' },
+    { id: 'dashboard', href: '/dashboard.html', icono: '📊', label: 'Panel general', soloAdmin: true },
+    { id: 'clientes',  href: '/clientes.html',  icono: '👥', label: 'Clientes', soloAdmin: true },
+    { id: 'pagos',     href: '/pagos.html',     icono: '💳', label: 'Pagos', soloAdmin: true },
   ]},
   { grupo: 'Campo', items: [
     { id: 'solicitudes', href: '/solicitudes.html', icono: '📞', label: 'Solicitudes' },
@@ -98,15 +98,21 @@ async function configurarNotificaciones() {
     if (!panel.contains(e.target) && e.target !== btn) panel.classList.add('oculto');
   });
 
+  const usuarioActual = API.usuario();
+  const esAdminNotif = usuarioActual && usuarioActual.rol === 'admin';
+
   try {
-    const lista = await API.get('/api/clientes');
-    const conAdeudo = lista
-      .filter(c => c.meses_adeudados > 0)
-      .sort((a, b) => b.meses_adeudados - a.meses_adeudados);
+    // La lista de clientes con adeudo es información financiera — solo para admin.
+    let conAdeudo = [];
+    if (esAdminNotif) {
+      const lista = await API.get('/api/clientes');
+      conAdeudo = lista
+        .filter(c => c.meses_adeudados > 0)
+        .sort((a, b) => b.meses_adeudados - a.meses_adeudados);
+    }
 
     let solicitudesNuevas = [];
-    const usuarioActual = API.usuario();
-    if (usuarioActual && usuarioActual.rol === 'admin') {
+    if (esAdminNotif) {
       try { solicitudesNuevas = await API.get('/api/solicitudes?estado=nueva'); } catch (e) { /* no crítico */ }
     }
 

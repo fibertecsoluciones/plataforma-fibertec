@@ -305,7 +305,7 @@ CREATE TABLE solicitudes_instalacion (
   estado            VARCHAR(20) NOT NULL DEFAULT 'nueva'
                        CHECK (estado IN ('nueva','contactada','agendada','convertida','descartada')),
   capturado_por     INTEGER REFERENCES usuarios(id),
-  cliente_generado_id INTEGER REFERENCES clientes(id),
+  cliente_generado_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
   latitud           NUMERIC(10,7),
   longitud          NUMERIC(10,7),
   creado_en         TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -335,7 +335,7 @@ CREATE TABLE actividades (
   titulo          VARCHAR(150) NOT NULL,
   descripcion     TEXT,
   tecnico_id      INTEGER NOT NULL REFERENCES usuarios(id),
-  cliente_id      INTEGER REFERENCES clientes(id),
+  cliente_id      INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
   prioridad       VARCHAR(10) NOT NULL DEFAULT 'media' CHECK (prioridad IN ('baja','media','alta')),
   estado          VARCHAR(15) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','en_proceso','completada')),
   fecha_limite    DATE,
@@ -419,7 +419,7 @@ CREATE TABLE inventario_movimientos (
   cantidad      NUMERIC(10,2) NOT NULL CHECK (cantidad > 0),
   motivo        VARCHAR(150),
   tecnico_id    INTEGER REFERENCES usuarios(id),
-  cliente_id    INTEGER REFERENCES clientes(id),  -- opcional, si salió material para instalación
+  cliente_id    INTEGER REFERENCES clientes(id) ON DELETE SET NULL,  -- opcional, si salió material para instalación
   fecha         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

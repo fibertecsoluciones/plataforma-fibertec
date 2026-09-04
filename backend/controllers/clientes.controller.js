@@ -148,6 +148,18 @@ async function eliminarCliente(req, res) {
   res.json({ mensaje: 'Cliente dado de baja.', cliente: r.rows[0] });
 }
 
+// Borrado DEFINITIVO (a diferencia de "dar de baja"). Borra también, en cascada, todos
+// sus pagos e instalaciones — esto NO se puede deshacer. Las actividades y solicitudes
+// ligadas a este cliente no se borran, solo se quedan sin cliente ligado.
+async function eliminarClientePermanente(req, res) {
+  const { id } = req.params;
+  const clienteRes = await db.query('SELECT cliente_id, nombre FROM clientes WHERE id = $1', [id]);
+  if (!clienteRes.rows[0]) return res.status(404).json({ error: 'Cliente no encontrado.' });
+
+  await db.query('DELETE FROM clientes WHERE id = $1', [id]);
+  res.json({ mensaje: `Cliente ${clienteRes.rows[0].cliente_id} (${clienteRes.rows[0].nombre}) eliminado permanentemente, junto con todo su historial de pagos e instalaciones.` });
+}
+
 // Resumen de conteos por semáforo, más el total de cartera vencida acumulada, para el dashboard
 async function resumenSemaforo(req, res) {
   const r = await db.query(`SELECT semaforo, COUNT(*)::int AS total FROM vw_estado_pago WHERE estado_cliente <> 'baja' GROUP BY semaforo`);
@@ -373,7 +385,7 @@ async function importarClientes(req, res) {
 
 module.exports = {
   listarClientes, obtenerCliente, buscarPorFolio,
-  crearCliente, actualizarCliente, eliminarCliente,
+  crearCliente, actualizarCliente, eliminarCliente, eliminarClientePermanente,
   resumenSemaforo,
   descargarPlantilla, importarClientes
 };

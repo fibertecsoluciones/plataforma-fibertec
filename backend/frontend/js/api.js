@@ -105,7 +105,9 @@ function protegerPagina(rolesPermitidos) {
   }
   if (rolesPermitidos && !rolesPermitidos.includes(usuario.rol)) {
     alert('No tienes permisos para ver esta sección.');
-    window.location.href = '/dashboard.html';
+    // A un técnico lo mandamos a una página a la que SÍ tiene acceso (no al Dashboard,
+    // que también es solo-admin, para no generar un ciclo de redirecciones).
+    window.location.href = usuario.rol === 'tecnico' ? '/actividades.html' : '/dashboard.html';
     return null;
   }
   return usuario;
