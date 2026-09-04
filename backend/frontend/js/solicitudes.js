@@ -293,7 +293,7 @@
     let coords = { lat, lng };
     const mapaInstancia = activarSelectorUbicacion('mu', lat, lng, (la, ln) => { coords = { lat: la, lng: ln }; });
 
-    const cerrar = () => { modalCont.innerHTML = ''; };
+    const cerrar = () => { mapaInstancia.remove(); modalCont.innerHTML = ''; };
     document.getElementById('cerrar-modal').addEventListener('click', cerrar);
     document.getElementById('cancelar-ubicacion').addEventListener('click', cerrar);
 

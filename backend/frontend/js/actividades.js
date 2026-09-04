@@ -249,7 +249,7 @@
       </div>
     `;
 
-    const cerrar = () => { modalCont.innerHTML = ''; };
+    const cerrar = () => { mapaActividad.remove(); modalCont.innerHTML = ''; };
     document.getElementById('cerrar-modal').addEventListener('click', cerrar);
     document.getElementById('cancelar-actividad').addEventListener('click', cerrar);
 
