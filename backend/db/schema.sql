@@ -56,6 +56,7 @@ CREATE TABLE clientes (
   adeudo_manual_meses SMALLINT NOT NULL DEFAULT 0, -- meses de atraso previos a usar el sistema, capturados a mano
   adeudo_manual_detalle TEXT, -- nota libre: a qué meses corresponde ese adeudo manual (ej. "julio y agosto 2026")
   fecha_inicio_conteo DATE DEFAULT CURRENT_DATE, -- desde qué fecha se cuenta el adeudo automático (normalmente = fecha_alta)
+  fecha_suspension DATE, -- fecha en que quedó suspendido (congela el conteo automático de ahí en adelante)
   fecha_alta        DATE NOT NULL DEFAULT CURRENT_DATE,
   estado            VARCHAR(20) NOT NULL DEFAULT 'activo'
                       CHECK (estado IN ('activo','suspendido','baja')),
@@ -147,15 +148,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Cuenta cuántos meses, desde que el cliente se dio de alta hasta hoy, se quedaron
--- SIN CUBRIR (compara la SUMA de abonos de cada mes contra el precio del plan, para
--- que un pago parcial no cuente como si el mes ya estuviera resuelto).
+-- Cuenta cuántos meses, desde que el cliente se dio de alta hasta la fecha efectiva
+-- (hoy si está activo, o la fecha en que quedó suspendido si está suspendido), se
+-- quedaron SIN CUBRIR (compara la SUMA de abonos de cada mes contra el precio del
+-- plan, para que un pago parcial no cuente como si el mes ya estuviera resuelto).
 CREATE OR REPLACE FUNCTION fn_meses_adeudados(
-  p_cliente_id INT, p_fecha_alta DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT, p_precio NUMERIC
+  p_cliente_id INT, p_fecha_inicio DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT,
+  p_precio NUMERIC, p_fecha_efectiva DATE
 ) RETURNS INT AS $$
 DECLARE
-  v_periodo DATE := date_trunc('month', p_fecha_alta)::date;
-  v_actual  DATE := date_trunc('month', CURRENT_DATE)::date;
+  v_periodo DATE := date_trunc('month', p_fecha_inicio)::date;
+  v_actual  DATE := date_trunc('month', p_fecha_efectiva)::date;
   v_meses   INT := 0;
   v_pagado  NUMERIC;
 BEGIN
@@ -164,7 +167,7 @@ BEGIN
     IF v_periodo < v_actual THEN
       IF v_pagado < p_precio THEN v_meses := v_meses + 1; END IF;
     ELSE
-      IF v_pagado < p_precio AND CURRENT_DATE > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
+      IF v_pagado < p_precio AND p_fecha_efectiva > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
         v_meses := v_meses + 1;
       END IF;
     END IF;
@@ -174,14 +177,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Suma en DINERO lo que falta por cubrir (más preciso que solo contar meses: un mes
--- con pago parcial no debe el mes completo, solo la diferencia).
+-- Suma en DINERO lo que falta por cubrir, hasta la misma fecha efectiva descrita arriba.
 CREATE OR REPLACE FUNCTION fn_saldo_pendiente_automatico(
-  p_cliente_id INT, p_fecha_alta DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT, p_precio NUMERIC
+  p_cliente_id INT, p_fecha_inicio DATE, p_dia_pago SMALLINT, p_tolerancia SMALLINT,
+  p_precio NUMERIC, p_fecha_efectiva DATE
 ) RETURNS NUMERIC AS $$
 DECLARE
-  v_periodo DATE := date_trunc('month', p_fecha_alta)::date;
-  v_actual  DATE := date_trunc('month', CURRENT_DATE)::date;
+  v_periodo DATE := date_trunc('month', p_fecha_inicio)::date;
+  v_actual  DATE := date_trunc('month', p_fecha_efectiva)::date;
   v_saldo   NUMERIC := 0;
   v_pagado  NUMERIC;
 BEGIN
@@ -190,7 +193,7 @@ BEGIN
     IF v_periodo < v_actual THEN
       IF v_pagado < p_precio THEN v_saldo := v_saldo + (p_precio - v_pagado); END IF;
     ELSE
-      IF v_pagado < p_precio AND CURRENT_DATE > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
+      IF v_pagado < p_precio AND p_fecha_efectiva > (fn_fecha_vencimiento(p_dia_pago, v_periodo) + p_tolerancia) THEN
         v_saldo := v_saldo + (p_precio - v_pagado);
       END IF;
     END IF;
@@ -227,6 +230,7 @@ SELECT
   c.adeudo_manual_meses,
   c.adeudo_manual_detalle,
   c.fecha_inicio_conteo,
+  c.fecha_suspension,
   date_trunc('month', CURRENT_DATE)::date                                   AS periodo_actual,
   fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE)                            AS fecha_vencimiento,
   fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia        AS fecha_limite_tolerancia,
@@ -243,9 +247,16 @@ SELECT
     WHEN CURRENT_DATE >= (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) - 3) THEN 'amarillo'
     ELSE 'verde'
   END AS semaforo,
-  fn_meses_adeudados(c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio) + c.adeudo_manual_meses AS meses_adeudados,
-  (fn_saldo_pendiente_automatico(c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio)
-    + (c.adeudo_manual_meses * p.precio))::numeric(10,2)                   AS saldo_pendiente
+  fn_meses_adeudados(
+    c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio,
+    CASE WHEN c.estado = 'suspendido' AND c.fecha_suspension IS NOT NULL
+         THEN LEAST(c.fecha_suspension, CURRENT_DATE) ELSE CURRENT_DATE END
+  ) + c.adeudo_manual_meses AS meses_adeudados,
+  (fn_saldo_pendiente_automatico(
+    c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio,
+    CASE WHEN c.estado = 'suspendido' AND c.fecha_suspension IS NOT NULL
+         THEN LEAST(c.fecha_suspension, CURRENT_DATE) ELSE CURRENT_DATE END
+  ) + (c.adeudo_manual_meses * p.precio))::numeric(10,2) AS saldo_pendiente
 FROM clientes c
 JOIN zonas z   ON z.id = c.zona_id
 JOIN planes p  ON p.id = c.plan_id
@@ -277,6 +288,108 @@ CREATE TABLE instalaciones (
 );
 
 CREATE INDEX idx_instalaciones_cliente ON instalaciones(cliente_id);
+
+-- ============================================================
+-- SOLICITUDES DE INSTALACIÓN (leads capturados en campo)
+-- ============================================================
+
+CREATE TABLE solicitudes_instalacion (
+  id                SERIAL PRIMARY KEY,
+  nombre            VARCHAR(150) NOT NULL,
+  telefono          VARCHAR(20),
+  telefono_alt      VARCHAR(20),
+  direccion         TEXT,
+  zona_id           INTEGER REFERENCES zonas(id),
+  plan_interes_id   INTEGER REFERENCES planes(id),
+  notas             TEXT,
+  estado            VARCHAR(20) NOT NULL DEFAULT 'nueva'
+                       CHECK (estado IN ('nueva','contactada','agendada','convertida','descartada')),
+  capturado_por     INTEGER REFERENCES usuarios(id),
+  cliente_generado_id INTEGER REFERENCES clientes(id),
+  latitud           NUMERIC(10,7),
+  longitud          NUMERIC(10,7),
+  creado_en         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actualizado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_solicitudes_estado ON solicitudes_instalacion(estado);
+
+CREATE OR REPLACE FUNCTION fn_touch_solicitud()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.actualizado_en := now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_solicitudes_touch
+BEFORE UPDATE ON solicitudes_instalacion
+FOR EACH ROW EXECUTE FUNCTION fn_touch_solicitud();
+
+-- ============================================================
+-- ACTIVIDADES (tareas asignadas a técnicos)
+-- ============================================================
+
+CREATE TABLE actividades (
+  id              SERIAL PRIMARY KEY,
+  titulo          VARCHAR(150) NOT NULL,
+  descripcion     TEXT,
+  tecnico_id      INTEGER NOT NULL REFERENCES usuarios(id),
+  cliente_id      INTEGER REFERENCES clientes(id),
+  prioridad       VARCHAR(10) NOT NULL DEFAULT 'media' CHECK (prioridad IN ('baja','media','alta')),
+  estado          VARCHAR(15) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','en_proceso','completada')),
+  fecha_limite    DATE,
+  creado_por      INTEGER REFERENCES usuarios(id),
+  completado_en   TIMESTAMPTZ,
+  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_actividades_tecnico ON actividades(tecnico_id);
+CREATE INDEX idx_actividades_estado ON actividades(estado);
+
+CREATE TABLE actividad_puntos (
+  id              SERIAL PRIMARY KEY,
+  actividad_id    INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
+  descripcion     VARCHAR(200) NOT NULL,
+  orden           SMALLINT NOT NULL DEFAULT 0,
+  completado      BOOLEAN NOT NULL DEFAULT FALSE,
+  completado_en   TIMESTAMPTZ,
+  completado_por  INTEGER REFERENCES usuarios(id)
+);
+
+CREATE INDEX idx_actividad_puntos_actividad ON actividad_puntos(actividad_id);
+
+CREATE OR REPLACE FUNCTION fn_recalcular_estado_actividad()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_actividad_id INT;
+  v_total INT;
+  v_completados INT;
+BEGIN
+  v_actividad_id := COALESCE(NEW.actividad_id, OLD.actividad_id);
+
+  SELECT COUNT(*), COUNT(*) FILTER (WHERE completado)
+  INTO v_total, v_completados
+  FROM actividad_puntos WHERE actividad_id = v_actividad_id;
+
+  IF v_total > 0 THEN
+    UPDATE actividades SET
+      estado = CASE
+        WHEN v_completados = v_total THEN 'completada'
+        WHEN v_completados > 0 THEN 'en_proceso'
+        ELSE 'pendiente'
+      END,
+      completado_en = CASE WHEN v_completados = v_total THEN now() ELSE NULL END
+    WHERE id = v_actividad_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_recalcular_estado_actividad
+AFTER INSERT OR UPDATE OF completado OR DELETE ON actividad_puntos
+FOR EACH ROW EXECUTE FUNCTION fn_recalcular_estado_actividad();
 
 -- ============================================================
 -- INVENTARIO (artículos y herramientas)

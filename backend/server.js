@@ -18,14 +18,15 @@ app.use('/api/catalogos', require('./routes/catalogos.routes'));
 app.use('/api/clientes', require('./routes/clientes.routes'));
 app.use('/api/pagos', require('./routes/pagos.routes'));
 app.use('/api/instalaciones', require('./routes/instalaciones.routes'));
+app.use('/api/actividades', require('./routes/actividades.routes'));
+app.use('/api/solicitudes', require('./routes/solicitudes.routes'));
 app.use('/api/inventario', require('./routes/inventario.routes'));
 app.use('/api/finanzas', require('./routes/finanzas.routes'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true, servicio: 'FiberTec ISP API' }));
 
 // ---------- Servir el frontend estático (opcional, si lo despliegas junto al backend) ----------
-
-const frontendPath = path.join(__dirname, 'frontend'); 
+const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use(express.static(frontendPath));
 app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));

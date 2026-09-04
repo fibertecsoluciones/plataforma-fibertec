@@ -8,6 +8,8 @@ const NAV_ITEMS = [
     { id: 'pagos',     href: '/pagos.html',     icono: '💳', label: 'Pagos' },
   ]},
   { grupo: 'Campo', items: [
+    { id: 'solicitudes', href: '/solicitudes.html', icono: '📞', label: 'Solicitudes' },
+    { id: 'actividades', href: '/actividades.html', icono: '📋', label: 'Actividades' },
     { id: 'tecnicos',   href: '/tecnicos.html',   icono: '🛠️', label: 'Instalaciones' },
     { id: 'inventario', href: '/inventario.html', icono: '📦', label: 'Inventario' },
   ]},
@@ -102,29 +104,55 @@ async function configurarNotificaciones() {
       .filter(c => c.meses_adeudados > 0)
       .sort((a, b) => b.meses_adeudados - a.meses_adeudados);
 
+    let solicitudesNuevas = [];
+    const usuarioActual = API.usuario();
+    if (usuarioActual && usuarioActual.rol === 'admin') {
+      try { solicitudesNuevas = await API.get('/api/solicitudes?estado=nueva'); } catch (e) { /* no crítico */ }
+    }
+
+    const totalNotif = conAdeudo.length + solicitudesNuevas.length;
     const badge = document.getElementById('notif-badge');
-    if (conAdeudo.length > 0) {
-      badge.textContent = conAdeudo.length > 99 ? '99+' : conAdeudo.length;
+    if (totalNotif > 0) {
+      badge.textContent = totalNotif > 99 ? '99+' : totalNotif;
       badge.classList.remove('oculto');
     }
 
     const cuerpo = document.getElementById('notif-panel-cuerpo');
-    if (!conAdeudo.length) {
-      cuerpo.innerHTML = `<div class="notif-vacio">🎉 Ningún cliente tiene adeudo por ahora.</div>`;
+    if (!totalNotif) {
+      cuerpo.innerHTML = `<div class="notif-vacio">🎉 No hay nada pendiente por ahora.</div>`;
       return;
     }
 
-    cuerpo.innerHTML = conAdeudo.slice(0, 15).map(c => `
-      <a class="notif-item" href="/pagos.html?cliente=${c.cliente_id_pk}">
-        <div class="flex-entre">
-          <span><b>${c.nombre}</b> <span class="texto-gris" style="font-size:11px;">(${c.cliente_id})</span></span>
-          <span class="notif-item-meses">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>
-        </div>
-        <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">${c.zona} · debe ${mxn(c.saldo_pendiente)}</div>
-      </a>
-    `).join('') + `
-      <div class="notif-panel-pie"><a href="/clientes.html?adeudo=1">Ver todos los ${conAdeudo.length} clientes con adeudo →</a></div>
-    `;
+    let html = '';
+
+    if (solicitudesNuevas.length) {
+      html += `<div class="notif-panel-cabecera" style="position:static; border-bottom:none; padding-bottom:0;">📞 Solicitudes nuevas</div>`;
+      html += solicitudesNuevas.slice(0, 8).map(s => `
+        <a class="notif-item" href="/solicitudes.html">
+          <div class="flex-entre">
+            <span><b>${s.nombre}</b></span>
+            <span class="texto-gris" style="font-size:11px;">${s.telefono || 'sin teléfono'}</span>
+          </div>
+          <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">${s.zona_nombre || 'Sin zona'} · capturada por ${s.capturado_por_nombre || '—'}</div>
+        </a>
+      `).join('');
+    }
+
+    if (conAdeudo.length) {
+      html += `<div class="notif-panel-cabecera" style="position:static; border-bottom:none; padding-bottom:0;">💰 Clientes con adeudo</div>`;
+      html += conAdeudo.slice(0, 15).map(c => `
+        <a class="notif-item" href="/pagos.html?cliente=${c.cliente_id_pk}">
+          <div class="flex-entre">
+            <span><b>${c.nombre}</b> <span class="texto-gris" style="font-size:11px;">(${c.cliente_id})</span></span>
+            <span class="notif-item-meses">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>
+          </div>
+          <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">${c.zona} · debe ${mxn(c.saldo_pendiente)}</div>
+        </a>
+      `).join('');
+      html += `<div class="notif-panel-pie"><a href="/clientes.html?adeudo=1">Ver todos los ${conAdeudo.length} clientes con adeudo →</a></div>`;
+    }
+
+    cuerpo.innerHTML = html;
   } catch (err) {
     console.error('No se pudieron cargar las notificaciones:', err);
   }
