@@ -160,7 +160,7 @@
           </thead>
           <tbody>
             ${pagina.map(c => `
-              <tr>
+              <tr ${c.notas ? `data-notas="${valorSeguro(c.notas)}"` : ''}>
                 <td data-label="Folio"><span class="folio">${c.cliente_id}</span></td>
                 <td class="celda-tarjeta-titulo">
                   <div class="celda-principal">${c.nombre}</div>
@@ -180,7 +180,7 @@
                 <td class="celda-acciones-movil">
                   <div class="fila-acciones">
                     <a class="btn btn-secundario btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a>
-                    ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-editar="${c.cliente_id_pk}">Editar</button>` : ''}
+                    ${esAdmin ? `<button class="btn btn-secundario btn-sm btn-icono" data-editar="${c.cliente_id_pk}" title="Editar cliente">✏️</button>` : ''}
                     ${esAdmin && c.estado_cliente !== 'baja' ? `<button class="btn btn-peligro btn-sm" data-baja="${c.cliente_id_pk}">Dar de baja</button>` : ''}
                     ${esAdmin ? `<button class="btn btn-peligro btn-sm btn-icono" data-eliminar-permanente="${c.cliente_id_pk}" data-folio="${c.cliente_id}" title="Eliminar definitivamente">🗑️</button>` : ''}
                   </div>
@@ -214,6 +214,8 @@
     tabla.querySelectorAll('[data-eliminar-permanente]').forEach(btn => {
       btn.addEventListener('click', () => abrirModalEliminarPermanente(btn.dataset.eliminarPermanente, btn.dataset.folio));
     });
+
+    conectarPopupNotas(tabla);
 
     renderBotonesPaginacion(totalPaginas);
   }
@@ -449,6 +451,31 @@
   }
 
   function valorSeguro(v) { return v === null || v === undefined ? '' : String(v).replace(/"/g, '&quot;'); }
+
+  // Popup traslúcido con la nota del cliente, al pasar el cursor sobre su fila.
+  function conectarPopupNotas(tabla) {
+    let tooltip = document.getElementById('tooltip-notas-global');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'tooltip-notas-global';
+      tooltip.className = 'tooltip-notas oculto';
+      document.body.appendChild(tooltip);
+    }
+
+    tabla.querySelectorAll('tr[data-notas]').forEach(fila => {
+      fila.addEventListener('mouseenter', () => {
+        tooltip.innerHTML = `<b>Notas</b>${fila.dataset.notas}`;
+        tooltip.classList.remove('oculto');
+      });
+      fila.addEventListener('mousemove', (e) => {
+        tooltip.style.left = Math.min(e.clientX + 16, window.innerWidth - 300) + 'px';
+        tooltip.style.top = (e.clientY + 16) + 'px';
+      });
+      fila.addEventListener('mouseleave', () => {
+        tooltip.classList.add('oculto');
+      });
+    });
+  }
 
   function abrirModalEliminarPermanente(idCliente, folio) {
     const modalCont = document.getElementById('modal-contenedor');

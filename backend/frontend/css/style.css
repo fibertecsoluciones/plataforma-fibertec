@@ -117,8 +117,9 @@ input, select, textarea{ font-family: inherit; font-size: 14px; }
   transition: filter .15s, background .15s;
 }
 .btn:active{ filter: brightness(.92); }
-.btn-primario{ background: var(--azul); color:#fff; width:100%; }
+.btn-primario{ background: var(--azul); color:#fff; }
 .btn-primario:hover{ background: var(--azul-oscuro); }
+.login-tarjeta .btn-primario{ width:100%; } /* el botón del login sí debe ocupar todo el ancho de su tarjeta */
 .btn-verde{ background: var(--verde); color:#fff; }
 .btn-verde:hover{ background: var(--verde-oscuro); }
 .btn-secundario{ background: var(--superficie); color: var(--tinta); border-color: var(--borde); }
@@ -126,6 +127,25 @@ input, select, textarea{ font-family: inherit; font-size: 14px; }
 .btn-peligro{ background: var(--sem-rojo-bg); color: var(--sem-rojo); }
 .btn-sm{ padding: 6px 12px; font-size: 12.5px; }
 .btn-icono{ padding: 6px 9px; line-height:1; font-size:14px; }
+
+/* ==========================================================
+   POPUP DE NOTAS (al pasar el cursor sobre un registro)
+   ========================================================== */
+.tooltip-notas{
+  position: fixed;
+  z-index: 500;
+  max-width: 280px;
+  background: rgba(22,33,43,.88);
+  backdrop-filter: blur(3px);
+  color: #fff;
+  padding: 10px 13px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  pointer-events: none;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+}
+.tooltip-notas b{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; opacity:.65; margin-bottom:4px; }
 .error-msg{
   background: var(--sem-rojo-bg); color:var(--sem-rojo);
   padding: 10px 12px; border-radius: var(--radio-sm); font-size:13px; margin-bottom:14px;

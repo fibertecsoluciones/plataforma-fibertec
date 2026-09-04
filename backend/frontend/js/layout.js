@@ -197,3 +197,13 @@ const ETIQUETA_SEMAFORO = {
   naranja: 'En tolerancia',
   rojo: 'Vencido'
 };
+
+// Presionar Escape cierra cualquier modal/formulario abierto, en cualquier página
+// (todas usan el mismo patrón: un contenedor #modal-contenedor donde se inyecta el modal).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const modalCont = document.getElementById('modal-contenedor');
+  if (modalCont && modalCont.innerHTML.trim()) {
+    modalCont.innerHTML = '';
+  }
+});

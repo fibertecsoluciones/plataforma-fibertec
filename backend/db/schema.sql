@@ -256,7 +256,8 @@ SELECT
     c.id, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio,
     CASE WHEN c.estado = 'suspendido' AND c.fecha_suspension IS NOT NULL
          THEN LEAST(c.fecha_suspension, CURRENT_DATE) ELSE CURRENT_DATE END
-  ) + (c.adeudo_manual_meses * p.precio))::numeric(10,2) AS saldo_pendiente
+  ) + (c.adeudo_manual_meses * p.precio))::numeric(10,2) AS saldo_pendiente,
+  c.notas AS notas
 FROM clientes c
 JOIN zonas z   ON z.id = c.zona_id
 JOIN planes p  ON p.id = c.plan_id
