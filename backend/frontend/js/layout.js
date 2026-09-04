@@ -219,23 +219,28 @@ function linkGoogleMaps(lat, lng) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
-// Crea un mapa interactivo (Leaflet + OpenStreetMap, sin necesidad de API de pago)
-// dentro del elemento con id `${prefijo}-mapa`. El usuario puede hacer clic en
-// cualquier parte del mapa o arrastrar el pin para marcar la ubicación; también
-// puede pegar un link de Maps o usar su propio GPS, si esos campos existen en el
-// formulario (son opcionales). Llama a onCambio(lat, lng) cada vez que se mueve.
-// Centro por defecto: Tuxtla Gutiérrez, Chiapas (zona donde opera el ISP).
+// Crea un mapa interactivo (Google Maps) dentro del elemento con id `${prefijo}-mapa`.
+// El usuario puede hacer clic en cualquier parte del mapa o arrastrar el pin para
+// marcar la ubicación; también puede pegar un link de Maps o usar su propio GPS, si
+// esos campos existen en el formulario (son opcionales). Llama a onCambio(lat, lng)
+// cada vez que se mueve. Centro por defecto: zona donde opera el ISP.
 function activarSelectorUbicacion(prefijo, latInicial, lngInicial, onCambio) {
-  const lat = latInicial || 16.7530;
-  const lng = lngInicial || -93.1136;
+  const lat = latInicial || 17.98069;
+  const lng = lngInicial || -94.34921;
 
-  const mapa = L.map(`${prefijo}-mapa`).setView([lat, lng], latInicial ? 16 : 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 19
-  }).addTo(mapa);
+  const mapa = new google.maps.Map(document.getElementById(`${prefijo}-mapa`), {
+    center: { lat, lng },
+    zoom: latInicial ? 16 : 13,
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: false
+  });
 
-  const marcador = L.marker([lat, lng], { draggable: true }).addTo(mapa);
+  const marcador = new google.maps.Marker({
+    position: { lat, lng },
+    map: mapa,
+    draggable: true
+  });
 
   function actualizar(la, ln) {
     onCambio(la, ln);
@@ -246,14 +251,14 @@ function activarSelectorUbicacion(prefijo, latInicial, lngInicial, onCambio) {
     }
   }
 
-  marcador.on('dragend', () => {
-    const pos = marcador.getLatLng();
-    actualizar(pos.lat, pos.lng);
+  marcador.addListener('dragend', () => {
+    const pos = marcador.getPosition();
+    actualizar(pos.lat(), pos.lng());
   });
 
-  mapa.on('click', (e) => {
-    marcador.setLatLng(e.latlng);
-    actualizar(e.latlng.lat, e.latlng.lng);
+  mapa.addListener('click', (e) => {
+    marcador.setPosition(e.latLng);
+    actualizar(e.latLng.lat(), e.latLng.lng());
   });
 
   const inputTexto = document.getElementById(`${prefijo}-texto`);
@@ -261,8 +266,10 @@ function activarSelectorUbicacion(prefijo, latInicial, lngInicial, onCambio) {
     inputTexto.addEventListener('input', (e) => {
       const coords = extraerCoordenadasDeTexto(e.target.value);
       if (coords) {
-        marcador.setLatLng([coords.lat, coords.lng]);
-        mapa.setView([coords.lat, coords.lng], 16);
+        const posicion = { lat: coords.lat, lng: coords.lng };
+        marcador.setPosition(posicion);
+        mapa.setCenter(posicion);
+        mapa.setZoom(16);
         actualizar(coords.lat, coords.lng);
       }
     });
@@ -274,8 +281,10 @@ function activarSelectorUbicacion(prefijo, latInicial, lngInicial, onCambio) {
       if (!navigator.geolocation) { alert('Este dispositivo no soporta ubicación.'); return; }
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          marcador.setLatLng([pos.coords.latitude, pos.coords.longitude]);
-          mapa.setView([pos.coords.latitude, pos.coords.longitude], 16);
+          const posicion = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          marcador.setPosition(posicion);
+          mapa.setCenter(posicion);
+          mapa.setZoom(16);
           actualizar(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => alert('No se pudo obtener tu ubicación: ' + err.message)
@@ -285,9 +294,12 @@ function activarSelectorUbicacion(prefijo, latInicial, lngInicial, onCambio) {
 
   if (latInicial && lngInicial) actualizar(latInicial, lngInicial);
 
-  // El mapa se crea a veces dentro de un modal recién abierto (todavía sin su tamaño
-  // final calculado); esto obliga a Leaflet a recalcular su tamaño un instante después.
-  setTimeout(() => mapa.invalidateSize(), 250);
+  // Si el mapa se crea dentro de un modal recién mostrado, a veces Google Maps no
+  // calcula bien el tamaño hasta que se le avisa que el contenedor ya está visible.
+  setTimeout(() => {
+    google.maps.event.trigger(mapa, 'resize');
+    mapa.setCenter({ lat, lng });
+  }, 250);
 
   return mapa;
 }
