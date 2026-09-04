@@ -86,7 +86,17 @@ async function registrarInstalacion(req, res) {
       await db.query('UPDATE clientes SET dia_pago = $1 WHERE id = $2', [diaPagoAsignado, cliente_id]);
     }
 
-    res.status(201).json({ ...r.rows[0], dia_pago_asignado: diaPagoAsignado });
+    // Revisamos si este mismo técnico tiene alguna Actividad pendiente/en proceso
+    // ligada a este mismo cliente, para ofrecerle marcarla completa de una vez
+    // (sin tener que ir hasta la sección de Actividades por separado).
+    const actividadesRes = await db.query(
+      `SELECT id, titulo, estado FROM actividades
+       WHERE tecnico_id = $1 AND cliente_id = $2 AND estado <> 'completada'
+       ORDER BY creado_en DESC`,
+      [tecnico_id, cliente_id]
+    );
+
+    res.status(201).json({ ...r.rows[0], dia_pago_asignado: diaPagoAsignado, actividades_relacionadas: actividadesRes.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'No se pudo registrar la instalación.' });

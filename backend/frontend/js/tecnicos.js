@@ -25,7 +25,6 @@
       <div class="tarjeta-cuerpo">
         <div id="error-form" class="error-msg oculto"></div>
         <div id="exito-form" class="exito-msg oculto"></div>
-
         <form id="form-instalacion">
           <div class="grid-formulario">
             <div class="campo">
@@ -90,6 +89,8 @@
       </div>
     </div>
 
+    <div id="actividades-pendientes-cliente"></div>
+
     <div class="tarjeta">
       <div class="tarjeta-cabecera"><h3>Últimas instalaciones registradas</h3></div>
       <div class="tarjeta-cuerpo tabla-envoltura" id="tabla-instalaciones">
@@ -111,6 +112,7 @@
     if (!folio) return;
 
     resultado.innerHTML = `<div class="cargando">Buscando…</div>`;
+    document.getElementById('actividades-pendientes-cliente').innerHTML = ''; // limpia el aviso de la búsqueda anterior
     try {
       const cliente = await API.get(`/api/clientes/folio/${encodeURIComponent(folio)}`);
       clienteEncontrado = cliente;
@@ -193,6 +195,43 @@
         ? `Instalación registrada correctamente. Como es la primera instalación de este cliente, se le asignó el día de pago: ${resultado.dia_pago_asignado} de cada mes.`
         : 'Instalación registrada correctamente.';
       exitoBox.classList.remove('oculto');
+
+      // Si este técnico tenía alguna Actividad pendiente para este mismo cliente, se la
+      // ofrecemos marcar como completada aquí — en un contenedor aparte, porque el
+      // formulario de arriba se va a ocultar en un momento y esto necesita seguir visible.
+      const contActividades = document.getElementById('actividades-pendientes-cliente');
+      if (resultado.actividades_relacionadas && resultado.actividades_relacionadas.length) {
+        contActividades.innerHTML = `
+          <div class="tarjeta">
+            <div class="tarjeta-cuerpo" style="background:var(--sem-amarillo-bg);">
+              <b style="color:var(--sem-amarillo); font-size:13px;">📋 Este cliente tiene actividad(es) pendiente(s) tuyas:</b>
+              <div style="margin-top:8px;">
+                ${resultado.actividades_relacionadas.map(a => `
+                  <div class="flex-entre" style="padding:6px 0;">
+                    <span style="font-size:13px;">${a.titulo}</span>
+                    <button class="btn btn-verde btn-sm" data-completar-actividad="${a.id}">Marcar completada</button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        contActividades.querySelectorAll('[data-completar-actividad]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true; btn.textContent = 'Marcando…';
+            try {
+              await API.put(`/api/actividades/${btn.dataset.completarActividad}/estado`, { estado: 'completada' });
+              btn.textContent = '✓ Completada';
+            } catch (err) {
+              alert(err.message);
+              btn.disabled = false; btn.textContent = 'Marcar completada';
+            }
+          });
+        });
+      } else {
+        contActividades.innerHTML = '';
+      }
+
       document.getElementById('form-instalacion').reset();
       document.getElementById('tarjeta-formulario').classList.add('oculto');
       document.getElementById('resultado-busqueda').innerHTML = '';
