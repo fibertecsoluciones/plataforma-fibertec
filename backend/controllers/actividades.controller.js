@@ -39,10 +39,7 @@ async function listarActividades(req, res) {
     }
 
     sql += ` GROUP BY a.id, u.nombre, cu.nombre, c.cliente_id, c.nombre, inst.fecha_instalacion
-             ORDER BY
-               a.estado = 'pendiente' DESC, a.estado = 'en_proceso' DESC,
-               a.prioridad = 'alta' DESC, a.prioridad = 'media' DESC,
-               a.fecha_limite ASC NULLS LAST, a.creado_en DESC`;
+             ORDER BY a.orden ASC NULLS LAST, a.creado_en DESC`;
 
     const r = await db.query(sql, params);
     res.json(r.rows);
@@ -117,11 +114,13 @@ async function crearActividad(req, res) {
 
     await client.query('BEGIN');
 
+    const ordenRes = await client.query('SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente FROM actividades');
+
     const r = await client.query(
-      `INSERT INTO actividades (titulo, descripcion, tecnico_id, cliente_id, prioridad, fecha_limite, creado_por, latitud, longitud)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'media'),$6,$7,$8,$9)
+      `INSERT INTO actividades (titulo, descripcion, tecnico_id, cliente_id, prioridad, fecha_limite, creado_por, latitud, longitud, orden)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'media'),$6,$7,$8,$9,$10)
        RETURNING *`,
-      [titulo, descripcion, tecnico_id, clienteIdResuelto, prioridad, fecha_limite || null, req.usuario.id, latitud || null, longitud || null]
+      [titulo, descripcion, tecnico_id, clienteIdResuelto, prioridad, fecha_limite || null, req.usuario.id, latitud || null, longitud || null, ordenRes.rows[0].siguiente]
     );
     const actividad = r.rows[0];
 
@@ -150,6 +149,20 @@ async function actualizarActividad(req, res) {
     const { id } = req.params;
     const campos = ['titulo', 'descripcion', 'tecnico_id', 'cliente_id', 'prioridad', 'fecha_limite', 'latitud', 'longitud'];
     const sets = []; const params = [];
+
+    // Si mandan cliente_folio (desde el buscador del formulario), lo resolvemos a
+    // cliente_id igual que al crear una actividad nueva.
+    if (req.body.cliente_folio !== undefined) {
+      if (req.body.cliente_folio && req.body.cliente_folio.trim()) {
+        const clienteRes = await db.query('SELECT id FROM clientes WHERE UPPER(cliente_id) = UPPER($1)', [req.body.cliente_folio.trim()]);
+        if (!clienteRes.rows[0]) {
+          return res.status(400).json({ error: `No existe ningún cliente con el folio "${req.body.cliente_folio}".` });
+        }
+        req.body.cliente_id = clienteRes.rows[0].id;
+      } else {
+        req.body.cliente_id = null; // se dejó vacío el campo de cliente a propósito
+      }
+    }
 
     campos.forEach((campo) => {
       if (req.body[campo] !== undefined) {
@@ -221,6 +234,31 @@ async function guardarNotasTecnico(req, res) {
   } catch (err) {
     console.error('Error en guardarNotasTecnico:', err);
     res.status(500).json({ error: 'No se pudieron guardar las notas.' });
+  }
+}
+
+// Guarda el nuevo orden después de arrastrar y soltar (solo admin). Recibe la lista
+// completa de ids en el orden final deseado y les asigna 1, 2, 3... en ese orden.
+async function reordenarActividades(req, res) {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || !ids.length) {
+    return res.status(400).json({ error: 'Se necesita la lista de ids en el nuevo orden.' });
+  }
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (let i = 0; i < ids.length; i++) {
+      await client.query('UPDATE actividades SET orden = $1 WHERE id = $2', [i + 1, ids[i]]);
+    }
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Orden actualizado.' });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Error en reordenarActividades:', err);
+    res.status(500).json({ error: 'No se pudo guardar el nuevo orden.' });
+  } finally {
+    client.release();
   }
 }
 
@@ -300,5 +338,6 @@ async function eliminarPunto(req, res) {
 
 module.exports = {
   listarActividades, obtenerActividad, crearActividad, actualizarActividad,
-  marcarEstadoActividad, guardarNotasTecnico, eliminarActividad, agregarPunto, marcarPunto, eliminarPunto
+  marcarEstadoActividad, guardarNotasTecnico, eliminarActividad, agregarPunto, marcarPunto, eliminarPunto,
+  reordenarActividades
 };

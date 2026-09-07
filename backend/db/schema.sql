@@ -346,7 +346,8 @@ CREATE TABLE actividades (
   latitud         NUMERIC(10,7), -- ubicación estimada (por oficina) o confirmada (por el técnico en sitio)
   longitud        NUMERIC(10,7),
   ubicacion_confirmada BOOLEAN NOT NULL DEFAULT FALSE,
-  notas_tecnico   TEXT -- observaciones del técnico sobre cómo salió la actividad
+  notas_tecnico   TEXT, -- observaciones del técnico sobre cómo salió la actividad
+  orden           INTEGER -- orden manual (arrastrar para reordenar)
 );
 
 CREATE INDEX idx_actividades_tecnico ON actividades(tecnico_id);

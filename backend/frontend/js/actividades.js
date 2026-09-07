@@ -12,6 +12,7 @@
   let tecnicos = [];
   let filtroTecnico = '';
   let filtroEstado = '';
+  let listaActual = []; // guarda la última lista cargada, para poder reordenarla y editar sin re-pedirla
 
   cont.innerHTML = `<div class="cargando">Cargando actividades…</div>`;
 
@@ -63,45 +64,50 @@
 
     try {
       const actividades = await API.get('/api/actividades?' + qs.toString());
+      listaActual = actividades;
       if (!actividades.length) {
         lista.innerHTML = `<div class="estado-vacio">${esAdmin ? 'Aún no has creado ninguna actividad.' : 'No tienes actividades asignadas por ahora. 🎉'}</div>`;
         return;
       }
-      lista.innerHTML = actividades.map(renderTarjetaActividad).join('');
+      lista.innerHTML = actividades.map((a, i) => renderTarjetaActividad(a, i)).join('');
       conectarEventosLista();
     } catch (err) {
       lista.innerHTML = `<div class="error-msg">${err.message}</div>`;
     }
   }
 
-  function renderTarjetaActividad(a) {
+  function renderTarjetaActividad(a, index) {
     const total = a.total_puntos || 0;
     const completados = a.puntos_completados || 0;
     const porcentaje = total > 0 ? Math.round((completados / total) * 100) : (a.estado === 'completada' ? 100 : 0);
 
     return `
-      <div class="actividad-tarjeta prioridad-${a.prioridad}" data-actividad="${a.id}">
+      <div class="actividad-tarjeta prioridad-${a.prioridad}" data-actividad="${a.id}" ${esAdmin ? 'draggable="true"' : ''}>
         <div class="actividad-cabecera">
-          <div>
-            <div class="actividad-titulo" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;" data-detalle="${a.id}" title="Ver detalle">${a.titulo}</div>
-            <div class="actividad-meta">
-              <span class="pill prioridad-${a.prioridad}">${ETIQUETA_PRIORIDAD[a.prioridad]}</span>
-              <span class="pill ${a.estado}">${ETIQUETA_ESTADO_ACT[a.estado]}</span>
-              ${esAdmin ? `<span>👷 ${a.tecnico_nombre}</span>` : ''}
-              ${a.cliente_folio ? `<span class="folio">${a.cliente_folio}</span> ${a.cliente_nombre}` : ''}
-              ${a.fecha_limite ? `<span>📅 ${fechaCorta(a.fecha_limite)}</span>` : ''}
-              ${a.latitud && a.longitud ? `
-                <a href="${linkGoogleMaps(a.latitud, a.longitud)}" target="_blank" class="pill ${a.ubicacion_confirmada ? 'ubicacion-confirmada' : 'ubicacion-estimada'}">
-                  ${a.ubicacion_confirmada ? '✅ Ubicación confirmada' : '📍 Ubicación estimada'}
-                </a>` : ''}
-              ${a.instalacion_relacionada_fecha ? `<span style="color:var(--sem-verde);">✅ Instalación registrada el ${fechaCorta(a.instalacion_relacionada_fecha)}</span>` : ''}
-              ${a.estado === 'completada' && a.completado_en ? `<span style="color:var(--sem-verde);">🏁 Completada el ${fechaHoraCorta(a.completado_en)}</span>` : ''}
+          <div class="flex-gap" style="align-items:flex-start;">
+            <span class="actividad-numero" ${esAdmin ? 'title="Arrastra la tarjeta para reordenar"' : ''}>${index + 1}</span>
+            <div>
+              <div class="actividad-titulo" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;" data-detalle="${a.id}" title="Ver detalle">${a.titulo}</div>
+              <div class="actividad-meta">
+                <span class="pill prioridad-${a.prioridad}">${ETIQUETA_PRIORIDAD[a.prioridad]}</span>
+                <span class="pill ${a.estado}">${ETIQUETA_ESTADO_ACT[a.estado]}</span>
+                ${esAdmin ? `<span>👷 ${a.tecnico_nombre}</span>` : ''}
+                ${a.cliente_folio ? `<span class="folio">${a.cliente_folio}</span> ${a.cliente_nombre}` : ''}
+                ${a.fecha_limite ? `<span>📅 ${fechaCorta(a.fecha_limite)}</span>` : ''}
+                ${a.latitud && a.longitud ? `
+                  <a href="${linkGoogleMaps(a.latitud, a.longitud)}" target="_blank" class="pill ${a.ubicacion_confirmada ? 'ubicacion-confirmada' : 'ubicacion-estimada'}">
+                    ${a.ubicacion_confirmada ? '✅ Ubicación confirmada' : '📍 Ubicación estimada'}
+                  </a>` : ''}
+                ${a.instalacion_relacionada_fecha ? `<span style="color:var(--sem-verde);">✅ Instalación registrada el ${fechaCorta(a.instalacion_relacionada_fecha)}</span>` : ''}
+                ${a.estado === 'completada' && a.completado_en ? `<span style="color:var(--sem-verde);">🏁 Completada el ${fechaHoraCorta(a.completado_en)}</span>` : ''}
+              </div>
+              ${a.notas_tecnico ? `<div class="texto-gris" style="font-size:12px; margin-top:6px;">📝 ${a.notas_tecnico}</div>` : ''}
             </div>
-            ${a.notas_tecnico ? `<div class="texto-gris" style="font-size:12px; margin-top:6px;">📝 ${a.notas_tecnico}</div>` : ''}
           </div>
           <div class="flex-gap">
+            ${esAdmin ? `<button class="btn btn-secundario btn-sm btn-icono" data-editar-actividad="${a.id}" title="Editar actividad">✏️</button>` : ''}
             ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-agregar-punto="${a.id}">+ Punto</button>` : ''}
-            ${esAdmin ? `<button class="btn btn-peligro btn-sm" data-borrar-actividad="${a.id}">Eliminar</button>` : ''}
+            ${esAdmin ? `<button class="btn btn-peligro btn-sm btn-icono" data-borrar-actividad="${a.id}" title="Eliminar actividad">🗑️</button>` : ''}
           </div>
         </div>
         ${a.descripcion ? `<div class="actividad-descripcion">${a.descripcion}</div>` : ''}
@@ -181,6 +187,61 @@
 
     document.querySelectorAll('[data-detalle]').forEach(el => {
       el.addEventListener('click', () => abrirModalDetalle(el.dataset.detalle));
+    });
+
+    document.querySelectorAll('[data-editar-actividad]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const actividad = listaActual.find(a => String(a.id) === btn.dataset.editarActividad);
+        if (actividad) abrirModalEditarActividad(actividad);
+      });
+    });
+
+    if (esAdmin) activarArrastrarYSoltar();
+  }
+
+  // Arrastrar y soltar para reordenar (solo admin). Mueve la tarjeta en el DOM al
+  // instante, y guarda el nuevo orden completo en el servidor.
+  function activarArrastrarYSoltar() {
+    const contenedor = document.getElementById('lista-actividades');
+    let idArrastrado = null;
+
+    contenedor.querySelectorAll('.actividad-tarjeta[draggable="true"]').forEach(tarjeta => {
+      tarjeta.addEventListener('dragstart', () => {
+        idArrastrado = tarjeta.dataset.actividad;
+        tarjeta.classList.add('arrastrando');
+      });
+      tarjeta.addEventListener('dragend', () => {
+        tarjeta.classList.remove('arrastrando');
+        contenedor.querySelectorAll('.zona-drop').forEach(el => el.classList.remove('zona-drop'));
+      });
+      tarjeta.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (tarjeta.dataset.actividad !== idArrastrado) tarjeta.classList.add('zona-drop');
+      });
+      tarjeta.addEventListener('dragleave', () => tarjeta.classList.remove('zona-drop'));
+      tarjeta.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        tarjeta.classList.remove('zona-drop');
+        const idDestino = tarjeta.dataset.actividad;
+        if (!idArrastrado || idArrastrado === idDestino) return;
+
+        const draggedEl = contenedor.querySelector(`[data-actividad="${idArrastrado}"]`);
+        const todas = Array.from(contenedor.querySelectorAll('.actividad-tarjeta'));
+        const indiceOrigen = todas.indexOf(draggedEl);
+        const indiceDestino = todas.indexOf(tarjeta);
+
+        if (indiceOrigen < indiceDestino) tarjeta.after(draggedEl);
+        else tarjeta.before(draggedEl);
+
+        const nuevosIds = Array.from(contenedor.querySelectorAll('.actividad-tarjeta')).map(el => Number(el.dataset.actividad));
+        try {
+          await API.put('/api/actividades/reordenar', { ids: nuevosIds });
+          cargarLista(); // recarga para que los números (1, 2, 3…) queden correctos
+        } catch (err) {
+          alert(err.message);
+          cargarLista();
+        }
+      });
     });
   }
 
@@ -435,6 +496,149 @@
 
       try {
         await API.post('/api/actividades', payload);
+        cerrar();
+        cargarLista();
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('oculto');
+      }
+    });
+  }
+
+  // ==========================================================
+  // MODAL: editar actividad existente
+  // ==========================================================
+  function abrirModalEditarActividad(a) {
+    const modalCont = document.getElementById('modal-contenedor');
+    modalCont.innerHTML = `
+      <div class="modal-fondo">
+        <div class="modal">
+          <div class="modal-cabecera">
+            <h3>Editar actividad</h3>
+            <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+          </div>
+          <div class="modal-cuerpo">
+            <div id="error-editar-actividad" class="error-msg oculto"></div>
+            <div class="grid-formulario">
+              <div class="campo ancho-total">
+                <label>Título</label>
+                <input type="text" id="ea-titulo" value="${a.titulo.replace(/"/g, '&quot;')}" />
+              </div>
+              <div class="campo ancho-total">
+                <label>Descripción (opcional)</label>
+                <textarea id="ea-descripcion" rows="2">${a.descripcion || ''}</textarea>
+              </div>
+              <div class="campo">
+                <label>Asignar a</label>
+                <select id="ea-tecnico">
+                  ${tecnicos.map(t => `<option value="${t.id}" ${String(t.id) === String(a.tecnico_id) ? 'selected' : ''}>${t.nombre}</option>`).join('')}
+                </select>
+              </div>
+              <div class="campo">
+                <label>Prioridad</label>
+                <select id="ea-prioridad">
+                  <option value="alta" ${a.prioridad === 'alta' ? 'selected' : ''}>Alta</option>
+                  <option value="media" ${a.prioridad === 'media' ? 'selected' : ''}>Media</option>
+                  <option value="baja" ${a.prioridad === 'baja' ? 'selected' : ''}>Baja</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label>Fecha límite (opcional)</label>
+                <input type="date" id="ea-fecha-limite" value="${a.fecha_limite ? String(a.fecha_limite).slice(0, 10) : ''}" />
+              </div>
+              <div class="campo ancho-total" style="position:relative;">
+                <label>Cliente relacionado (opcional)</label>
+                <input type="text" id="ea-cliente-busqueda" placeholder="Escribe el nombre o folio para buscar…" autocomplete="off"
+                  value="${a.cliente_folio ? `${a.cliente_folio} — ${a.cliente_nombre}` : ''}" />
+                <input type="hidden" id="ea-cliente-folio" value="${a.cliente_folio || ''}" />
+                <div id="ea-cliente-sugerencias" class="autocomplete-lista oculto"></div>
+              </div>
+              <div class="campo ancho-total">
+                <label>Ubicación (opcional)</label>
+                <div id="ea-mapa" class="mapa-selector"></div>
+                <div class="ubicacion-campo" style="margin-top:8px;">
+                  <input type="text" id="ea-texto" placeholder="O pega aquí un link de Google Maps" />
+                  <button type="button" class="btn btn-secundario btn-sm" id="ea-usar-mi-ubicacion">📍 Usar la mía</button>
+                </div>
+                <div id="ea-preview" class="ubicacion-vista-previa oculto"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-pie">
+            <button class="btn btn-secundario" id="cancelar-editar-actividad">Cancelar</button>
+            <button class="btn btn-primario" id="guardar-editar-actividad">Guardar cambios</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cerrar = () => { mapaEditar.remove(); modalCont.innerHTML = ''; };
+    document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+    document.getElementById('cancelar-editar-actividad').addEventListener('click', cerrar);
+
+    let ubicacionEditada = { lat: a.latitud ? Number(a.latitud) : null, lng: a.longitud ? Number(a.longitud) : null };
+    const mapaEditar = activarSelectorUbicacion('ea', ubicacionEditada.lat, ubicacionEditada.lng, (lat, lng) => { ubicacionEditada = { lat, lng }; });
+
+    const inputBusquedaCliente = document.getElementById('ea-cliente-busqueda');
+    const inputFolioOculto = document.getElementById('ea-cliente-folio');
+    const listaSugerencias = document.getElementById('ea-cliente-sugerencias');
+    let debounceCliente;
+
+    inputBusquedaCliente.addEventListener('input', () => {
+      inputFolioOculto.value = '';
+      clearTimeout(debounceCliente);
+      const q = inputBusquedaCliente.value.trim();
+      if (q.length < 2) { listaSugerencias.classList.add('oculto'); listaSugerencias.innerHTML = ''; return; }
+
+      debounceCliente = setTimeout(async () => {
+        try {
+          const resultados = await API.get('/api/clientes?q=' + encodeURIComponent(q));
+          listaSugerencias.innerHTML = resultados.length
+            ? resultados.slice(0, 8).map(c => `
+                <div class="autocomplete-item" data-folio="${c.cliente_id}" data-nombre="${c.nombre.replace(/"/g, '&quot;')}">
+                  <span class="autocomplete-folio">${c.cliente_id}</span> — ${c.nombre}
+                </div>`).join('')
+            : `<div class="autocomplete-item texto-gris">Sin resultados</div>`;
+          listaSugerencias.querySelectorAll('[data-folio]').forEach(item => {
+            item.addEventListener('click', () => {
+              inputBusquedaCliente.value = `${item.dataset.folio} — ${item.dataset.nombre}`;
+              inputFolioOculto.value = item.dataset.folio;
+              listaSugerencias.classList.add('oculto');
+            });
+          });
+          listaSugerencias.classList.remove('oculto');
+        } catch (err) { /* silencioso */ }
+      }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!listaSugerencias.contains(e.target) && e.target !== inputBusquedaCliente) {
+        listaSugerencias.classList.add('oculto');
+      }
+    });
+
+    document.getElementById('guardar-editar-actividad').addEventListener('click', async () => {
+      const errorBox = document.getElementById('error-editar-actividad');
+      const titulo = document.getElementById('ea-titulo').value.trim();
+      if (!titulo) {
+        errorBox.textContent = 'El título es obligatorio.';
+        errorBox.classList.remove('oculto');
+        return;
+      }
+
+      const payload = {
+        titulo,
+        descripcion: document.getElementById('ea-descripcion').value.trim(),
+        tecnico_id: Number(document.getElementById('ea-tecnico').value),
+        prioridad: document.getElementById('ea-prioridad').value,
+        fecha_limite: document.getElementById('ea-fecha-limite').value || null,
+        cliente_folio: document.getElementById('ea-cliente-folio').value || document.getElementById('ea-cliente-busqueda').value.trim(),
+        latitud: ubicacionEditada.lat,
+        longitud: ubicacionEditada.lng
+      };
+
+      try {
+        await API.put(`/api/actividades/${a.id}`, payload);
         cerrar();
         cargarLista();
       } catch (err) {

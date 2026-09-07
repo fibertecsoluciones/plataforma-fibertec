@@ -541,6 +541,21 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 .punto-nuevo-fila input{ flex:1; padding:8px 10px; border:1px solid var(--borde); border-radius:6px; }
 .btn-quitar-punto{ background:none; border:none; color:var(--sem-rojo); font-size:18px; cursor:pointer; line-height:1; padding:0 4px; }
 
+.actividad-numero{
+  flex-shrink:0;
+  min-width:26px; height:26px;
+  border-radius:50%;
+  background: var(--gris-claro);
+  color: var(--tinta-suave);
+  font-size:12px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  margin-top:2px;
+}
+.actividad-tarjeta[draggable="true"]{ cursor: grab; }
+.actividad-tarjeta[draggable="true"]:active{ cursor: grabbing; }
+.actividad-tarjeta.arrastrando{ opacity:.4; }
+.actividad-tarjeta.zona-drop{ border-top: 3px solid var(--azul); }
+
 /* ==========================================================
    AUTOCOMPLETAR (buscador de cliente en formularios)
    ========================================================== */

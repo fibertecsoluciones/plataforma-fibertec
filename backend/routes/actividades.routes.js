@@ -5,6 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 router.use(requireAuth);
 
 router.get('/', ctrl.listarActividades);
+router.put('/reordenar', requireRole('admin'), ctrl.reordenarActividades); // debe ir ANTES de /:id
 router.get('/:id', ctrl.obtenerActividad);
 router.post('/', requireRole('admin'), ctrl.crearActividad);
 router.put('/:id', requireRole('admin'), ctrl.actualizarActividad);
