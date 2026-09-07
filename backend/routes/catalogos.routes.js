@@ -20,6 +20,7 @@ router.put('/usuarios/:id', requireRole('admin'), ctrl.actualizarUsuario);
 router.delete('/usuarios/:id', requireRole('admin'), ctrl.eliminarUsuario);
 
 router.get('/egresos-categorias', ctrl.getEgresosCategorias);
+router.get('/ingresos-categorias', ctrl.getIngresosCategorias);
 router.get('/inventario-categorias', ctrl.getInventarioCategorias);
 
 module.exports = router;

@@ -39,11 +39,18 @@ async function obtenerCliente(req, res) {
   const { id } = req.params;
   const r = await db.query(
     `SELECT c.*, z.nombre AS zona_nombre, pl.nombre AS plan_nombre, pl.precio,
-            v.semaforo, v.meses_adeudados, v.saldo_pendiente, v.fecha_vencimiento
+            v.semaforo, v.meses_adeudados, v.saldo_pendiente, v.fecha_vencimiento,
+            COALESCE(inst_pag.total, 0) AS instalacion_pagada
      FROM clientes c
      JOIN zonas z ON z.id = c.zona_id
      JOIN planes pl ON pl.id = c.plan_id
      LEFT JOIN vw_estado_pago v ON v.cliente_id_pk = c.id
+     LEFT JOIN LATERAL (
+       SELECT SUM(ie.monto) AS total
+       FROM ingresos_extra ie
+       JOIN ingresos_categorias ic ON ic.id = ie.categoria_id
+       WHERE ie.cliente_id = c.id AND ic.nombre = 'Instalación'
+     ) inst_pag ON true
      WHERE c.id = $1`,
     [id]
   );
@@ -55,7 +62,7 @@ async function obtenerCliente(req, res) {
 async function buscarPorFolio(req, res) {
   const { folio } = req.params;
   const r = await db.query(
-    `SELECT c.*, z.nombre AS zona_nombre, pl.nombre AS plan_nombre, pl.precio
+    `SELECT c.*, z.nombre AS zona_nombre, pl.nombre AS plan_nombre, pl.precio, pl.costo_instalacion
      FROM clientes c
      JOIN zonas z ON z.id = c.zona_id
      JOIN planes pl ON pl.id = c.plan_id
@@ -67,7 +74,7 @@ async function buscarPorFolio(req, res) {
 }
 
 async function crearCliente(req, res) {
-  const { nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo } = req.body;
+  const { nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo, costo_instalacion_acordado } = req.body;
 
   if (!nombre || !zona_id || !plan_id || !dia_pago) {
     return res.status(400).json({ error: 'Nombre, zona, plan y día de pago son obligatorios.' });
@@ -79,10 +86,10 @@ async function crearCliente(req, res) {
   try {
     const r = await db.query(
       `INSERT INTO clientes
-        (nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,COALESCE($9,5),$10,COALESCE($11,0),$12,COALESCE($13, CURRENT_DATE))
+        (nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo, costo_instalacion_acordado)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,COALESCE($9,5),$10,COALESCE($11,0),$12,COALESCE($13, CURRENT_DATE),$14)
        RETURNING *`,
-      [nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo]
+      [nombre, telefono, telefono_alt, direccion, zona_id, plan_id, ip, dia_pago, dias_tolerancia, notas, adeudo_manual_meses, adeudo_manual_detalle, fecha_inicio_conteo, costo_instalacion_acordado || null]
     );
     res.status(201).json(r.rows[0]);
   } catch (err) {
@@ -93,7 +100,7 @@ async function crearCliente(req, res) {
 
 async function actualizarCliente(req, res) {
   const { id } = req.params;
-  const campos = ['nombre','telefono','telefono_alt','direccion','zona_id','plan_id','ip','dia_pago','dias_tolerancia','estado','notas','adeudo_manual_meses','adeudo_manual_detalle','fecha_inicio_conteo'];
+  const campos = ['nombre','telefono','telefono_alt','direccion','zona_id','plan_id','ip','dia_pago','dias_tolerancia','estado','notas','adeudo_manual_meses','adeudo_manual_detalle','fecha_inicio_conteo','costo_instalacion_acordado'];
   const sets = [];
   const params = [];
 

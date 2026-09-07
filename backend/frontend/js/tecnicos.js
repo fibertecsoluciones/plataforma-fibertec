@@ -57,10 +57,11 @@
             </div>
             <div class="campo ancho-total">
               <span class="texto-gris" style="font-size:12px;">
-                📌 Si este es el <b>primer</b> registro de instalación para este cliente, su día de pago se va a
-                establecer automáticamente con base en la fecha de hoy (si ya son las 5:00 PM o más tarde, se usa
-                el día de mañana). Si el cliente ya tenía instalaciones previas (ej. solo le estás cambiando el
-                módem), su día de pago actual NO se toca.
+                📌 Si este es el <b>primer</b> registro de instalación para este cliente, se le va a asignar
+                automáticamente su día de pago (con base en la fecha de hoy — si ya son las 5:00 PM o más tarde,
+                se usa el día de mañana), y le queda un mes gratis: su cobro empieza a contar hasta el mes
+                siguiente al de esta instalación. Si el cliente ya tenía instalaciones previas (ej. solo le estás
+                cambiando el módem), nada de esto se toca — su día de pago y su ciclo de cobro se quedan igual.
               </span>
             </div>
           </div>
@@ -192,7 +193,7 @@
       const resultado = await API.solicitarConArchivo('/api/instalaciones', formData, 'POST');
 
       exitoBox.textContent = resultado.dia_pago_asignado
-        ? `Instalación registrada correctamente. Como es la primera instalación de este cliente, se le asignó el día de pago: ${resultado.dia_pago_asignado} de cada mes.`
+        ? `Instalación registrada correctamente. Como es la primera instalación de este cliente, se le asignó el día de pago: ${resultado.dia_pago_asignado} de cada mes (el mes de la instalación es gratis, empieza a contar el próximo mes).`
         : 'Instalación registrada correctamente.';
       exitoBox.classList.remove('oculto');
 
@@ -205,6 +206,7 @@
           <div class="tarjeta">
             <div class="tarjeta-cuerpo" style="background:var(--sem-amarillo-bg);">
               <b style="color:var(--sem-amarillo); font-size:13px;">📋 Este cliente tiene actividad(es) pendiente(s) tuyas:</b>
+              ${ubicacion.lat && ubicacion.lng ? `<div class="texto-gris" style="font-size:11.5px; margin-top:4px;">📍 Su ubicación se actualizó con tu posición real capturada en esta instalación.</div>` : ''}
               <div style="margin-top:8px;">
                 ${resultado.actividades_relacionadas.map(a => `
                   <div class="flex-entre" style="padding:6px 0;">

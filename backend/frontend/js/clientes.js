@@ -168,13 +168,14 @@
                 </td>
                 <td class="mono" data-label="IP">${c.ip || '—'}</td>
                 <td data-label="Pago">
-                  <span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span>
-                  <div class="celda-meta">Día ${c.dia_pago} · vence ${fechaCorta(c.fecha_vencimiento)}</div>
+                  ${enMesGratis(c)
+                    ? `<span class="pill activo">🎁 Mes gratis</span><div class="celda-meta">Empieza a contar el ${fechaCorta(c.fecha_inicio_conteo)}</div>`
+                    : `<span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span><div class="celda-meta">Día ${c.dia_pago} · vence ${fechaCorta(c.fecha_vencimiento)}</div>`}
                 </td>
                 <td data-label="Adeudo">
                   ${c.meses_adeudados > 0
                     ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}${c.estado_cliente === 'suspendido' ? ' · 🧊 congelado' : ''}</div>`
-                    : `<span class="texto-gris">Al día</span>`}
+                    : `<span class="texto-gris">Al día</span>${c.estado_cliente === 'suspendido' ? '<div class="celda-meta">🧊 congelado</div>' : ''}`}
                 </td>
                 <td data-label="Estado"><span class="pill ${c.estado_cliente}">${c.estado_cliente}</span></td>
                 <td class="celda-acciones-movil">
@@ -259,7 +260,7 @@
     let datos = {
       nombre: '', telefono: '', telefono_alt: '', direccion: '',
       zona_id: zonas[0]?.id || '', plan_id: planes[0]?.id || '',
-      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0, adeudo_manual_detalle: '', fecha_inicio_conteo: ''
+      ip: '', dia_pago: 1, dias_tolerancia: 5, estado: 'activo', notas: '', adeudo_manual_meses: 0, adeudo_manual_detalle: '', fecha_inicio_conteo: '', costo_instalacion_acordado: ''
     };
 
     if (clienteId) {
@@ -318,6 +319,17 @@
                 <div class="campo">
                   <label>Días de tolerancia</label>
                   <input type="number" id="c-dias-tolerancia" min="0" max="30" value="${datos.dias_tolerancia}" />
+                </div>
+                <div class="campo">
+                  <label>Costo de instalación acordado (opcional)</label>
+                  <input type="number" id="c-costo-instalacion" min="0" step="0.01" value="${datos.costo_instalacion_acordado || ''}" placeholder="Ej. 500" />
+                </div>
+                <div class="campo ancho-total" style="margin-top:-8px;">
+                  <span class="texto-gris" style="font-size:11.5px;">
+                    Ponlo solo si le vas a cobrar la instalación aparte (a tu criterio, no depende del plan). Déjalo
+                    vacío si no le cobras instalación. Los abonos que te vaya dando se registran en Finanzas o
+                    directo desde su pantalla de Pagos, y ahí vas a ver cuánto le falta.
+                  </span>
                 </div>
                 <div class="campo">
                   <label>Contar adeudo automático desde</label>
@@ -423,7 +435,8 @@
         notas: document.getElementById('c-notas').value.trim(),
         adeudo_manual_meses: Number(document.getElementById('c-adeudo-manual').value) || 0,
         adeudo_manual_detalle: document.getElementById('c-adeudo-detalle').value.trim(),
-        fecha_inicio_conteo: document.getElementById('c-fecha-inicio-conteo').value || null
+        fecha_inicio_conteo: document.getElementById('c-fecha-inicio-conteo').value || null,
+        costo_instalacion_acordado: document.getElementById('c-costo-instalacion').value || null
       };
 
       if (!payload.nombre || !payload.dia_pago) {
@@ -451,6 +464,17 @@
   }
 
   function valorSeguro(v) { return v === null || v === undefined ? '' : String(v).replace(/"/g, '&quot;'); }
+
+  // Un cliente está "en su mes gratis" si su fecha de inicio de conteo cae en un mes
+  // futuro respecto a hoy (o sea, todavía no le toca que se le empiece a evaluar nada).
+  function enMesGratis(c) {
+    if (!c.fecha_inicio_conteo) return false;
+    const inicio = fechaLocalDesdeTexto(c.fecha_inicio_conteo);
+    if (!inicio) return false;
+    const hoy = new Date();
+    return inicio.getFullYear() > hoy.getFullYear()
+      || (inicio.getFullYear() === hoy.getFullYear() && inicio.getMonth() > hoy.getMonth());
+  }
 
   // Popup traslúcido con la nota del cliente, al pasar el cursor sobre su fila.
   function conectarPopupNotas(tabla) {

@@ -22,6 +22,7 @@ CREATE TABLE planes (
   nombre        VARCHAR(60) NOT NULL UNIQUE,   -- Ej: NAVEGA, VUELO ELITE
   velocidad     VARCHAR(30),                   -- Ej: 20 Mbps
   precio        NUMERIC(10,2) NOT NULL DEFAULT 0,
+  costo_instalacion NUMERIC(10,2) NOT NULL DEFAULT 0, -- cobro único sugerido al instalar este plan
   activo        BOOLEAN NOT NULL DEFAULT TRUE
 );
 
@@ -57,6 +58,7 @@ CREATE TABLE clientes (
   adeudo_manual_detalle TEXT, -- nota libre: a qué meses corresponde ese adeudo manual (ej. "julio y agosto 2026")
   fecha_inicio_conteo DATE DEFAULT CURRENT_DATE, -- desde qué fecha se cuenta el adeudo automático (normalmente = fecha_alta)
   fecha_suspension DATE, -- fecha en que quedó suspendido (congela el conteo automático de ahí en adelante)
+  costo_instalacion_acordado NUMERIC(10,2), -- lo pone el admin a su criterio, no depende del plan
   fecha_alta        DATE NOT NULL DEFAULT CURRENT_DATE,
   estado            VARCHAR(20) NOT NULL DEFAULT 'activo'
                       CHECK (estado IN ('activo','suspendido','baja')),
@@ -241,6 +243,8 @@ SELECT
   (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) - CURRENT_DATE)           AS dias_para_vencer,
   (CURRENT_DATE - (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia)) AS dias_vencido,
   CASE
+    -- Todavía dentro de su mes gratis: siempre verde, no importa el día de pago.
+    WHEN date_trunc('month', CURRENT_DATE) < date_trunc('month', c.fecha_inicio_conteo) THEN 'verde'
     WHEN COALESCE(pm.pagado, 0) >= p.precio THEN 'verde'
     WHEN CURRENT_DATE > (fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) + c.dias_tolerancia) THEN 'rojo'
     WHEN CURRENT_DATE > fn_fecha_vencimiento(c.dia_pago, CURRENT_DATE) THEN 'naranja'
@@ -469,6 +473,31 @@ CREATE TABLE egresos (
 CREATE INDEX idx_egresos_fecha ON egresos(fecha);
 
 -- ============================================================
+-- FINANZAS: INGRESOS EXTRA (cobros únicos: instalación, reconexión, venta de equipo...)
+-- Las mensualidades siguen viniendo de la tabla `pagos`; esto es aparte.
+-- ============================================================
+
+CREATE TABLE ingresos_categorias (
+  id      SERIAL PRIMARY KEY,
+  nombre  VARCHAR(60) NOT NULL UNIQUE
+);
+
+CREATE TABLE ingresos_extra (
+  id              SERIAL PRIMARY KEY,
+  categoria_id    INTEGER REFERENCES ingresos_categorias(id),
+  concepto        VARCHAR(150) NOT NULL,
+  monto           NUMERIC(10,2) NOT NULL,
+  fecha           DATE NOT NULL DEFAULT CURRENT_DATE,
+  cliente_id      INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+  comprobante_url TEXT,
+  registrado_por  INTEGER REFERENCES usuarios(id),
+  notas           TEXT,
+  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_ingresos_extra_fecha ON ingresos_extra(fecha);
+
+-- ============================================================
 -- DATOS INICIALES (seed)
 -- ============================================================
 
@@ -488,6 +517,9 @@ INSERT INTO inventario_categorias (nombre) VALUES
 INSERT INTO egresos_categorias (nombre) VALUES
   ('Nómina'),('Combustible'),('Herramientas'),('Renta / Torres'),
   ('Mantenimiento de red'),('Publicidad'),('Otros');
+
+INSERT INTO ingresos_categorias (nombre) VALUES
+  ('Instalación'),('Reconexión'),('Venta de equipo'),('Otro');
 
 -- Usuario admin inicial: usuario "admin" / password "admin123" (CAMBIAR EN PRODUCCIÓN)
 -- El hash se genera en el script backend/db/seed_admin.js

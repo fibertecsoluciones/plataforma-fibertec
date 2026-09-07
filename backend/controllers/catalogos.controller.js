@@ -53,12 +53,12 @@ async function getPlanes(req, res) {
 }
 
 async function crearPlan(req, res) {
-  const { nombre, velocidad, precio } = req.body;
+  const { nombre, velocidad, precio, costo_instalacion } = req.body;
   if (!nombre || precio === undefined) return res.status(400).json({ error: 'Nombre y precio son obligatorios.' });
   try {
     const r = await db.query(
-      'INSERT INTO planes (nombre, velocidad, precio) VALUES ($1, $2, $3) RETURNING *',
-      [nombre.toUpperCase(), velocidad, precio]
+      'INSERT INTO planes (nombre, velocidad, precio, costo_instalacion) VALUES ($1, $2, $3, COALESCE($4,0)) RETURNING *',
+      [nombre.toUpperCase(), velocidad, precio, costo_instalacion]
     );
     res.status(201).json(r.rows[0]);
   } catch (err) {
@@ -68,12 +68,12 @@ async function crearPlan(req, res) {
 
 async function actualizarPlan(req, res) {
   const { id } = req.params;
-  const { nombre, velocidad, precio } = req.body;
+  const { nombre, velocidad, precio, costo_instalacion } = req.body;
   if (!nombre || precio === undefined) return res.status(400).json({ error: 'Nombre y precio son obligatorios.' });
   try {
     const r = await db.query(
-      'UPDATE planes SET nombre = $1, velocidad = $2, precio = $3 WHERE id = $4 RETURNING *',
-      [nombre.toUpperCase(), velocidad, precio, id]
+      'UPDATE planes SET nombre = $1, velocidad = $2, precio = $3, costo_instalacion = COALESCE($4,0) WHERE id = $5 RETURNING *',
+      [nombre.toUpperCase(), velocidad, precio, costo_instalacion, id]
     );
     if (!r.rows[0]) return res.status(404).json({ error: 'Plan no encontrado.' });
     res.json(r.rows[0]);
@@ -175,6 +175,11 @@ async function getEgresosCategorias(req, res) {
   res.json(r.rows);
 }
 
+async function getIngresosCategorias(req, res) {
+  const r = await db.query('SELECT * FROM ingresos_categorias ORDER BY nombre');
+  res.json(r.rows);
+}
+
 async function getInventarioCategorias(req, res) {
   const r = await db.query('SELECT * FROM inventario_categorias ORDER BY nombre');
   res.json(r.rows);
@@ -184,5 +189,5 @@ module.exports = {
   getZonas, crearZona, actualizarZona, eliminarZona,
   getPlanes, crearPlan, actualizarPlan, eliminarPlan,
   getTecnicos, crearUsuario, actualizarUsuario, eliminarUsuario,
-  getEgresosCategorias, getInventarioCategorias
+  getEgresosCategorias, getIngresosCategorias, getInventarioCategorias
 };

@@ -89,6 +89,27 @@
           </div>
         </div>
 
+        ${cliente.costo_instalacion_acordado ? (() => {
+          const costoInst = Number(cliente.costo_instalacion_acordado);
+          const pagadoInst = Number(cliente.instalacion_pagada || 0);
+          const saldoInst = Math.max(costoInst - pagadoInst, 0);
+          return `
+            <div class="tarjeta">
+              <div class="tarjeta-cabecera">
+                <h3>🔧 Instalación</h3>
+                ${esAdmin ? `<button class="btn btn-secundario btn-sm" id="btn-abono-instalacion">+ Registrar abono</button>` : ''}
+              </div>
+              <div class="tarjeta-cuerpo">
+                <div class="grid-kpi" style="margin-bottom:0;">
+                  <div class="kpi borde-azul"><div class="kpi-etiqueta">Costo acordado</div><div class="kpi-valor" style="font-size:19px;">${mxn(costoInst)}</div></div>
+                  <div class="kpi borde-verde"><div class="kpi-etiqueta">Pagado</div><div class="kpi-valor" style="font-size:19px;">${mxn(pagadoInst)}</div></div>
+                  <div class="kpi ${saldoInst > 0 ? 'borde-rojo' : 'borde-verde'}"><div class="kpi-etiqueta">Saldo pendiente</div><div class="kpi-valor" style="font-size:19px;">${saldoInst > 0 ? mxn(saldoInst) : '¡Liquidada! ✅'}</div></div>
+                </div>
+              </div>
+            </div>
+          `;
+        })() : ''}
+
         <div class="tarjeta">
           <div class="tarjeta-cabecera">
             <h3>Desglose mensual</h3>
@@ -157,9 +178,82 @@
       if (btnRegistrar) {
         btnRegistrar.addEventListener('click', () => abrirModalPago(cliente, id));
       }
+
+      const btnAbonoInstalacion = document.getElementById('btn-abono-instalacion');
+      if (btnAbonoInstalacion) {
+        btnAbonoInstalacion.addEventListener('click', () => abrirModalAbonoInstalacion(cliente, id));
+      }
     } catch (err) {
       cont.innerHTML = `<div class="error-msg">${err.message}</div>`;
     }
+  }
+
+  function abrirModalAbonoInstalacion(cliente, clientePk) {
+    const modalCont = document.getElementById('modal-contenedor');
+    modalCont.innerHTML = `
+      <div class="modal-fondo">
+        <div class="modal">
+          <div class="modal-cabecera">
+            <h3>🔧 Registrar abono de instalación — ${cliente.nombre}</h3>
+            <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+          </div>
+          <div class="modal-cuerpo">
+            <div id="error-abono-inst" class="error-msg oculto"></div>
+            <div class="grid-formulario">
+              <div class="campo">
+                <label>Monto de este abono</label>
+                <input type="number" id="ai-monto" min="0" step="0.01" required />
+              </div>
+              <div class="campo">
+                <label>Fecha</label>
+                <input type="date" id="ai-fecha" value="${new Date().toISOString().slice(0, 10)}" />
+              </div>
+              <div class="campo ancho-total">
+                <label>Notas (opcional)</label>
+                <input type="text" id="ai-notas" placeholder="Ej. Abono 2 de 3" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-pie">
+            <button class="btn btn-secundario" id="cancelar-abono-inst">Cancelar</button>
+            <button class="btn btn-primario" id="guardar-abono-inst">Guardar abono</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cerrar = () => { modalCont.innerHTML = ''; };
+    document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+    document.getElementById('cancelar-abono-inst').addEventListener('click', cerrar);
+
+    document.getElementById('guardar-abono-inst').addEventListener('click', async () => {
+      const errorBox = document.getElementById('error-abono-inst');
+      const monto = document.getElementById('ai-monto').value;
+      if (!monto || Number(monto) <= 0) {
+        errorBox.textContent = 'El monto es obligatorio.';
+        errorBox.classList.remove('oculto');
+        return;
+      }
+      try {
+        const categorias = await API.get('/api/catalogos/ingresos-categorias');
+        const categoriaInstalacion = categorias.find(c => c.nombre === 'Instalación');
+
+        const formData = new FormData();
+        formData.append('concepto', `Instalación — ${cliente.nombre}`);
+        if (categoriaInstalacion) formData.append('categoria_id', categoriaInstalacion.id);
+        formData.append('monto', monto);
+        formData.append('fecha', document.getElementById('ai-fecha').value);
+        formData.append('cliente_folio', cliente.cliente_id);
+        formData.append('notas', document.getElementById('ai-notas').value.trim());
+
+        await API.solicitarConArchivo('/api/finanzas/ingresos-extra', formData, 'POST');
+        cerrar();
+        vistaClienteEspecifico(clientePk);
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('oculto');
+      }
+    });
   }
 
   function abrirModalPago(cliente, clientePk) {

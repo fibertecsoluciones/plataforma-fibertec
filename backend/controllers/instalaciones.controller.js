@@ -19,6 +19,19 @@ function calcularDiaDePagoAutomatico() {
   return dia;
 }
 
+// Cada cliente nuevo recibe un mes de regalo (no se le cobra el mes en que se instaló).
+// Esto regresa el primer día del mes SIGUIENTE al de hoy (en hora de México), que es
+// desde donde el conteo automático de adeudo debe empezar a contar de verdad.
+function calcularInicioConteoConMesGratis() {
+  const zona = 'America/Mexico_City';
+  const ahora = new Date();
+  const anio = Number(new Intl.DateTimeFormat('en-US', { timeZone: zona, year: 'numeric' }).format(ahora));
+  const mes = Number(new Intl.DateTimeFormat('en-US', { timeZone: zona, month: 'numeric' }).format(ahora)); // 1-12
+  const siguienteMes = mes === 12 ? 1 : mes + 1;
+  const siguienteAnio = mes === 12 ? anio + 1 : anio;
+  return `${siguienteAnio}-${String(siguienteMes).padStart(2, '0')}-01`;
+}
+
 async function listarInstalaciones(req, res) {
   const r = await db.query(
     `SELECT i.*, c.cliente_id AS folio, c.nombre AS cliente_nombre, u.nombre AS tecnico_nombre
@@ -83,7 +96,11 @@ async function registrarInstalacion(req, res) {
     let diaPagoAsignado = null;
     if (esPrimeraInstalacion) {
       diaPagoAsignado = calcularDiaDePagoAutomatico();
-      await db.query('UPDATE clientes SET dia_pago = $1 WHERE id = $2', [diaPagoAsignado, cliente_id]);
+      const inicioConteo = calcularInicioConteoConMesGratis();
+      await db.query(
+        'UPDATE clientes SET dia_pago = $1, fecha_inicio_conteo = $2 WHERE id = $3',
+        [diaPagoAsignado, inicioConteo, cliente_id]
+      );
     }
 
     // Revisamos si este mismo técnico tiene alguna Actividad pendiente/en proceso
@@ -96,7 +113,21 @@ async function registrarInstalacion(req, res) {
       [tecnico_id, cliente_id]
     );
 
-    res.status(201).json({ ...r.rows[0], dia_pago_asignado: diaPagoAsignado, actividades_relacionadas: actividadesRes.rows });
+    // Si esa actividad tenía una ubicación estimada (puesta por oficina) y ahora sí
+    // tenemos el GPS real capturado en sitio por el técnico, la actualizamos sola —
+    // la ubicación real siempre le gana a la estimada.
+    if (latitud && longitud && actividadesRes.rows.length) {
+      const idsActividades = actividadesRes.rows.map(a => a.id);
+      await db.query(
+        `UPDATE actividades SET latitud = $1, longitud = $2, ubicacion_confirmada = TRUE WHERE id = ANY($3::int[])`,
+        [latitud, longitud, idsActividades]
+      );
+    }
+
+    res.status(201).json({
+      ...r.rows[0], dia_pago_asignado: diaPagoAsignado,
+      actividades_relacionadas: actividadesRes.rows
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'No se pudo registrar la instalación.' });
