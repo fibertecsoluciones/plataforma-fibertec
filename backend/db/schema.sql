@@ -355,7 +355,7 @@ CREATE INDEX idx_actividades_estado ON actividades(estado);
 CREATE TABLE actividad_puntos (
   id              SERIAL PRIMARY KEY,
   actividad_id    INTEGER NOT NULL REFERENCES actividades(id) ON DELETE CASCADE,
-  descripcion     VARCHAR(200) NOT NULL,
+  descripcion     TEXT NOT NULL,
   orden           SMALLINT NOT NULL DEFAULT 0,
   completado      BOOLEAN NOT NULL DEFAULT FALSE,
   completado_en   TIMESTAMPTZ,
