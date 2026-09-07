@@ -64,7 +64,15 @@
   document.getElementById('btn-nuevo-ingreso-extra').addEventListener('click', abrirModalIngresoExtra);
 
   await cargarKpis();
-  await cargarGraficas();
+  try {
+    await cargarGraficas();
+  } catch (err) {
+    // Si las gráficas fallan (ej. no cargó la librería de gráficas), no debe tumbar
+    // el resto de la página — las tablas de abajo son más importantes que la gráfica.
+    console.error('No se pudieron cargar las gráficas:', err);
+    document.getElementById('grafica-ie').closest('.tarjeta').querySelector('.tarjeta-cuerpo').innerHTML =
+      `<div class="error-msg">No se pudo cargar la gráfica (recarga la página; si persiste, avísame).</div>`;
+  }
   await cargarEgresos();
   await cargarIngresosExtra();
 
