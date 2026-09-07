@@ -191,6 +191,15 @@ function fechaCorta(f) {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// Para timestamps reales (con hora), como cuándo se completó algo — a diferencia de
+// fechaCorta(), aquí SÍ queremos la conversión normal de zona horaria porque la hora
+// exacta del evento sí importa (no es una fecha "de calendario" como el día de pago).
+function fechaHoraCorta(f) {
+  if (!f) return '—';
+  const d = new Date(f);
+  return d.toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 const ETIQUETA_SEMAFORO = {
   verde: 'Al corriente',
   amarillo: 'Por vencer',

@@ -342,7 +342,11 @@ CREATE TABLE actividades (
   fecha_limite    DATE,
   creado_por      INTEGER REFERENCES usuarios(id),
   completado_en   TIMESTAMPTZ,
-  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
+  creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  latitud         NUMERIC(10,7), -- ubicación estimada (por oficina) o confirmada (por el técnico en sitio)
+  longitud        NUMERIC(10,7),
+  ubicacion_confirmada BOOLEAN NOT NULL DEFAULT FALSE,
+  notas_tecnico   TEXT -- observaciones del técnico sobre cómo salió la actividad
 );
 
 CREATE INDEX idx_actividades_tecnico ON actividades(tecnico_id);

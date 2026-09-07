@@ -81,7 +81,10 @@ async function obtenerActividad(req, res) {
     }
 
     const puntosRes = await db.query(
-      `SELECT * FROM actividad_puntos WHERE actividad_id = $1 ORDER BY orden ASC, id ASC`,
+      `SELECT p.*, u.nombre AS completado_por_nombre
+       FROM actividad_puntos p
+       LEFT JOIN usuarios u ON u.id = p.completado_por
+       WHERE p.actividad_id = $1 ORDER BY p.orden ASC, p.id ASC`,
       [id]
     );
 
@@ -196,6 +199,31 @@ async function marcarEstadoActividad(req, res) {
   }
 }
 
+// Guarda las notas del técnico sobre una actividad (cómo salió, observaciones, etc.).
+// Lo puede hacer el técnico asignado o el admin — igual que marcar el estado.
+async function guardarNotasTecnico(req, res) {
+  try {
+    const { id } = req.params;
+    const { notas_tecnico } = req.body;
+
+    const actividadRes = await db.query('SELECT * FROM actividades WHERE id = $1', [id]);
+    const actividad = actividadRes.rows[0];
+    if (!actividad) return res.status(404).json({ error: 'Actividad no encontrada.' });
+    if (req.usuario.rol !== 'admin' && actividad.tecnico_id !== req.usuario.id) {
+      return res.status(403).json({ error: 'No tienes permiso para modificar esta actividad.' });
+    }
+
+    const r = await db.query(
+      'UPDATE actividades SET notas_tecnico = $1 WHERE id = $2 RETURNING *',
+      [notas_tecnico, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error('Error en guardarNotasTecnico:', err);
+    res.status(500).json({ error: 'No se pudieron guardar las notas.' });
+  }
+}
+
 async function eliminarActividad(req, res) {
   try {
     const { id } = req.params;
@@ -272,5 +300,5 @@ async function eliminarPunto(req, res) {
 
 module.exports = {
   listarActividades, obtenerActividad, crearActividad, actualizarActividad,
-  marcarEstadoActividad, eliminarActividad, agregarPunto, marcarPunto, eliminarPunto
+  marcarEstadoActividad, guardarNotasTecnico, eliminarActividad, agregarPunto, marcarPunto, eliminarPunto
 };

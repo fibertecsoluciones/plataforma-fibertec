@@ -83,7 +83,7 @@
       <div class="actividad-tarjeta prioridad-${a.prioridad}" data-actividad="${a.id}">
         <div class="actividad-cabecera">
           <div>
-            <div class="actividad-titulo">${a.titulo}</div>
+            <div class="actividad-titulo" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;" data-detalle="${a.id}" title="Ver detalle">${a.titulo}</div>
             <div class="actividad-meta">
               <span class="pill prioridad-${a.prioridad}">${ETIQUETA_PRIORIDAD[a.prioridad]}</span>
               <span class="pill ${a.estado}">${ETIQUETA_ESTADO_ACT[a.estado]}</span>
@@ -95,7 +95,9 @@
                   ${a.ubicacion_confirmada ? '✅ Ubicación confirmada' : '📍 Ubicación estimada'}
                 </a>` : ''}
               ${a.instalacion_relacionada_fecha ? `<span style="color:var(--sem-verde);">✅ Instalación registrada el ${fechaCorta(a.instalacion_relacionada_fecha)}</span>` : ''}
+              ${a.estado === 'completada' && a.completado_en ? `<span style="color:var(--sem-verde);">🏁 Completada el ${fechaHoraCorta(a.completado_en)}</span>` : ''}
             </div>
+            ${a.notas_tecnico ? `<div class="texto-gris" style="font-size:12px; margin-top:6px;">📝 ${a.notas_tecnico}</div>` : ''}
           </div>
           <div class="flex-gap">
             ${esAdmin ? `<button class="btn btn-secundario btn-sm" data-agregar-punto="${a.id}">+ Punto</button>` : ''}
@@ -176,6 +178,101 @@
         } catch (err) { alert(err.message); }
       });
     });
+
+    document.querySelectorAll('[data-detalle]').forEach(el => {
+      el.addEventListener('click', () => abrirModalDetalle(el.dataset.detalle));
+    });
+  }
+
+  // ==========================================================
+  // MODAL: ver detalle completo de una actividad + notas del técnico
+  // ==========================================================
+  async function abrirModalDetalle(id) {
+    const modalCont = document.getElementById('modal-contenedor');
+    modalCont.innerHTML = `<div class="modal-fondo"><div class="modal"><div class="modal-cuerpo"><div class="cargando">Cargando…</div></div></div></div>`;
+
+    try {
+      const a = await API.get(`/api/actividades/${id}`);
+
+      modalCont.innerHTML = `
+        <div class="modal-fondo">
+          <div class="modal">
+            <div class="modal-cabecera">
+              <h3>${a.titulo}</h3>
+              <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+            </div>
+            <div class="modal-cuerpo">
+              <div class="actividad-meta" style="margin-bottom:12px;">
+                <span class="pill prioridad-${a.prioridad}">${ETIQUETA_PRIORIDAD[a.prioridad]}</span>
+                <span class="pill ${a.estado}">${ETIQUETA_ESTADO_ACT[a.estado]}</span>
+                <span>👷 ${a.tecnico_nombre}</span>
+                ${a.cliente_folio ? `<span class="folio">${a.cliente_folio}</span> ${a.cliente_nombre}` : ''}
+              </div>
+
+              ${a.descripcion ? `<p style="font-size:13.5px; color:var(--tinta-suave); margin-top:0;">${a.descripcion}</p>` : ''}
+
+              <div class="texto-gris" style="font-size:12px; line-height:1.6;">
+                Creada el ${fechaHoraCorta(a.creado_en)}${a.creado_por_nombre ? ' por ' + a.creado_por_nombre : ''}<br>
+                ${a.fecha_limite ? `Fecha límite: ${fechaCorta(a.fecha_limite)}<br>` : ''}
+                ${a.completado_en ? `<span style="color:var(--sem-verde);">🏁 Completada el ${fechaHoraCorta(a.completado_en)}</span>` : ''}
+              </div>
+
+              ${a.latitud && a.longitud ? `
+                <div style="margin:12px 0;">
+                  <a href="${linkGoogleMaps(a.latitud, a.longitud)}" target="_blank" class="pill ${a.ubicacion_confirmada ? 'ubicacion-confirmada' : 'ubicacion-estimada'}">
+                    ${a.ubicacion_confirmada ? '✅ Ubicación confirmada' : '📍 Ubicación estimada'} — Ver en el mapa
+                  </a>
+                </div>` : ''}
+
+              ${a.puntos && a.puntos.length ? `
+                <h4 style="font-size:13px; margin: 16px 0 8px;">Checklist</h4>
+                <div class="checklist">
+                  ${a.puntos.map(p => `
+                    <div class="checklist-item ${p.completado ? 'completado' : ''}">
+                      <input type="checkbox" disabled ${p.completado ? 'checked' : ''} />
+                      <div style="flex:1;">
+                        <div class="checklist-texto">${p.descripcion}</div>
+                        ${p.completado && p.completado_en ? `<div class="texto-gris" style="font-size:11px; margin-top:2px;">✓ ${fechaHoraCorta(p.completado_en)}${p.completado_por_nombre ? ' — ' + p.completado_por_nombre : ''}</div>` : ''}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              <div class="campo" style="margin-top:18px;">
+                <label>📝 Notas del técnico</label>
+                <textarea id="detalle-notas-tecnico" rows="3" placeholder="Observaciones sobre cómo salió, incidencias, materiales usados, etc.">${a.notas_tecnico || ''}</textarea>
+              </div>
+              <div id="error-notas-detalle" class="error-msg oculto"></div>
+            </div>
+            <div class="modal-pie">
+              <button class="btn btn-secundario" id="cerrar-detalle">Cerrar</button>
+              <button class="btn btn-primario" id="guardar-notas-detalle">Guardar notas</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const cerrar = () => { modalCont.innerHTML = ''; };
+      document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+      document.getElementById('cerrar-detalle').addEventListener('click', cerrar);
+
+      document.getElementById('guardar-notas-detalle').addEventListener('click', async () => {
+        const errorBox = document.getElementById('error-notas-detalle');
+        try {
+          await API.put(`/api/actividades/${id}/notas`, {
+            notas_tecnico: document.getElementById('detalle-notas-tecnico').value.trim()
+          });
+          cerrar();
+          cargarLista();
+        } catch (err) {
+          errorBox.textContent = err.message;
+          errorBox.classList.remove('oculto');
+        }
+      });
+    } catch (err) {
+      modalCont.innerHTML = `<div class="modal-fondo"><div class="modal"><div class="modal-cuerpo"><div class="error-msg">${err.message}</div></div></div></div>`;
+    }
   }
 
   // ==========================================================
