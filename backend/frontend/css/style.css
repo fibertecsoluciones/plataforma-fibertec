@@ -582,6 +582,7 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 .pill.ubicacion-estimada{ background: var(--sem-amarillo-bg); color: var(--sem-amarillo); }
 .pill.ubicacion-confirmada{ background: var(--sem-verde-bg); color: var(--sem-verde); }
 .mapa-selector{ width:100%; height:230px; border-radius: var(--radio-sm); border:1px solid var(--borde); z-index:1; }
+.grafica-contenedor{ position:relative; height: 280px; }
 
 /* ==========================================================
    TABLAS EN MODO TARJETA (celular / pantallas angostas)

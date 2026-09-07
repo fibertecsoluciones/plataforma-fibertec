@@ -26,14 +26,14 @@
     <div class="tarjeta">
       <div class="tarjeta-cabecera"><h3>Ingresos vs egresos (últimos 6 meses)</h3></div>
       <div class="tarjeta-cuerpo">
-        <canvas id="grafica-ie" height="90"></canvas>
+        <div class="grafica-contenedor"><canvas id="grafica-ie"></canvas></div>
       </div>
     </div>
 
     <div class="tarjeta">
       <div class="tarjeta-cabecera"><h3>Egresos del mes por categoría</h3></div>
       <div class="tarjeta-cuerpo">
-        <canvas id="grafica-categorias" height="90"></canvas>
+        <div class="grafica-contenedor"><canvas id="grafica-categorias"></canvas></div>
       </div>
     </div>
 
@@ -106,7 +106,7 @@
           { label: 'Egresos', data: meses.map(m => mapaEgresos[m] || 0), backgroundColor: '#C94F4F' }
         ]
       },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
 
     const categoriasData = await API.get('/api/finanzas/egresos-por-categoria');
@@ -121,7 +121,7 @@
           backgroundColor: ['#1E93D4','#3E9E6D','#C9962B','#D4722F','#C94F4F','#6B7A85','#146190']
         }]
       },
-      options: { responsive: true, plugins: { legend: { position: 'right' } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
     });
   }
 
