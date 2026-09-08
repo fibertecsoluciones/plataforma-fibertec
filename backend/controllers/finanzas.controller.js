@@ -77,7 +77,7 @@ async function listarEgresos(req, res) {
   const params = [];
   if (desde) { params.push(desde); sql += ` AND e.fecha >= $${params.length}`; }
   if (hasta) { params.push(hasta); sql += ` AND e.fecha <= $${params.length}`; }
-  sql += ' ORDER BY e.fecha DESC';
+  sql += ' ORDER BY e.creado_en DESC, e.id DESC';
   const r = await db.query(sql, params);
   res.json(r.rows);
 }
@@ -94,6 +94,27 @@ async function crearEgreso(req, res) {
     [categoria_id || null, concepto, monto, fecha, evidencia_url, req.usuario?.id || null, notas]
   );
   res.status(201).json(r.rows[0]);
+}
+
+async function actualizarEgreso(req, res) {
+  const { id } = req.params;
+  const { categoria_id, concepto, monto, fecha, notas } = req.body;
+  if (!concepto || monto === undefined) {
+    return res.status(400).json({ error: 'Concepto y monto son obligatorios.' });
+  }
+
+  const sets = ['categoria_id = $1', 'concepto = $2', 'monto = $3', 'fecha = $4', 'notas = $5'];
+  const params = [categoria_id || null, concepto, monto, fecha, notas];
+
+  if (req.file) {
+    params.push(`/uploads/evidencias/${req.file.filename}`);
+    sets.push(`comprobante_url = $${params.length}`);
+  }
+
+  params.push(id);
+  const r = await db.query(`UPDATE egresos SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+  if (!r.rows[0]) return res.status(404).json({ error: 'Egreso no encontrado.' });
+  res.json(r.rows[0]);
 }
 
 async function eliminarEgreso(req, res) {
@@ -114,7 +135,7 @@ async function listarIngresosExtra(req, res) {
   const params = [];
   if (desde) { params.push(desde); sql += ` AND i.fecha >= $${params.length}`; }
   if (hasta) { params.push(hasta); sql += ` AND i.fecha <= $${params.length}`; }
-  sql += ' ORDER BY i.fecha DESC';
+  sql += ' ORDER BY i.creado_en DESC, i.id DESC';
   const r = await db.query(sql, params);
   res.json(r.rows);
 }
@@ -143,6 +164,44 @@ async function crearIngresoExtra(req, res) {
   res.status(201).json(r.rows[0]);
 }
 
+async function actualizarIngresoExtra(req, res) {
+  const { id } = req.params;
+  const { categoria_id, concepto, monto, fecha, cliente_folio, notas } = req.body;
+  if (!concepto || monto === undefined) {
+    return res.status(400).json({ error: 'Concepto y monto son obligatorios.' });
+  }
+
+  let clienteId;
+  if (cliente_folio !== undefined) {
+    if (cliente_folio && cliente_folio.trim()) {
+      const clienteRes = await db.query('SELECT id FROM clientes WHERE UPPER(cliente_id) = UPPER($1)', [cliente_folio.trim()]);
+      if (!clienteRes.rows[0]) {
+        return res.status(400).json({ error: `No existe ningún cliente con el folio "${cliente_folio}".` });
+      }
+      clienteId = clienteRes.rows[0].id;
+    } else {
+      clienteId = null; // se dejó vacío el campo de cliente a propósito
+    }
+  }
+
+  const sets = ['categoria_id = $1', 'concepto = $2', 'monto = $3', 'fecha = $4', 'notas = $5'];
+  const params = [categoria_id || null, concepto, monto, fecha, notas];
+
+  if (clienteId !== undefined) {
+    params.push(clienteId);
+    sets.push(`cliente_id = $${params.length}`);
+  }
+  if (req.file) {
+    params.push(`/uploads/evidencias/${req.file.filename}`);
+    sets.push(`comprobante_url = $${params.length}`);
+  }
+
+  params.push(id);
+  const r = await db.query(`UPDATE ingresos_extra SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+  if (!r.rows[0]) return res.status(404).json({ error: 'Registro no encontrado.' });
+  res.json(r.rows[0]);
+}
+
 async function eliminarIngresoExtra(req, res) {
   const { id } = req.params;
   const r = await db.query('DELETE FROM ingresos_extra WHERE id = $1 RETURNING *', [id]);
@@ -152,6 +211,6 @@ async function eliminarIngresoExtra(req, res) {
 
 module.exports = {
   resumenMensual, resumenMesActual, egresosPorCategoria,
-  listarEgresos, crearEgreso, eliminarEgreso,
-  listarIngresosExtra, crearIngresoExtra, eliminarIngresoExtra
+  listarEgresos, crearEgreso, actualizarEgreso, eliminarEgreso,
+  listarIngresosExtra, crearIngresoExtra, actualizarIngresoExtra, eliminarIngresoExtra
 };

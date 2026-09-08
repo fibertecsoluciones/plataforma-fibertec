@@ -144,7 +144,12 @@
                 <td data-label="Monto">${mxn(e.monto)}</td>
                 <td data-label="Fecha">${fechaCorta(e.fecha)}</td>
                 <td data-label="Comprobante">${e.comprobante_url ? `<a href="${e.comprobante_url}" target="_blank">Ver</a>` : '—'}</td>
-                <td class="celda-acciones-movil"><button class="btn btn-peligro btn-sm" data-borrar="${e.id}">Eliminar</button></td>
+                <td class="celda-acciones-movil">
+                  <div class="fila-acciones">
+                    <button class="btn btn-secundario btn-sm btn-icono" data-editar-egreso="${e.id}" title="Editar">✏️</button>
+                    <button class="btn btn-peligro btn-sm btn-icono" data-borrar="${e.id}" title="Eliminar">🗑️</button>
+                  </div>
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -159,37 +164,47 @@
           } catch (err) { alert(err.message); }
         });
       });
+      tabla.querySelectorAll('[data-editar-egreso]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const egreso = egresos.find(e => String(e.id) === btn.dataset.editarEgreso);
+          if (egreso) abrirModalEgreso(egreso);
+        });
+      });
     } catch (err) {
       tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
     }
   }
 
-  function abrirModalEgreso() {
+  function abrirModalEgreso(egreso) {
     const modalCont = document.getElementById('modal-contenedor');
     modalCont.innerHTML = `
       <div class="modal-fondo">
         <div class="modal">
-          <div class="modal-cabecera"><h3>Registrar egreso</h3><button class="cerrar-modal" id="cerrar-modal">&times;</button></div>
+          <div class="modal-cabecera"><h3>${egreso ? 'Editar egreso' : 'Registrar egreso'}</h3><button class="cerrar-modal" id="cerrar-modal">&times;</button></div>
           <div class="modal-cuerpo">
             <div id="error-egreso" class="error-msg oculto"></div>
             <div class="grid-formulario">
-              <div class="campo ancho-total"><label>Concepto</label><input type="text" id="e-concepto" required /></div>
+              <div class="campo ancho-total"><label>Concepto</label><input type="text" id="e-concepto" value="${egreso ? egreso.concepto.replace(/"/g, '&quot;') : ''}" required /></div>
               <div class="campo">
                 <label>Categoría</label>
                 <select id="e-categoria">
                   <option value="">Sin categoría</option>
-                  ${categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                  ${categorias.map(c => `<option value="${c.id}" ${egreso && String(egreso.categoria_id) === String(c.id) ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                 </select>
               </div>
-              <div class="campo"><label>Monto</label><input type="number" id="e-monto" min="0" step="0.01" required /></div>
-              <div class="campo"><label>Fecha</label><input type="date" id="e-fecha" value="${new Date().toISOString().slice(0,10)}" /></div>
-              <div class="campo ancho-total"><label>Comprobante (opcional)</label><input type="file" id="e-comprobante" accept="image/*,.pdf" /></div>
-              <div class="campo ancho-total"><label>Notas</label><textarea id="e-notas" rows="2"></textarea></div>
+              <div class="campo"><label>Monto</label><input type="number" id="e-monto" min="0" step="0.01" value="${egreso ? egreso.monto : ''}" required /></div>
+              <div class="campo"><label>Fecha</label><input type="date" id="e-fecha" value="${egreso ? String(egreso.fecha).slice(0,10) : new Date().toISOString().slice(0,10)}" /></div>
+              <div class="campo ancho-total">
+                <label>Comprobante ${egreso ? '(sube uno solo si quieres reemplazar el actual)' : '(opcional)'}</label>
+                <input type="file" id="e-comprobante" accept="image/*,.pdf" />
+                ${egreso && egreso.comprobante_url ? `<div class="texto-gris" style="font-size:11.5px; margin-top:4px;"><a href="${egreso.comprobante_url}" target="_blank">Ver comprobante actual</a></div>` : ''}
+              </div>
+              <div class="campo ancho-total"><label>Notas</label><textarea id="e-notas" rows="2">${egreso && egreso.notas ? egreso.notas : ''}</textarea></div>
             </div>
           </div>
           <div class="modal-pie">
             <button class="btn btn-secundario" id="cancelar">Cancelar</button>
-            <button class="btn btn-primario" id="guardar-egreso">Guardar</button>
+            <button class="btn btn-primario" id="guardar-egreso">${egreso ? 'Guardar cambios' : 'Guardar'}</button>
           </div>
         </div>
       </div>
@@ -213,7 +228,11 @@
         const archivo = document.getElementById('e-comprobante').files[0];
         if (archivo) formData.append('comprobante', archivo);
 
-        await API.solicitarConArchivo('/api/finanzas/egresos', formData, 'POST');
+        if (egreso) {
+          await API.solicitarConArchivo(`/api/finanzas/egresos/${egreso.id}`, formData, 'PUT');
+        } else {
+          await API.solicitarConArchivo('/api/finanzas/egresos', formData, 'POST');
+        }
         cerrar();
         cargarEgresos(); cargarKpis(); cargarGraficas();
       } catch (err) { errorBox.textContent = err.message; errorBox.classList.remove('oculto'); }
@@ -248,7 +267,12 @@
                 <td data-label="Cliente">${i.cliente_folio ? `<span class="folio">${i.cliente_folio}</span> ${i.cliente_nombre}` : '—'}</td>
                 <td data-label="Monto">${mxn(i.monto)}</td>
                 <td data-label="Fecha">${fechaCorta(i.fecha)}</td>
-                <td class="celda-acciones-movil"><button class="btn btn-peligro btn-sm" data-borrar-ingreso="${i.id}">Eliminar</button></td>
+                <td class="celda-acciones-movil">
+                  <div class="fila-acciones">
+                    <button class="btn btn-secundario btn-sm btn-icono" data-editar-ingreso="${i.id}" title="Editar">✏️</button>
+                    <button class="btn btn-peligro btn-sm btn-icono" data-borrar-ingreso="${i.id}" title="Eliminar">🗑️</button>
+                  </div>
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -263,38 +287,48 @@
           } catch (err) { alert(err.message); }
         });
       });
+      tabla.querySelectorAll('[data-editar-ingreso]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const ingreso = ingresos.find(i => String(i.id) === btn.dataset.editarIngreso);
+          if (ingreso) abrirModalIngresoExtra(ingreso);
+        });
+      });
     } catch (err) {
       tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
     }
   }
 
-  function abrirModalIngresoExtra() {
+  function abrirModalIngresoExtra(ingreso) {
     const modalCont = document.getElementById('modal-contenedor');
     modalCont.innerHTML = `
       <div class="modal-fondo">
         <div class="modal">
-          <div class="modal-cabecera"><h3>Registrar ingreso extra</h3><button class="cerrar-modal" id="cerrar-modal">&times;</button></div>
+          <div class="modal-cabecera"><h3>${ingreso ? 'Editar ingreso extra' : 'Registrar ingreso extra'}</h3><button class="cerrar-modal" id="cerrar-modal">&times;</button></div>
           <div class="modal-cuerpo">
             <div id="error-ingreso" class="error-msg oculto"></div>
             <div class="grid-formulario">
-              <div class="campo ancho-total"><label>Concepto</label><input type="text" id="i-concepto" placeholder="Ej. Instalación cliente nuevo" required /></div>
+              <div class="campo ancho-total"><label>Concepto</label><input type="text" id="i-concepto" placeholder="Ej. Instalación cliente nuevo" value="${ingreso ? ingreso.concepto.replace(/"/g, '&quot;') : ''}" required /></div>
               <div class="campo">
                 <label>Categoría</label>
                 <select id="i-categoria">
                   <option value="">Sin categoría</option>
-                  ${categoriasIngresos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                  ${categoriasIngresos.map(c => `<option value="${c.id}" ${ingreso && String(ingreso.categoria_id) === String(c.id) ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                 </select>
               </div>
-              <div class="campo"><label>Monto</label><input type="number" id="i-monto" min="0" step="0.01" required /></div>
-              <div class="campo"><label>Fecha</label><input type="date" id="i-fecha" value="${new Date().toISOString().slice(0,10)}" /></div>
-              <div class="campo ancho-total"><label>Folio de cliente relacionado (opcional)</label><input type="text" id="i-cliente-folio" placeholder="Ej. POP-014" style="text-transform:uppercase;" /></div>
-              <div class="campo ancho-total"><label>Comprobante (opcional)</label><input type="file" id="i-comprobante" accept="image/*,.pdf" /></div>
-              <div class="campo ancho-total"><label>Notas</label><textarea id="i-notas" rows="2"></textarea></div>
+              <div class="campo"><label>Monto</label><input type="number" id="i-monto" min="0" step="0.01" value="${ingreso ? ingreso.monto : ''}" required /></div>
+              <div class="campo"><label>Fecha</label><input type="date" id="i-fecha" value="${ingreso ? String(ingreso.fecha).slice(0,10) : new Date().toISOString().slice(0,10)}" /></div>
+              <div class="campo ancho-total"><label>Folio de cliente relacionado (opcional)</label><input type="text" id="i-cliente-folio" value="${ingreso && ingreso.cliente_folio ? ingreso.cliente_folio : ''}" placeholder="Ej. POP-014" style="text-transform:uppercase;" /></div>
+              <div class="campo ancho-total">
+                <label>Comprobante ${ingreso ? '(sube uno solo si quieres reemplazar el actual)' : '(opcional)'}</label>
+                <input type="file" id="i-comprobante" accept="image/*,.pdf" />
+                ${ingreso && ingreso.comprobante_url ? `<div class="texto-gris" style="font-size:11.5px; margin-top:4px;"><a href="${ingreso.comprobante_url}" target="_blank">Ver comprobante actual</a></div>` : ''}
+              </div>
+              <div class="campo ancho-total"><label>Notas</label><textarea id="i-notas" rows="2">${ingreso && ingreso.notas ? ingreso.notas : ''}</textarea></div>
             </div>
           </div>
           <div class="modal-pie">
             <button class="btn btn-secundario" id="cancelar">Cancelar</button>
-            <button class="btn btn-primario" id="guardar-ingreso">Guardar</button>
+            <button class="btn btn-primario" id="guardar-ingreso">${ingreso ? 'Guardar cambios' : 'Guardar'}</button>
           </div>
         </div>
       </div>
@@ -319,7 +353,11 @@
         const archivo = document.getElementById('i-comprobante').files[0];
         if (archivo) formData.append('comprobante', archivo);
 
-        await API.solicitarConArchivo('/api/finanzas/ingresos-extra', formData, 'POST');
+        if (ingreso) {
+          await API.solicitarConArchivo(`/api/finanzas/ingresos-extra/${ingreso.id}`, formData, 'PUT');
+        } else {
+          await API.solicitarConArchivo('/api/finanzas/ingresos-extra', formData, 'POST');
+        }
         cerrar();
         cargarIngresosExtra(); cargarKpis(); cargarGraficas();
       } catch (err) { errorBox.textContent = err.message; errorBox.classList.remove('oculto'); }

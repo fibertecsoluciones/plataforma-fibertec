@@ -12,10 +12,12 @@ router.get('/egresos-por-categoria', ctrl.egresosPorCategoria);
 
 router.get('/egresos', ctrl.listarEgresos);
 router.post('/egresos', upload.single('comprobante'), ctrl.crearEgreso);
+router.put('/egresos/:id', upload.single('comprobante'), ctrl.actualizarEgreso);
 router.delete('/egresos/:id', ctrl.eliminarEgreso);
 
 router.get('/ingresos-extra', ctrl.listarIngresosExtra);
 router.post('/ingresos-extra', upload.single('comprobante'), ctrl.crearIngresoExtra);
+router.put('/ingresos-extra/:id', upload.single('comprobante'), ctrl.actualizarIngresoExtra);
 router.delete('/ingresos-extra/:id', ctrl.eliminarIngresoExtra);
 
 module.exports = router;
