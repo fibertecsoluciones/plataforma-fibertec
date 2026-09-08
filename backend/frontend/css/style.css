@@ -581,6 +581,10 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 }
 .pill.ubicacion-estimada{ background: var(--sem-amarillo-bg); color: var(--sem-amarillo); }
 .pill.ubicacion-confirmada{ background: var(--sem-verde-bg); color: var(--sem-verde); }
+.pill.tipo-instalacion{ background: #E4F1FA; color: #146190; }
+.pill.tipo-mantenimiento{ background: #EAF5EE; color: #2A7A4F; }
+.pill.tipo-falla{ background: #FBEAEA; color: #A83A3A; }
+.pill.tipo-libranza{ background: #F1EEF9; color: #6A4FA8; }
 .mapa-selector{ width:100%; height:230px; border-radius: var(--radio-sm); border:1px solid var(--borde); z-index:1; }
 .grafica-contenedor{ position:relative; height: 280px; }
 

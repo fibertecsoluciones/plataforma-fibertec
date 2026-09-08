@@ -8,10 +8,12 @@
 
   const ETIQUETA_PRIORIDAD = { alta: 'Alta', media: 'Media', baja: 'Baja' };
   const ETIQUETA_ESTADO_ACT = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' };
+  const ETIQUETA_TIPO = { instalacion: '🔌 Instalación', mantenimiento: '🔧 Mantenimiento', falla: '⚠️ Falla', libranza: '🌴 Libranza' };
 
   let tecnicos = [];
   let filtroTecnico = '';
   let filtroEstado = '';
+  let filtroTipo = '';
   let listaActual = []; // guarda la última lista cargada, para poder reordenarla y editar sin re-pedirla
 
   cont.innerHTML = `<div class="cargando">Cargando actividades…</div>`;
@@ -37,6 +39,13 @@
               <option value="en_proceso">En proceso</option>
               <option value="completada">Completada</option>
             </select>
+            <select id="filtro-tipo-act" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
+              <option value="">Todas las categorías</option>
+              <option value="instalacion">🔌 Instalación</option>
+              <option value="mantenimiento">🔧 Mantenimiento</option>
+              <option value="falla">⚠️ Falla</option>
+              <option value="libranza">🌴 Libranza</option>
+            </select>
           </div>
           ${esAdmin ? `<button class="btn btn-verde" id="btn-nueva-actividad">+ Nueva actividad</button>` : ''}
         </div>
@@ -52,6 +61,7 @@
     document.getElementById('btn-nueva-actividad').addEventListener('click', () => abrirModalNuevaActividad());
   }
   document.getElementById('filtro-estado-act').addEventListener('change', (e) => { filtroEstado = e.target.value; cargarLista(); });
+  document.getElementById('filtro-tipo-act').addEventListener('change', (e) => { filtroTipo = e.target.value; cargarLista(); });
 
   await cargarLista();
 
@@ -61,6 +71,7 @@
     const qs = new URLSearchParams();
     if (filtroTecnico) qs.set('tecnicoId', filtroTecnico);
     if (filtroEstado) qs.set('estado', filtroEstado);
+    if (filtroTipo) qs.set('tipo', filtroTipo);
 
     try {
       const actividades = await API.get('/api/actividades?' + qs.toString());
@@ -89,6 +100,7 @@
             <div>
               <div class="actividad-titulo" style="cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;" data-detalle="${a.id}" title="Ver detalle">${a.titulo}</div>
               <div class="actividad-meta">
+                <span class="pill tipo-${a.tipo}">${ETIQUETA_TIPO[a.tipo]}</span>
                 <span class="pill prioridad-${a.prioridad}">${ETIQUETA_PRIORIDAD[a.prioridad]}</span>
                 <span class="pill ${a.estado}">${ETIQUETA_ESTADO_ACT[a.estado]}</span>
                 ${esAdmin ? `<span>👷 ${a.tecnico_nombre}</span>` : ''}
@@ -264,6 +276,7 @@
             </div>
             <div class="modal-cuerpo">
               <div class="actividad-meta" style="margin-bottom:12px;">
+                <span class="pill tipo-${a.tipo}">${ETIQUETA_TIPO[a.tipo]}</span>
                 <span class="pill prioridad-${a.prioridad}">${ETIQUETA_PRIORIDAD[a.prioridad]}</span>
                 <span class="pill ${a.estado}">${ETIQUETA_ESTADO_ACT[a.estado]}</span>
                 <span>👷 ${a.tecnico_nombre}</span>
@@ -363,6 +376,15 @@
                 <label>Asignar a</label>
                 <select id="na-tecnico">
                   ${tecnicos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('')}
+                </select>
+              </div>
+              <div class="campo">
+                <label>Categoría</label>
+                <select id="na-tipo">
+                  <option value="instalacion" selected>🔌 Instalación</option>
+                  <option value="mantenimiento">🔧 Mantenimiento</option>
+                  <option value="falla">⚠️ Falla</option>
+                  <option value="libranza">🌴 Libranza</option>
                 </select>
               </div>
               <div class="campo">
@@ -487,6 +509,7 @@
         descripcion: document.getElementById('na-descripcion').value.trim(),
         tecnico_id: Number(document.getElementById('na-tecnico').value),
         prioridad: document.getElementById('na-prioridad').value,
+        tipo: document.getElementById('na-tipo').value,
         fecha_limite: document.getElementById('na-fecha-limite').value || null,
         cliente_folio: document.getElementById('na-cliente-folio').value || document.getElementById('na-cliente-busqueda').value.trim(),
         latitud: ubicacionNuevaActividad.lat,
@@ -532,6 +555,15 @@
                 <label>Asignar a</label>
                 <select id="ea-tecnico">
                   ${tecnicos.map(t => `<option value="${t.id}" ${String(t.id) === String(a.tecnico_id) ? 'selected' : ''}>${t.nombre}</option>`).join('')}
+                </select>
+              </div>
+              <div class="campo">
+                <label>Categoría</label>
+                <select id="ea-tipo">
+                  <option value="instalacion" ${a.tipo === 'instalacion' ? 'selected' : ''}>🔌 Instalación</option>
+                  <option value="mantenimiento" ${a.tipo === 'mantenimiento' ? 'selected' : ''}>🔧 Mantenimiento</option>
+                  <option value="falla" ${a.tipo === 'falla' ? 'selected' : ''}>⚠️ Falla</option>
+                  <option value="libranza" ${a.tipo === 'libranza' ? 'selected' : ''}>🌴 Libranza</option>
                 </select>
               </div>
               <div class="campo">
@@ -631,6 +663,7 @@
         descripcion: document.getElementById('ea-descripcion').value.trim(),
         tecnico_id: Number(document.getElementById('ea-tecnico').value),
         prioridad: document.getElementById('ea-prioridad').value,
+        tipo: document.getElementById('ea-tipo').value,
         fecha_limite: document.getElementById('ea-fecha-limite').value || null,
         cliente_folio: document.getElementById('ea-cliente-folio').value || document.getElementById('ea-cliente-busqueda').value.trim(),
         latitud: ubicacionEditada.lat,

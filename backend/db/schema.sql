@@ -342,6 +342,7 @@ CREATE TABLE actividades (
   tecnico_id      INTEGER NOT NULL REFERENCES usuarios(id),
   cliente_id      INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
   prioridad       VARCHAR(10) NOT NULL DEFAULT 'media' CHECK (prioridad IN ('baja','media','alta')),
+  tipo            VARCHAR(20) NOT NULL DEFAULT 'instalacion' CHECK (tipo IN ('instalacion','mantenimiento','falla','libranza')),
   estado          VARCHAR(15) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','en_proceso','completada')),
   fecha_limite    DATE,
   creado_por      INTEGER REFERENCES usuarios(id),

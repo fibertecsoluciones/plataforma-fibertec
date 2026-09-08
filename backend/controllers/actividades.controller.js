@@ -3,7 +3,7 @@ const db = require('../config/db');
 // Lista actividades. Admin ve todas (con filtros opcionales); técnico solo ve las suyas.
 async function listarActividades(req, res) {
   try {
-    const { tecnicoId, estado } = req.query;
+    const { tecnicoId, estado, tipo } = req.query;
     const esAdmin = req.usuario.rol === 'admin';
 
     let sql = `
@@ -36,6 +36,11 @@ async function listarActividades(req, res) {
     if (estado) {
       params.push(estado);
       sql += ` AND a.estado = $${params.length}`;
+    }
+
+    if (tipo) {
+      params.push(tipo);
+      sql += ` AND a.tipo = $${params.length}`;
     }
 
     sql += ` GROUP BY a.id, u.nombre, cu.nombre, c.cliente_id, c.nombre, inst.fecha_instalacion
@@ -94,7 +99,7 @@ async function obtenerActividad(req, res) {
 
 // Crea una actividad (solo admin), con su checklist de puntos opcional.
 async function crearActividad(req, res) {
-  const { titulo, descripcion, tecnico_id, cliente_id, cliente_folio, prioridad, fecha_limite, puntos, latitud, longitud } = req.body;
+  const { titulo, descripcion, tecnico_id, cliente_id, cliente_folio, prioridad, tipo, fecha_limite, puntos, latitud, longitud } = req.body;
 
   if (!titulo || !tecnico_id) {
     return res.status(400).json({ error: 'Título y técnico asignado son obligatorios.' });
@@ -117,10 +122,10 @@ async function crearActividad(req, res) {
     const ordenRes = await client.query('SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente FROM actividades');
 
     const r = await client.query(
-      `INSERT INTO actividades (titulo, descripcion, tecnico_id, cliente_id, prioridad, fecha_limite, creado_por, latitud, longitud, orden)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'media'),$6,$7,$8,$9,$10)
+      `INSERT INTO actividades (titulo, descripcion, tecnico_id, cliente_id, prioridad, tipo, fecha_limite, creado_por, latitud, longitud, orden)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'media'),COALESCE($6,'instalacion'),$7,$8,$9,$10,$11)
        RETURNING *`,
-      [titulo, descripcion, tecnico_id, clienteIdResuelto, prioridad, fecha_limite || null, req.usuario.id, latitud || null, longitud || null, ordenRes.rows[0].siguiente]
+      [titulo, descripcion, tecnico_id, clienteIdResuelto, prioridad, tipo, fecha_limite || null, req.usuario.id, latitud || null, longitud || null, ordenRes.rows[0].siguiente]
     );
     const actividad = r.rows[0];
 
@@ -147,7 +152,7 @@ async function crearActividad(req, res) {
 async function actualizarActividad(req, res) {
   try {
     const { id } = req.params;
-    const campos = ['titulo', 'descripcion', 'tecnico_id', 'cliente_id', 'prioridad', 'fecha_limite', 'latitud', 'longitud'];
+    const campos = ['titulo', 'descripcion', 'tecnico_id', 'cliente_id', 'prioridad', 'tipo', 'fecha_limite', 'latitud', 'longitud'];
     const sets = []; const params = [];
 
     // Si mandan cliente_folio (desde el buscador del formulario), lo resolvemos a

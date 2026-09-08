@@ -60,8 +60,8 @@
     <div id="modal-contenedor"></div>
   `;
 
-  document.getElementById('btn-nuevo-egreso').addEventListener('click', abrirModalEgreso);
-  document.getElementById('btn-nuevo-ingreso-extra').addEventListener('click', abrirModalIngresoExtra);
+  document.getElementById('btn-nuevo-egreso').addEventListener('click', () => abrirModalEgreso());
+  document.getElementById('btn-nuevo-ingreso-extra').addEventListener('click', () => abrirModalIngresoExtra());
 
   await cargarKpis();
   try {
