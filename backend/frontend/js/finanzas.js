@@ -7,6 +7,11 @@
 
   let categorias = [];
   let categoriasIngresos = [];
+  const porPagina = 10;
+  let listaEgresosCompleta = [];
+  let paginaEgresos = 1;
+  let listaIngresosCompleta = [];
+  let paginaIngresos = 1;
 
   cont.innerHTML = `<div class="cargando">Cargando finanzas…</div>`;
 
@@ -128,12 +133,28 @@
   async function cargarEgresos() {
     const tabla = document.getElementById('tabla-egresos');
     try {
-      const egresos = await API.get('/api/finanzas/egresos');
-      if (!egresos.length) {
-        tabla.innerHTML = `<div class="estado-vacio">Aún no has registrado egresos.</div>`;
-        return;
-      }
-      tabla.innerHTML = `
+      listaEgresosCompleta = await API.get('/api/finanzas/egresos');
+      paginaEgresos = 1;
+      renderTablaEgresosPaginada();
+    } catch (err) {
+      tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+  }
+
+  function renderTablaEgresosPaginada() {
+    const tabla = document.getElementById('tabla-egresos');
+
+    if (!listaEgresosCompleta.length) {
+      tabla.innerHTML = `<div class="estado-vacio">Aún no has registrado egresos.</div>`;
+      return;
+    }
+
+    const totalPaginas = Math.max(1, Math.ceil(listaEgresosCompleta.length / porPagina));
+    paginaEgresos = Math.min(Math.max(1, paginaEgresos), totalPaginas);
+    const inicio = (paginaEgresos - 1) * porPagina;
+    const egresos = listaEgresosCompleta.slice(inicio, inicio + porPagina);
+
+    tabla.innerHTML = `
         <table class="tabla">
           <thead><tr><th>Concepto</th><th>Categoría</th><th>Monto</th><th>Fecha</th><th>Comprobante</th><th></th></tr></thead>
           <tbody>
@@ -154,25 +175,31 @@
             `).join('')}
           </tbody>
         </table>
+        <div class="paginacion">
+          <div class="paginacion-info">Mostrando ${inicio + 1}–${Math.min(inicio + porPagina, listaEgresosCompleta.length)} de ${listaEgresosCompleta.length}</div>
+          <div class="paginacion-botones" id="paginacion-egresos"></div>
+        </div>
       `;
-      tabla.querySelectorAll('[data-borrar]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('¿Eliminar este egreso?')) return;
-          try {
-            await API.del(`/api/finanzas/egresos/${btn.dataset.borrar}`);
-            cargarEgresos(); cargarKpis(); cargarGraficas();
-          } catch (err) { alert(err.message); }
-        });
+    tabla.querySelectorAll('[data-borrar]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('¿Eliminar este egreso?')) return;
+        try {
+          await API.del(`/api/finanzas/egresos/${btn.dataset.borrar}`);
+          cargarEgresos(); cargarKpis(); cargarGraficas();
+        } catch (err) { alert(err.message); }
       });
-      tabla.querySelectorAll('[data-editar-egreso]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const egreso = egresos.find(e => String(e.id) === btn.dataset.editarEgreso);
-          if (egreso) abrirModalEgreso(egreso);
-        });
+    });
+    tabla.querySelectorAll('[data-editar-egreso]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const egreso = listaEgresosCompleta.find(e => String(e.id) === btn.dataset.editarEgreso);
+        if (egreso) abrirModalEgreso(egreso);
       });
-    } catch (err) {
-      tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
-    }
+    });
+    renderBotonesPaginacionGenerico('paginacion-egresos', totalPaginas, paginaEgresos, (p) => {
+      paginaEgresos = p;
+      renderTablaEgresosPaginada();
+      tabla.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   function abrirModalEgreso(egreso) {
@@ -251,12 +278,28 @@
   async function cargarIngresosExtra() {
     const tabla = document.getElementById('tabla-ingresos-extra');
     try {
-      const ingresos = await API.get('/api/finanzas/ingresos-extra');
-      if (!ingresos.length) {
-        tabla.innerHTML = `<div class="estado-vacio">Aún no hay ingresos extra registrados (se llenan solos cuando un técnico cobra una instalación).</div>`;
-        return;
-      }
-      tabla.innerHTML = `
+      listaIngresosCompleta = await API.get('/api/finanzas/ingresos-extra');
+      paginaIngresos = 1;
+      renderTablaIngresosPaginada();
+    } catch (err) {
+      tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+  }
+
+  function renderTablaIngresosPaginada() {
+    const tabla = document.getElementById('tabla-ingresos-extra');
+
+    if (!listaIngresosCompleta.length) {
+      tabla.innerHTML = `<div class="estado-vacio">Aún no hay ingresos extra registrados (se llenan solos cuando un técnico cobra una instalación).</div>`;
+      return;
+    }
+
+    const totalPaginas = Math.max(1, Math.ceil(listaIngresosCompleta.length / porPagina));
+    paginaIngresos = Math.min(Math.max(1, paginaIngresos), totalPaginas);
+    const inicio = (paginaIngresos - 1) * porPagina;
+    const ingresos = listaIngresosCompleta.slice(inicio, inicio + porPagina);
+
+    tabla.innerHTML = `
         <table class="tabla">
           <thead><tr><th>Concepto</th><th>Categoría</th><th>Cliente</th><th>Monto</th><th>Fecha</th><th></th></tr></thead>
           <tbody>
@@ -277,25 +320,63 @@
             `).join('')}
           </tbody>
         </table>
+        <div class="paginacion">
+          <div class="paginacion-info">Mostrando ${inicio + 1}–${Math.min(inicio + porPagina, listaIngresosCompleta.length)} de ${listaIngresosCompleta.length}</div>
+          <div class="paginacion-botones" id="paginacion-ingresos"></div>
+        </div>
       `;
-      tabla.querySelectorAll('[data-borrar-ingreso]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('¿Eliminar este ingreso?')) return;
-          try {
-            await API.del(`/api/finanzas/ingresos-extra/${btn.dataset.borrarIngreso}`);
-            cargarIngresosExtra(); cargarKpis(); cargarGraficas();
-          } catch (err) { alert(err.message); }
-        });
+    tabla.querySelectorAll('[data-borrar-ingreso]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('¿Eliminar este ingreso?')) return;
+        try {
+          await API.del(`/api/finanzas/ingresos-extra/${btn.dataset.borrarIngreso}`);
+          cargarIngresosExtra(); cargarKpis(); cargarGraficas();
+        } catch (err) { alert(err.message); }
       });
-      tabla.querySelectorAll('[data-editar-ingreso]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const ingreso = ingresos.find(i => String(i.id) === btn.dataset.editarIngreso);
-          if (ingreso) abrirModalIngresoExtra(ingreso);
-        });
+    });
+    tabla.querySelectorAll('[data-editar-ingreso]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ingreso = listaIngresosCompleta.find(i => String(i.id) === btn.dataset.editarIngreso);
+        if (ingreso) abrirModalIngresoExtra(ingreso);
       });
-    } catch (err) {
-      tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    });
+    renderBotonesPaginacionGenerico('paginacion-ingresos', totalPaginas, paginaIngresos, (p) => {
+      paginaIngresos = p;
+      renderTablaIngresosPaginada();
+      tabla.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Botones de paginación reutilizables (números con "…" si hay muchas páginas).
+  function renderBotonesPaginacionGenerico(idContenedor, totalPaginas, paginaActual, irA) {
+    const cont = document.getElementById(idContenedor);
+    if (!cont) return;
+    if (totalPaginas <= 1) { cont.innerHTML = ''; return; }
+
+    const paginas = [];
+    const ventana = 1;
+    for (let p = 1; p <= totalPaginas; p++) {
+      if (p === 1 || p === totalPaginas || (p >= paginaActual - ventana && p <= paginaActual + ventana)) {
+        paginas.push(p);
+      } else if (paginas[paginas.length - 1] !== '…') {
+        paginas.push('…');
+      }
     }
+
+    cont.innerHTML = `
+      <button id="${idContenedor}-prev" ${paginaActual === 1 ? 'disabled' : ''} title="Anterior">‹</button>
+      ${paginas.map(p => p === '…'
+        ? `<span class="texto-gris" style="padding:0 4px;">…</span>`
+        : `<button data-pagina="${p}" class="${p === paginaActual ? 'activa' : ''}">${p}</button>`
+      ).join('')}
+      <button id="${idContenedor}-next" ${paginaActual === totalPaginas ? 'disabled' : ''} title="Siguiente">›</button>
+    `;
+
+    cont.querySelector(`#${idContenedor}-prev`).addEventListener('click', () => irA(paginaActual - 1));
+    cont.querySelector(`#${idContenedor}-next`).addEventListener('click', () => irA(paginaActual + 1));
+    cont.querySelectorAll('[data-pagina]').forEach(btn => {
+      btn.addEventListener('click', () => irA(Number(btn.dataset.pagina)));
+    });
   }
 
   function abrirModalIngresoExtra(ingreso) {
