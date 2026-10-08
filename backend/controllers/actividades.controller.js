@@ -1,6 +1,30 @@
 const db = require('../config/db');
 
 // Lista actividades. Admin ve todas (con filtros opcionales); técnico solo ve las suyas.
+// ¿Esta actividad ya está dentro de un pago a técnicos? (null si no; también null si la migración
+// 020 aún no se ha corrido, para no frenar el trabajo de los técnicos)
+async function pagoDeActividad(actividadId) {
+  try {
+    const r = await db.query(
+      `SELECT p.id, p.estado FROM pagos_tecnicos_actividades pa
+       JOIN pagos_tecnicos p ON p.id = pa.pago_id WHERE pa.actividad_id = $1`,
+      [actividadId]
+    );
+    return r.rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01') return null;
+    throw err;
+  }
+}
+
+// Mensaje para quien intenta reabrir/alterar una actividad ya incluida en un pago. Al técnico NO se le
+// menciona nada de pagos: solo que la actividad ya fue cerrada.
+function mensajeActividadEnPago(usuario, detalleAdmin) {
+  return usuario.rol === 'admin'
+    ? detalleAdmin
+    : 'Esta actividad ya fue cerrada y no se puede reabrir. Avisa a la oficina si necesitas cambiarla.';
+}
+
 async function listarActividades(req, res) {
   try {
     const { tecnicoId, estado, tipo } = req.query;
@@ -178,6 +202,13 @@ async function actualizarActividad(req, res) {
 
     if (!sets.length) return res.status(400).json({ error: 'No se enviaron campos para actualizar.' });
 
+    if (req.body.tecnico_id !== undefined) {
+      const actual = await db.query('SELECT tecnico_id FROM actividades WHERE id = $1', [id]);
+      if (actual.rows[0] && String(actual.rows[0].tecnico_id) !== String(req.body.tecnico_id) && await pagoDeActividad(id)) {
+        return res.status(409).json({ error: 'Esta actividad ya está incluida en un pago a técnicos: no se puede cambiar de técnico. Quítala del pago primero (en Pago a técnicos).' });
+      }
+    }
+
     params.push(id);
     const r = await db.query(`UPDATE actividades SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
     if (!r.rows[0]) return res.status(404).json({ error: 'Actividad no encontrada.' });
@@ -203,6 +234,11 @@ async function marcarEstadoActividad(req, res) {
     if (!actividad) return res.status(404).json({ error: 'Actividad no encontrada.' });
     if (req.usuario.rol !== 'admin' && actividad.tecnico_id !== req.usuario.id) {
       return res.status(403).json({ error: 'No tienes permiso para modificar esta actividad.' });
+    }
+
+    if (estado !== 'completada' && await pagoDeActividad(id)) {
+      return res.status(409).json({ error: mensajeActividadEnPago(req.usuario,
+        'Esta actividad ya está incluida en un pago a técnicos: no se puede regresar a pendiente. Quítala del pago primero (en Pago a técnicos).') });
     }
 
     const r = await db.query(
@@ -270,6 +306,10 @@ async function reordenarActividades(req, res) {
 async function eliminarActividad(req, res) {
   try {
     const { id } = req.params;
+    const pago = await pagoDeActividad(id);
+    if (pago && pago.estado === 'pagado') {
+      return res.status(409).json({ error: 'Esta actividad ya forma parte de un pago a técnicos que está pagado. No se puede eliminar; si de verdad hace falta, deshaz ese pago primero (en Pago a técnicos).' });
+    }
     const r = await db.query('DELETE FROM actividades WHERE id = $1 RETURNING *', [id]);
     if (!r.rows[0]) return res.status(404).json({ error: 'Actividad no encontrada.' });
     res.json({ mensaje: 'Actividad eliminada.' });
@@ -287,6 +327,9 @@ async function agregarPunto(req, res) {
     const { id } = req.params; // id de la actividad
     const { descripcion } = req.body;
     if (!descripcion || !descripcion.trim()) return res.status(400).json({ error: 'La descripción del punto es obligatoria.' });
+    if (await pagoDeActividad(id)) {
+      return res.status(409).json({ error: 'Esta actividad ya está incluida en un pago a técnicos: agregarle un punto la reabriría. Quítala del pago primero (en Pago a técnicos).' });
+    }
 
     const ordenRes = await db.query('SELECT COALESCE(MAX(orden), -1) + 1 AS siguiente FROM actividad_puntos WHERE actividad_id = $1', [id]);
     const r = await db.query(
@@ -314,6 +357,10 @@ async function marcarPunto(req, res) {
     if (!punto) return res.status(404).json({ error: 'Punto no encontrado.' });
     if (req.usuario.rol !== 'admin' && punto.tecnico_id !== req.usuario.id) {
       return res.status(403).json({ error: 'No tienes permiso para marcar este punto.' });
+    }
+    if (!completado && await pagoDeActividad(punto.actividad_id)) {
+      return res.status(409).json({ error: mensajeActividadEnPago(req.usuario,
+        'Esta actividad ya está incluida en un pago a técnicos: no se puede desmarcar un punto. Quítala del pago primero (en Pago a técnicos).') });
     }
 
     const r = await db.query(

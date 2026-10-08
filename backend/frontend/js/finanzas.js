@@ -460,7 +460,7 @@
           <tbody>
             ${egresos.map(e => `
               <tr>
-                <td class="celda-tarjeta-titulo">${e.concepto}</td>
+                <td class="celda-tarjeta-titulo">${e.concepto}${e.es_pago_tecnico ? `<div class="celda-meta" style="white-space:normal;">🔗 Viene de <a href="/pagos-tecnicos.html">Pago a técnicos</a>: para quitarlo usa “Deshacer pago” ahí</div>` : ''}</td>
                 <td data-label="Categoría">${e.categoria_nombre || '—'}</td>
                 <td data-label="Monto">${mxn(e.monto)}</td>
                 <td data-label="Fecha">${fechaCorta(e.fecha)}</td>
@@ -468,7 +468,7 @@
                 <td class="celda-acciones-movil">
                   <div class="fila-acciones">
                     <button class="btn btn-secundario btn-sm btn-icono" data-editar-egreso="${e.id}" title="Editar">✏️</button>
-                    <button class="btn btn-peligro btn-sm btn-icono" data-borrar="${e.id}" title="Eliminar">🗑️</button>
+                    ${e.es_pago_tecnico ? '' : `<button class="btn btn-peligro btn-sm btn-icono" data-borrar="${e.id}" title="Eliminar">🗑️</button>`}
                   </div>
                 </td>
               </tr>
@@ -519,8 +519,9 @@
                   ${categorias.map(c => `<option value="${c.id}" ${egreso && String(egreso.categoria_id) === String(c.id) ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                 </select>
               </div>
-              <div class="campo"><label>Monto</label><input type="number" id="e-monto" min="0" step="0.01" value="${egreso ? egreso.monto : ''}" required /></div>
-              <div class="campo"><label>Fecha</label><input type="date" id="e-fecha" value="${egreso ? String(egreso.fecha).slice(0,10) : new Date().toISOString().slice(0,10)}" /></div>
+              <div class="campo"><label>Monto</label><input type="number" id="e-monto" min="0" step="0.01" value="${egreso ? egreso.monto : ''}" ${egreso && egreso.es_pago_tecnico ? 'readonly' : ''} required /></div>
+              <div class="campo"><label>Fecha</label><input type="date" id="e-fecha" value="${egreso ? String(egreso.fecha).slice(0,10) : new Date().toISOString().slice(0,10)}" ${egreso && egreso.es_pago_tecnico ? 'readonly' : ''} /></div>
+              ${egreso && egreso.es_pago_tecnico ? '<div class="campo ancho-total" style="margin-top:-8px;"><span class="texto-gris" style="font-size:11.5px;">🔗 Este egreso viene de un pago a técnicos: el monto y la fecha no se cambian aquí (usa “Deshacer pago” en Pago a técnicos y vuelve a marcarlo).</span></div>' : ''}
               <div class="campo ancho-total">
                 <label>Comprobante ${egreso ? '(sube uno solo si quieres reemplazar el actual)' : '(opcional)'}</label>
                 <input type="file" id="e-comprobante" accept="image/*,.pdf" />

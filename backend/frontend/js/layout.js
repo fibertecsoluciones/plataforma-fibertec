@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   ]},
   { grupo: 'Administración', items: [
     { id: 'finanzas', href: '/finanzas.html', icono: '💰', label: 'Finanzas', soloAdmin: true },
+    { id: 'pagos-tecnicos', href: '/pagos-tecnicos.html', icono: '🤝', label: 'Pago a técnicos', soloAdmin: true },
     { id: 'ajustes',  href: '/ajustes.html',  icono: '⚙️', label: 'Ajustes', soloAdmin: true },
   ]}
 ];

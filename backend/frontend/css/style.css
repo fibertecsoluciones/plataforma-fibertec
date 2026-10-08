@@ -703,3 +703,38 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
   /* los renglones de total/balance no tienen "cantidad": nombre y monto van en la misma línea */
   .desglose-total .desglose-nombre, .desglose-balance .desglose-nombre{ flex-basis:auto; }
 }
+
+/* ==========================================================
+   PAGO A TÉCNICOS: pestañas y detalles
+   ========================================================== */
+.tabs{ display:flex; gap:2px; border-bottom:1px solid var(--borde); margin-bottom:16px; overflow-x:auto; }
+.tab{
+  background:none; border:none; border-bottom:3px solid transparent; margin-bottom:-1px;
+  padding: 10px 16px; font-weight:600; font-size:13.5px; color: var(--gris); white-space:nowrap;
+}
+.tab:hover{ color: var(--tinta); }
+.tab.activa{ color: var(--azul-oscuro); border-bottom-color: var(--azul); }
+@media (max-width: 480px){
+  .tab{ padding: 10px 4px; font-size:12.5px; flex: 1 1 auto; text-align:center; }
+  .tab-contador{ margin-left:3px; padding:1px 5px; font-size:11px; min-width:0; }
+}
+.tab-contador{
+  display:inline-block; min-width:20px; padding:1px 7px; margin-left:6px;
+  border-radius:999px; background: var(--gris-claro); color: var(--tinta-suave); font-size:11.5px; font-weight:700; text-align:center;
+}
+.tab.activa .tab-contador{ background:#E4F1FA; color: var(--azul-oscuro); }
+.aviso-ok{
+  background: var(--sem-verde-bg); color: var(--sem-verde); padding: 11px 14px;
+  border-radius: var(--radio-sm); font-size:13px; margin-bottom:16px;
+}
+.aviso-ok a{ color: inherit; font-weight:700; text-decoration: underline; }
+.lista-check{ border:1px solid var(--borde); border-radius: var(--radio-sm); max-height:240px; overflow-y:auto; }
+.lista-check label{
+  display:flex; align-items:flex-start; gap:10px; padding: 9px 12px; cursor:pointer;
+  border-bottom:1px solid var(--gris-claro); font-size:13px; font-weight:400; margin:0; color: var(--tinta);
+}
+.lista-check label:last-child{ border-bottom:none; }
+.lista-check label:hover{ background: var(--fondo); }
+.lista-check input[type="checkbox"]{ width:17px; height:17px; margin-top:1px; flex-shrink:0; }
+.pill.pago-pendiente{ background: var(--sem-naranja-bg); color: var(--sem-naranja); }
+.pill.pago-pagado{ background: var(--sem-verde-bg); color: var(--sem-verde); }

@@ -512,12 +512,51 @@ INSERT INTO planes (nombre, velocidad, precio) VALUES
   ('NAVEGA','10 Mbps', 350.00),
   ('VUELO ELITE','30 Mbps', 550.00);
 
+
+-- ============================================================
+-- PAGOS A TÉCNICOS (migración 020)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS pagos_tecnicos (
+  id           SERIAL PRIMARY KEY,
+  tecnico_id   INTEGER NOT NULL REFERENCES usuarios(id),
+  monto        NUMERIC(10,2) NOT NULL CHECK (monto > 0),
+  notas        TEXT,
+  estado       VARCHAR(10) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','pagado')),
+  fecha_pago   DATE,
+  metodo_pago  VARCHAR(30),
+  egreso_id    INTEGER REFERENCES egresos(id) ON DELETE SET NULL,
+  creado_por   INTEGER REFERENCES usuarios(id),
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  pagado_en    TIMESTAMPTZ,
+  CONSTRAINT pagos_tecnicos_fecha_si_pagado CHECK ((estado = 'pagado') = (fecha_pago IS NOT NULL))
+);
+
+-- Qué actividades incluye cada pago. UNIQUE en actividad_id: una actividad solo puede estar en un pago.
+CREATE TABLE IF NOT EXISTS pagos_tecnicos_actividades (
+  pago_id       INTEGER NOT NULL REFERENCES pagos_tecnicos(id) ON DELETE CASCADE,
+  actividad_id  INTEGER NOT NULL UNIQUE REFERENCES actividades(id) ON DELETE CASCADE,
+  PRIMARY KEY (pago_id, actividad_id)
+);
+
+-- Actividades que el administrador decidió dejar fuera del control de pagos
+-- (un favor, algo que ya se pagó antes del sistema, etc.).
+CREATE TABLE IF NOT EXISTS actividades_sin_pago (
+  actividad_id  INTEGER PRIMARY KEY REFERENCES actividades(id) ON DELETE CASCADE,
+  marcado_por   INTEGER REFERENCES usuarios(id),
+  creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_estado ON pagos_tecnicos(estado);
+CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_tecnico ON pagos_tecnicos(tecnico_id);
+CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_egreso ON pagos_tecnicos(egreso_id);
+
 INSERT INTO inventario_categorias (nombre) VALUES
   ('Herramienta'),('Material de red'),('Equipo/Modem'),('Consumible');
 
 INSERT INTO egresos_categorias (nombre) VALUES
   ('Nómina'),('Combustible'),('Herramientas'),('Renta / Torres'),
-  ('Mantenimiento de red'),('Publicidad'),('Otros');
+  ('Mantenimiento de red'),('Publicidad'),('Otros'),('Pago a técnicos');
 
 INSERT INTO ingresos_categorias (nombre) VALUES
   ('Instalación'),('Reconexión'),('Venta de equipo'),('Otro');
