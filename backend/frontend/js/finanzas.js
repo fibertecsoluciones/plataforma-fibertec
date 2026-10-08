@@ -20,6 +20,11 @@
   let filtroCatEgreso = '';
   let graficaIE = null;
   let graficaCat = null;
+  let desglose = null;            // { ingresos:[…], egresos:[…], total_ingresos, total_egresos, balance }
+  let detalleCrudo = [];          // cada ingreso del mes (mensualidades + extras) tal como lo devuelve el servidor
+  let listaDetalleCompleta = [];
+  let paginaDetalle = 1;
+  let filtroDetalle = '';         // '' = todos · 'mensualidades' · 'extra:<categoría>'
 
   cont.innerHTML = `<div class="cargando">Cargando finanzas…</div>`;
 
@@ -60,6 +65,19 @@
     </div>
 
     <div class="grid-kpi" id="kpis-finanzas"></div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera"><h3 id="titulo-desglose">¿De dónde sale el balance?</h3></div>
+      <div class="tarjeta-cuerpo" id="desglose-cuerpo"><div class="cargando">Cargando…</div></div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3 id="titulo-detalle">Ingresos, uno por uno</h3>
+        <span class="texto-gris" id="suma-detalle" style="font-size:12.5px;"></span>
+      </div>
+      <div class="tarjeta-cuerpo tabla-envoltura" id="tabla-detalle-ingresos"><div class="cargando">Cargando…</div></div>
+    </div>
 
     <div class="tarjeta">
       <div class="tarjeta-cabecera"><h3 id="titulo-grafica-ie">Ingresos vs egresos (últimos 6 meses)</h3></div>
@@ -128,6 +146,7 @@
   function cambiarMes(nuevoMes) {
     if (!/^\d{4}-\d{2}$/.test(nuevoMes) || nuevoMes === mesSeleccionado) return;
     mesSeleccionado = nuevoMes;
+    filtroDetalle = '';
     document.getElementById('f-mes').value = nuevoMes;
     recargarTodo();
   }
@@ -148,7 +167,17 @@
     let t;
     document.getElementById('f-buscar').addEventListener('input', (e) => {
       clearTimeout(t);
-      t = setTimeout(() => { filtroTexto = e.target.value; aplicarFiltrosEgresos(); aplicarFiltrosIngresos(); }, 250);
+      t = setTimeout(() => { filtroTexto = e.target.value; aplicarFiltrosEgresos(); aplicarFiltrosIngresos(); aplicarFiltrosDetalle(); }, 250);
+    });
+    // Tocar un renglón de ingresos del desglose filtra la lista "uno por uno"; tocarlo otra vez (o el total) la limpia.
+    document.getElementById('desglose-cuerpo').addEventListener('click', (e) => {
+      const fila = e.target.closest('[data-clave]');
+      if (!fila) return;
+      const clave = fila.dataset.clave;
+      filtroDetalle = (clave === '' || clave === filtroDetalle) ? '' : clave;
+      renderDesglose();
+      aplicarFiltrosDetalle();
+      document.getElementById('titulo-detalle').closest('.tarjeta').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     document.getElementById('f-cat-ingreso').addEventListener('change', (e) => { filtroCatIngreso = e.target.value; aplicarFiltrosIngresos(); });
     document.getElementById('f-cat-egreso').addEventListener('change', (e) => { filtroCatEgreso = e.target.value; aplicarFiltrosEgresos(); });
@@ -158,6 +187,8 @@
     const nombre = nombreMesLargo(mesSeleccionado);
     document.getElementById('titulo-grafica-ie').textContent = `Ingresos vs egresos (6 meses hasta ${nombre})`;
     document.getElementById('titulo-grafica-cat').textContent = `Egresos de ${nombre} por categoría`;
+    document.getElementById('titulo-desglose').textContent = `¿De dónde sale el balance de ${nombre}?`;
+    document.getElementById('titulo-detalle').textContent = `Ingresos de ${nombre}, uno por uno`;
   }
 
   async function recargarTodo() {
@@ -171,6 +202,18 @@
   // el resto de la página: las tablas de abajo son más importantes que la gráfica.
   async function refrescarResumen() {
     try { await cargarKpis(); } catch (err) { console.error('No se pudieron cargar los totales:', err); }
+    try {
+      await cargarDesglose();
+    } catch (err) {
+      console.error('No se pudo cargar el desglose:', err);
+      document.getElementById('desglose-cuerpo').innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+    try {
+      await cargarDetalleIngresos();
+    } catch (err) {
+      console.error('No se pudo cargar el detalle de ingresos:', err);
+      document.getElementById('tabla-detalle-ingresos').innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
     try {
       await cargarGraficas();
     } catch (err) {
@@ -233,6 +276,139 @@
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
     });
+  }
+
+  // ==========================================================
+  // DESGLOSE: de qué está hecho el balance del mes
+  // ==========================================================
+  function esc(t) {
+    return String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  async function cargarDesglose() {
+    desglose = await API.get(`/api/finanzas/desglose-mes?mes=${mesSeleccionado}`);
+    // Si el rubro elegido ya no existe en este mes, se limpia el filtro para no dejar la lista vacía sin explicación.
+    if (filtroDetalle && !desglose.ingresos.some(i => i.clave === filtroDetalle)) filtroDetalle = '';
+    renderDesglose();
+  }
+
+  function renderDesglose() {
+    const d = desglose;
+    const cuerpo = document.getElementById('desglose-cuerpo');
+    if (!d) return;
+
+    const filaIngreso = (i) => `
+      <div class="desglose-fila clicable ${filtroDetalle === i.clave ? 'activa' : ''}" data-clave="${esc(i.clave)}" title="Ver estos cobros uno por uno">
+        <span class="desglose-nombre">${i.clave === 'mensualidades' ? '👥' : '💵'} ${esc(i.concepto)}</span>
+        <span class="desglose-cant">${i.cantidad} ${i.clave === 'mensualidades' ? (i.cantidad === 1 ? 'pago' : 'pagos') : (i.cantidad === 1 ? 'cobro' : 'cobros')}</span>
+        <span class="desglose-monto">${mxn(i.total)}</span>
+      </div>`;
+    const filaEgreso = (e) => `
+      <div class="desglose-fila">
+        <span class="desglose-nombre">🧾 ${esc(e.concepto)}</span>
+        <span class="desglose-cant">${e.cantidad} ${e.cantidad === 1 ? 'gasto' : 'gastos'}</span>
+        <span class="desglose-monto">${mxn(e.total)}</span>
+      </div>`;
+
+    cuerpo.innerHTML = `
+      <div class="desglose">
+        <div class="desglose-seccion">Ingresos</div>
+        ${d.ingresos.map(filaIngreso).join('')}
+        <div class="desglose-fila desglose-total clicable" data-clave="" title="Ver todos los ingresos">
+          <span class="desglose-nombre">Total ingresos</span><span class="desglose-cant"></span><span class="desglose-monto">${mxn(d.total_ingresos)}</span>
+        </div>
+
+        <div class="desglose-seccion">Egresos</div>
+        ${d.egresos.length ? d.egresos.map(filaEgreso).join('') : '<div class="desglose-fila"><span class="desglose-nombre texto-gris">Sin egresos este mes</span></div>'}
+        <div class="desglose-fila desglose-total">
+          <span class="desglose-nombre">Total egresos</span><span class="desglose-cant"></span><span class="desglose-monto">${mxn(d.total_egresos)}</span>
+        </div>
+
+        <div class="desglose-fila desglose-balance ${d.balance >= 0 ? 'positivo' : 'negativo'}">
+          <span class="desglose-nombre">Balance (ingresos − egresos)</span><span class="desglose-cant"></span><span class="desglose-monto">${mxn(d.balance)}</span>
+        </div>
+      </div>
+      <p class="texto-gris" style="font-size:11.5px; margin:14px 0 0;">
+        ℹ️ Las <b>mensualidades</b> se cuentan en el <b>mes que cubren</b>, no el día en que se cobraron (por ejemplo, una
+        mensualidad de octubre cobrada en septiembre cuenta en octubre). Las instalaciones y demás ingresos extra, y los
+        egresos, se cuentan por su fecha. Toca un renglón de ingresos para ver esos cobros uno por uno.
+      </p>
+    `;
+  }
+
+  async function cargarDetalleIngresos() {
+    detalleCrudo = await API.get(`/api/finanzas/ingresos-detalle?mes=${mesSeleccionado}`);
+    aplicarFiltrosDetalle();
+  }
+
+  function aplicarFiltrosDetalle() {
+    const q = normalizar(filtroTexto);
+    listaDetalleCompleta = detalleCrudo.filter(x => {
+      if (filtroDetalle === 'mensualidades' && x.tipo !== 'mensualidad') return false;
+      if (filtroDetalle.startsWith('extra:') && !(x.tipo === 'extra' && `extra:${x.categoria}` === filtroDetalle)) return false;
+      if (q && !normalizar(`${x.categoria} ${x.concepto || ''} ${x.notas || ''} ${x.cliente_nombre || ''} ${x.cliente_folio || ''}`).includes(q)) return false;
+      return true;
+    });
+    paginaDetalle = 1;
+    renderDetalle();
+  }
+
+  function renderDetalle() {
+    const tabla = document.getElementById('tabla-detalle-ingresos');
+    const suma = listaDetalleCompleta.reduce((a, x) => a + Number(x.monto), 0);
+    document.getElementById('suma-detalle').textContent = listaDetalleCompleta.length ? `Suma de lo que se ve: ${mxn(suma)}` : '';
+
+    const nombreFiltro = filtroDetalle === 'mensualidades' ? 'Mensualidades de clientes' : filtroDetalle.replace(/^extra:/, '');
+    const chip = filtroDetalle
+      ? `<div style="margin-bottom:10px;"><span class="chip-filtro">Mostrando: ${esc(nombreFiltro)} <button type="button" data-limpiar-detalle title="Quitar filtro">✕</button></span></div>`
+      : '';
+
+    if (!listaDetalleCompleta.length) {
+      tabla.innerHTML = chip + `<div class="estado-vacio">${detalleCrudo.length ? 'Ningún ingreso coincide con esos filtros.' : `No hay ingresos registrados en ${nombreMesLargo(mesSeleccionado)}.`}</div>`;
+    } else {
+      const totalPaginas = Math.max(1, Math.ceil(listaDetalleCompleta.length / porPagina));
+      paginaDetalle = Math.min(Math.max(1, paginaDetalle), totalPaginas);
+      const inicio = (paginaDetalle - 1) * porPagina;
+      const filas = listaDetalleCompleta.slice(inicio, inicio + porPagina);
+      const mesDe = (periodo) => fechaLocalDesdeTexto(periodo).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+
+      tabla.innerHTML = chip + `
+        <table class="tabla">
+          <thead><tr><th>Cliente / concepto</th><th>Tipo</th><th>Detalle</th><th>Fecha de cobro</th><th>Método</th><th>Monto</th></tr></thead>
+          <tbody>
+            ${filas.map(x => x.tipo === 'mensualidad' ? `
+              <tr>
+                <td class="celda-tarjeta-titulo"><a href="/pagos.html?cliente=${x.cliente_pk}"><span class="folio">${esc(x.cliente_folio)}</span></a> ${esc(x.cliente_nombre)}</td>
+                <td data-label="Tipo"><span class="pill activo">Mensualidad</span></td>
+                <td data-label="Detalle">Mensualidad de ${mesDe(x.periodo)}${x.es_excepcion ? `<div class="celda-meta">Pago de ${x.meses_cubiertos} meses en una exhibición</div>` : ''}</td>
+                <td data-label="Fecha de cobro">${fechaCorta(x.fecha)}</td>
+                <td data-label="Método">${esc(x.metodo_pago || '—')}</td>
+                <td data-label="Monto">${mxn(x.monto)}</td>
+              </tr>` : `
+              <tr>
+                <td class="celda-tarjeta-titulo">${esc(x.concepto)}${x.cliente_folio ? `<div class="celda-meta"><a href="/pagos.html?cliente=${x.cliente_pk}"><span class="folio">${esc(x.cliente_folio)}</span></a> ${esc(x.cliente_nombre)}</div>` : ''}</td>
+                <td data-label="Tipo"><span class="pill suspendido">${esc(x.categoria)}</span></td>
+                <td data-label="Detalle">${x.notas ? esc(x.notas) : '—'}</td>
+                <td data-label="Fecha de cobro">${fechaCorta(x.fecha)}</td>
+                <td data-label="Método">—</td>
+                <td data-label="Monto">${mxn(x.monto)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="paginacion">
+          <div class="paginacion-info">Mostrando ${inicio + 1}–${Math.min(inicio + porPagina, listaDetalleCompleta.length)} de ${listaDetalleCompleta.length}</div>
+          <div class="paginacion-botones" id="paginacion-detalle"></div>
+        </div>
+      `;
+      renderBotonesPaginacionGenerico('paginacion-detalle', totalPaginas, paginaDetalle, (p) => {
+        paginaDetalle = p;
+        renderDetalle();
+        tabla.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    const btnLimpiar = tabla.querySelector('[data-limpiar-detalle]');
+    if (btnLimpiar) btnLimpiar.addEventListener('click', () => { filtroDetalle = ''; renderDesglose(); aplicarFiltrosDetalle(); });
   }
 
   async function cargarEgresos() {

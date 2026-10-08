@@ -9,6 +9,8 @@ router.use(requireRole('admin')); // toda la sección de finanzas es exclusiva d
 router.get('/resumen-mes', ctrl.resumenMesActual);
 router.get('/resumen-mensual', ctrl.resumenMensual);
 router.get('/egresos-por-categoria', ctrl.egresosPorCategoria);
+router.get('/desglose-mes', ctrl.desgloseMes);
+router.get('/ingresos-detalle', ctrl.ingresosDetalle);
 
 router.get('/egresos', ctrl.listarEgresos);
 router.post('/egresos', upload.single('comprobante'), ctrl.crearEgreso);

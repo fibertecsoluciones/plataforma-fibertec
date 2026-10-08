@@ -654,3 +654,52 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
   .contenido{ margin-left: 0; }
   .btn-menu{ display:inline-flex; }
 }
+
+/* ==========================================================
+   FINANZAS: desglose del mes ("¿de dónde sale el balance?")
+   ========================================================== */
+.desglose{ max-width: 680px; }
+.desglose-seccion{
+  font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color: var(--gris); margin: 16px 0 6px;
+}
+.desglose-seccion:first-child{ margin-top:0; }
+.desglose-fila{
+  display:flex; align-items:baseline; gap:12px;
+  padding: 8px 10px; border-radius: var(--radio-sm);
+}
+.desglose-nombre{ flex:1; min-width:0; }
+.desglose-cant{ color: var(--gris); font-size:12px; white-space:nowrap; }
+.desglose-monto{ font-weight:600; white-space:nowrap; min-width:96px; text-align:right; font-variant-numeric: tabular-nums; }
+.desglose-fila.clicable{ cursor:pointer; }
+.desglose-fila.clicable:hover{ background: var(--fondo); }
+.desglose-fila.activa{ background:#EAF4FC; box-shadow: inset 0 0 0 1px var(--azul); }
+.desglose-total{ border-top:1px solid var(--borde); border-radius:0; font-weight:700; margin-top:4px; }
+.desglose-balance{ border-top:2px solid var(--tinta); border-radius:0; margin-top:14px; font-size:15px; font-weight:700; }
+.desglose-balance.positivo .desglose-monto{ color: var(--sem-verde); }
+.desglose-balance.negativo .desglose-monto{ color: var(--sem-rojo); }
+
+.chip-filtro{
+  display:inline-flex; align-items:center; gap:8px;
+  background:#EAF4FC; color: var(--azul-oscuro);
+  padding: 4px 6px 4px 12px; border-radius:999px; font-size:12.5px; font-weight:600;
+}
+.chip-filtro button{
+  border:none; background: rgba(20,97,144,.12); color: var(--azul-oscuro);
+  width:20px; height:20px; border-radius:50%; font-size:11px; line-height:1; padding:0;
+}
+.chip-filtro button:hover{ background: rgba(20,97,144,.25); }
+
+.desglose-cant:empty{ display:none; }
+
+/* Al hacer scroll hacia una tarjeta/tabla (clic en un renglón del desglose, botones de página…),
+   que no quede escondida debajo de la barra superior fija. */
+.tarjeta, .tabla-envoltura{ scroll-margin-top: calc(var(--topbar-h) + 12px); }
+
+@media (max-width: 480px){
+  .desglose-fila{ flex-wrap:wrap; gap:2px 10px; }
+  .desglose-nombre{ flex-basis:100%; }
+  .desglose-monto{ margin-left:auto; }
+  /* los renglones de total/balance no tienen "cantidad": nombre y monto van en la misma línea */
+  .desglose-total .desglose-nombre, .desglose-balance .desglose-nombre{ flex-basis:auto; }
+}

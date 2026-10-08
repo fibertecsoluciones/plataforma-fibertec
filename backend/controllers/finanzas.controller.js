@@ -85,6 +85,94 @@ async function egresosPorCategoria(req, res) {
      GROUP BY cat.nombre ORDER BY total DESC`,
     [base]
   );
+  // Los egresos sin categoría también cuentan: sin esto, las porciones no sumaban lo mismo que el total.
+  const sin = await db.query(
+    `SELECT COALESCE(SUM(monto),0)::numeric(12,2) AS total FROM egresos
+     WHERE categoria_id IS NULL
+       AND date_trunc('month', fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))`,
+    [base]
+  );
+  const filas = r.rows;
+  if (Number(sin.rows[0].total) > 0) {
+    filas.push({ categoria: 'Sin categoría', total: sin.rows[0].total });
+    filas.sort((a, b) => Number(b.total) - Number(a.total));
+  }
+  res.json(filas);
+}
+
+// Desglose del mes: de qué está hecho cada total (ingresos por rubro y egresos por categoría).
+// Usa exactamente el mismo criterio de mes que resumenMesActual, para que los números cuadren:
+//   · mensualidades → por el mes que cubren (pagos.periodo)
+//   · ingresos extra y egresos → por su fecha
+async function desgloseMes(req, res) {
+  const base = mesParam(req);
+
+  const mens = await db.query(
+    `SELECT COUNT(*)::int AS cantidad, COALESCE(SUM(monto),0)::numeric(12,2) AS total
+     FROM pagos WHERE periodo = date_trunc('month', COALESCE($1::date, CURRENT_DATE))::date`,
+    [base]
+  );
+  const extras = await db.query(
+    `SELECT COALESCE(c.nombre, 'Sin categoría') AS concepto, COUNT(*)::int AS cantidad, SUM(i.monto)::numeric(12,2) AS total
+     FROM ingresos_extra i
+     LEFT JOIN ingresos_categorias c ON c.id = i.categoria_id
+     WHERE date_trunc('month', i.fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))
+     GROUP BY COALESCE(c.nombre, 'Sin categoría')
+     ORDER BY total DESC`,
+    [base]
+  );
+  const egresos = await db.query(
+    `SELECT COALESCE(c.nombre, 'Sin categoría') AS concepto, COUNT(*)::int AS cantidad, SUM(e.monto)::numeric(12,2) AS total
+     FROM egresos e
+     LEFT JOIN egresos_categorias c ON c.id = e.categoria_id
+     WHERE date_trunc('month', e.fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))
+     GROUP BY COALESCE(c.nombre, 'Sin categoría')
+     ORDER BY total DESC`,
+    [base]
+  );
+
+  const ingresos = [
+    { clave: 'mensualidades', concepto: 'Mensualidades de clientes', cantidad: mens.rows[0].cantidad, total: Number(mens.rows[0].total) },
+    ...extras.rows.map(r => ({ clave: `extra:${r.concepto}`, concepto: r.concepto, cantidad: r.cantidad, total: Number(r.total) }))
+  ];
+  const egresosLista = egresos.rows.map(r => ({ concepto: r.concepto, cantidad: r.cantidad, total: Number(r.total) }));
+
+  const totalIngresos = Number(ingresos.reduce((a, r) => a + r.total, 0).toFixed(2));
+  const totalEgresos = Number(egresosLista.reduce((a, r) => a + r.total, 0).toFixed(2));
+
+  res.json({
+    ingresos, egresos: egresosLista,
+    total_ingresos: totalIngresos, total_egresos: totalEgresos,
+    balance: Number((totalIngresos - totalEgresos).toFixed(2))
+  });
+}
+
+// Cada ingreso del mes, uno por uno: las mensualidades de los clientes + los ingresos extra
+// (instalación, reconexión, venta de equipo…) en una sola lista, con su cliente y su fecha.
+async function ingresosDetalle(req, res) {
+  const base = mesParam(req);
+  const r = await db.query(
+    `SELECT 'mensualidad'::text AS tipo, 'Mensualidad'::text AS categoria, p.id, p.monto,
+            p.fecha_pago AS fecha, p.periodo, p.metodo_pago::text AS metodo_pago,
+            c.id AS cliente_pk, c.cliente_id AS cliente_folio, c.nombre AS cliente_nombre,
+            p.es_excepcion, p.meses_cubiertos::int AS meses_cubiertos,
+            NULL::text AS concepto, p.notas, p.creado_en
+     FROM pagos p
+     JOIN clientes c ON c.id = p.cliente_id
+     WHERE p.periodo = date_trunc('month', COALESCE($1::date, CURRENT_DATE))::date
+     UNION ALL
+     SELECT 'extra'::text, COALESCE(cat.nombre, 'Sin categoría')::text, i.id, i.monto,
+            i.fecha, NULL::date, NULL::text,
+            cl.id, cl.cliente_id, cl.nombre,
+            FALSE, NULL::int,
+            i.concepto::text, i.notas, i.creado_en
+     FROM ingresos_extra i
+     LEFT JOIN ingresos_categorias cat ON cat.id = i.categoria_id
+     LEFT JOIN clientes cl ON cl.id = i.cliente_id
+     WHERE date_trunc('month', i.fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))
+     ORDER BY fecha DESC, creado_en DESC, id DESC`,
+    [base]
+  );
   res.json(r.rows);
 }
 
@@ -233,7 +321,7 @@ async function eliminarIngresoExtra(req, res) {
 }
 
 module.exports = {
-  resumenMensual, resumenMesActual, egresosPorCategoria,
+  resumenMensual, resumenMesActual, egresosPorCategoria, desgloseMes, ingresosDetalle,
   listarEgresos, crearEgreso, actualizarEgreso, eliminarEgreso,
   listarIngresosExtra, crearIngresoExtra, actualizarIngresoExtra, eliminarIngresoExtra
 };
