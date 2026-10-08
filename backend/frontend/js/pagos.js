@@ -9,6 +9,16 @@
   const params = new URLSearchParams(window.location.search);
   const clienteIdPk = params.get('cliente');
 
+  // Botón "Regresar": vuelve a la página de donde se entró (Clientes, Solicitudes,
+  // campana de adeudos…). Si se abrió directo (sin historial interno), va a Clientes.
+  const BOTON_REGRESAR = `<div style="margin-bottom:12px;"><button class="btn btn-secundario btn-sm" data-regresar>← Regresar</button></div>`;
+  cont.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-regresar]')) return;
+    const vieneDeLaApp = document.referrer && new URL(document.referrer).origin === window.location.origin;
+    if (vieneDeLaApp && window.history.length > 1) window.history.back();
+    else window.location.href = '/clientes.html';
+  });
+
   if (clienteIdPk) {
     await vistaClienteEspecifico(clienteIdPk);
   } else {
@@ -73,6 +83,7 @@
       const { desglose } = await API.get(`/api/pagos/cliente/${id}/desglose`);
 
       cont.innerHTML = `
+        ${BOTON_REGRESAR}
         <div class="tarjeta">
           <div class="tarjeta-cuerpo flex-entre" style="flex-wrap:wrap; gap:14px;">
             <div>
@@ -184,7 +195,7 @@
         btnAbonoInstalacion.addEventListener('click', () => abrirModalAbonoInstalacion(cliente, id));
       }
     } catch (err) {
-      cont.innerHTML = `<div class="error-msg">${err.message}</div>`;
+      cont.innerHTML = `${BOTON_REGRESAR}<div class="error-msg">${err.message}</div>`;
     }
   }
 
