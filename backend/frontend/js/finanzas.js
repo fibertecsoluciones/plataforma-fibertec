@@ -12,6 +12,14 @@
   let paginaEgresos = 1;
   let listaIngresosCompleta = [];
   let paginaIngresos = 1;
+  let egresosCrudos = [];      // lo que devolvió el servidor para el mes elegido (sin filtrar por texto/categoría)
+  let ingresosCrudos = [];
+  let mesSeleccionado = mesActualStr(); // 'YYYY-MM'
+  let filtroTexto = '';
+  let filtroCatIngreso = '';
+  let filtroCatEgreso = '';
+  let graficaIE = null;
+  let graficaCat = null;
 
   cont.innerHTML = `<div class="cargando">Cargando finanzas…</div>`;
 
@@ -26,17 +34,42 @@
   }
 
   cont.innerHTML = `
+    <div class="tarjeta">
+      <div class="tarjeta-cuerpo">
+        <div class="flex-gap" style="gap:12px;">
+          <div class="flex-gap" style="gap:6px;">
+            <button class="btn btn-secundario btn-sm btn-icono" id="f-mes-prev" title="Mes anterior">‹</button>
+            <input type="month" id="f-mes" value="${mesSeleccionado}" style="padding:8px 10px; border:1px solid var(--borde); border-radius:6px;" />
+            <button class="btn btn-secundario btn-sm btn-icono" id="f-mes-next" title="Mes siguiente">›</button>
+            <button class="btn btn-secundario btn-sm" id="f-mes-hoy">Mes actual</button>
+          </div>
+          <input type="text" id="f-buscar" placeholder="Buscar concepto, nota o cliente…" style="min-width:220px; padding:9px 12px; border:1px solid var(--borde); border-radius:6px;" />
+          <select id="f-cat-ingreso" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
+            <option value="">Ingresos: todas las categorías</option>
+            ${categoriasIngresos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+          </select>
+          <select id="f-cat-egreso" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
+            <option value="">Egresos: todas las categorías</option>
+            ${categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+          </select>
+        </div>
+        <div class="texto-gris" style="font-size:11.5px; margin-top:8px;">
+          El mes elegido mueve los totales, las gráficas y las tablas. La búsqueda y las categorías filtran las tablas de abajo.
+        </div>
+      </div>
+    </div>
+
     <div class="grid-kpi" id="kpis-finanzas"></div>
 
     <div class="tarjeta">
-      <div class="tarjeta-cabecera"><h3>Ingresos vs egresos (últimos 6 meses)</h3></div>
+      <div class="tarjeta-cabecera"><h3 id="titulo-grafica-ie">Ingresos vs egresos (últimos 6 meses)</h3></div>
       <div class="tarjeta-cuerpo">
         <div class="grafica-contenedor"><canvas id="grafica-ie"></canvas></div>
       </div>
     </div>
 
     <div class="tarjeta">
-      <div class="tarjeta-cabecera"><h3>Egresos del mes por categoría</h3></div>
+      <div class="tarjeta-cabecera"><h3 id="titulo-grafica-cat">Egresos del mes por categoría</h3></div>
       <div class="tarjeta-cuerpo">
         <div class="grafica-contenedor"><canvas id="grafica-categorias"></canvas></div>
       </div>
@@ -68,41 +101,112 @@
   document.getElementById('btn-nuevo-egreso').addEventListener('click', () => abrirModalEgreso());
   document.getElementById('btn-nuevo-ingreso-extra').addEventListener('click', () => abrirModalIngresoExtra());
 
-  await cargarKpis();
-  try {
-    await cargarGraficas();
-  } catch (err) {
-    // Si las gráficas fallan (ej. no cargó la librería de gráficas), no debe tumbar
-    // el resto de la página — las tablas de abajo son más importantes que la gráfica.
-    console.error('No se pudieron cargar las gráficas:', err);
-    document.getElementById('grafica-ie').closest('.tarjeta').querySelector('.tarjeta-cuerpo').innerHTML =
-      `<div class="error-msg">No se pudo cargar la gráfica (recarga la página; si persiste, avísame).</div>`;
+  conectarFiltros();
+  await recargarTodo();
+
+  // ---------- Filtros ----------
+  function mesActualStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
-  await cargarEgresos();
-  await cargarIngresosExtra();
+
+  function moverMes(mesStr, delta) {
+    const [a, m] = mesStr.split('-').map(Number);
+    const d = new Date(a, m - 1 + delta, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function nombreMesLargo(mesStr) {
+    const [a, m] = mesStr.split('-').map(Number);
+    return new Date(a, m - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  }
+
+  function normalizar(t) {
+    return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  function cambiarMes(nuevoMes) {
+    if (!/^\d{4}-\d{2}$/.test(nuevoMes) || nuevoMes === mesSeleccionado) return;
+    mesSeleccionado = nuevoMes;
+    document.getElementById('f-mes').value = nuevoMes;
+    recargarTodo();
+  }
+
+  // Si guardas un registro con fecha de otro mes, el filtro salta a ese mes para que lo veas.
+  function irAMesDeFecha(fechaStr) {
+    const m = String(fechaStr || '').slice(0, 7);
+    if (/^\d{4}-\d{2}$/.test(m) && m !== mesSeleccionado) { cambiarMes(m); return true; }
+    return false;
+  }
+
+  function conectarFiltros() {
+    document.getElementById('f-mes').addEventListener('change', (e) => cambiarMes(e.target.value || mesActualStr()));
+    document.getElementById('f-mes-prev').addEventListener('click', () => cambiarMes(moverMes(mesSeleccionado, -1)));
+    document.getElementById('f-mes-next').addEventListener('click', () => cambiarMes(moverMes(mesSeleccionado, 1)));
+    document.getElementById('f-mes-hoy').addEventListener('click', () => cambiarMes(mesActualStr()));
+
+    let t;
+    document.getElementById('f-buscar').addEventListener('input', (e) => {
+      clearTimeout(t);
+      t = setTimeout(() => { filtroTexto = e.target.value; aplicarFiltrosEgresos(); aplicarFiltrosIngresos(); }, 250);
+    });
+    document.getElementById('f-cat-ingreso').addEventListener('change', (e) => { filtroCatIngreso = e.target.value; aplicarFiltrosIngresos(); });
+    document.getElementById('f-cat-egreso').addEventListener('change', (e) => { filtroCatEgreso = e.target.value; aplicarFiltrosEgresos(); });
+  }
+
+  function actualizarTitulos() {
+    const nombre = nombreMesLargo(mesSeleccionado);
+    document.getElementById('titulo-grafica-ie').textContent = `Ingresos vs egresos (6 meses hasta ${nombre})`;
+    document.getElementById('titulo-grafica-cat').textContent = `Egresos de ${nombre} por categoría`;
+  }
+
+  async function recargarTodo() {
+    actualizarTitulos();
+    await refrescarResumen();
+    await cargarEgresos();
+    await cargarIngresosExtra();
+  }
+
+  // KPIs + gráficas. Si las gráficas fallan (ej. no cargó la librería), no debe tumbar
+  // el resto de la página: las tablas de abajo son más importantes que la gráfica.
+  async function refrescarResumen() {
+    try { await cargarKpis(); } catch (err) { console.error('No se pudieron cargar los totales:', err); }
+    try {
+      await cargarGraficas();
+    } catch (err) {
+      console.error('No se pudieron cargar las gráficas:', err);
+      const canvas = document.getElementById('grafica-ie');
+      if (canvas) {
+        canvas.closest('.tarjeta').querySelector('.tarjeta-cuerpo').innerHTML =
+          `<div class="error-msg">No se pudo cargar la gráfica (recarga la página; si persiste, avísame).</div>`;
+      }
+    }
+  }
 
   async function cargarKpis() {
-    const resumen = await API.get('/api/finanzas/resumen-mes');
+    const resumen = await API.get(`/api/finanzas/resumen-mes?mes=${mesSeleccionado}`);
     document.getElementById('kpis-finanzas').innerHTML = `
       <div class="kpi borde-verde">
-        <div class="kpi-etiqueta">Ingresos del mes</div>
+        <div class="kpi-etiqueta">Ingresos de ${nombreMesLargo(mesSeleccionado)}</div>
         <div class="kpi-valor">${mxn(resumen.ingresos)}</div>
         <div class="texto-gris" style="font-size:11px; margin-top:2px;">Mensualidades ${mxn(resumen.ingresos_mensualidades)} · Extra ${mxn(resumen.ingresos_extra)}</div>
       </div>
-      <div class="kpi borde-rojo"><div class="kpi-etiqueta">Egresos del mes</div><div class="kpi-valor">${mxn(resumen.egresos)}</div></div>
+      <div class="kpi borde-rojo"><div class="kpi-etiqueta">Egresos de ${nombreMesLargo(mesSeleccionado)}</div><div class="kpi-valor">${mxn(resumen.egresos)}</div></div>
       <div class="kpi ${resumen.balance >= 0 ? 'borde-verde' : 'borde-rojo'}"><div class="kpi-etiqueta">Balance</div><div class="kpi-valor">${mxn(resumen.balance)}</div></div>
-      <div class="kpi borde-azul"><div class="kpi-etiqueta">Clientes activos</div><div class="kpi-valor">${resumen.clientes_activos}</div></div>
+      <div class="kpi borde-azul"><div class="kpi-etiqueta">Clientes activos</div><div class="kpi-valor">${resumen.clientes_activos}</div><div class="texto-gris" style="font-size:11px; margin-top:2px;">al día de hoy</div></div>
     `;
   }
 
   async function cargarGraficas() {
-    const { ingresos, egresos } = await API.get('/api/finanzas/resumen-mensual?meses=6');
-    const meses = Array.from(new Set([...ingresos.map(i => i.mes), ...egresos.map(e => e.mes)])).sort();
+    const { ingresos, egresos } = await API.get(`/api/finanzas/resumen-mensual?meses=6&mes=${mesSeleccionado}`);
+    // Los 6 meses que terminan en el mes elegido (aunque algún mes no tenga movimientos)
+    const meses = [5, 4, 3, 2, 1, 0].map(n => moverMes(mesSeleccionado, -n));
 
     const mapaIngresos = Object.fromEntries(ingresos.map(i => [i.mes, Number(i.total)]));
     const mapaEgresos = Object.fromEntries(egresos.map(e => [e.mes, Number(e.total)]));
 
-    new Chart(document.getElementById('grafica-ie'), {
+    if (graficaIE) { graficaIE.destroy(); graficaIE = null; }
+    graficaIE = new Chart(document.getElementById('grafica-ie'), {
       type: 'bar',
       data: {
         labels: meses.map(formatearMes),
@@ -114,10 +218,11 @@
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
 
-    const categoriasData = await API.get('/api/finanzas/egresos-por-categoria');
+    const categoriasData = await API.get(`/api/finanzas/egresos-por-categoria?mes=${mesSeleccionado}`);
     const conDatos = categoriasData.filter(c => Number(c.total) > 0);
 
-    new Chart(document.getElementById('grafica-categorias'), {
+    if (graficaCat) { graficaCat.destroy(); graficaCat = null; }
+    graficaCat = new Chart(document.getElementById('grafica-categorias'), {
       type: 'doughnut',
       data: {
         labels: (conDatos.length ? conDatos : categoriasData).map(c => c.categoria),
@@ -133,19 +238,38 @@
   async function cargarEgresos() {
     const tabla = document.getElementById('tabla-egresos');
     try {
-      listaEgresosCompleta = await API.get('/api/finanzas/egresos');
-      paginaEgresos = 1;
-      renderTablaEgresosPaginada();
+      egresosCrudos = await API.get(`/api/finanzas/egresos?mes=${mesSeleccionado}`);
+      aplicarFiltrosEgresos();
     } catch (err) {
       tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
     }
+  }
+
+  function aplicarFiltrosEgresos() {
+    const q = normalizar(filtroTexto);
+    listaEgresosCompleta = egresosCrudos.filter(e =>
+      (!filtroCatEgreso || String(e.categoria_id) === filtroCatEgreso) &&
+      (!q || normalizar(`${e.concepto} ${e.notas || ''} ${e.categoria_nombre || ''}`).includes(q))
+    );
+    paginaEgresos = 1;
+    renderTablaEgresosPaginada();
+  }
+
+  function aplicarFiltrosIngresos() {
+    const q = normalizar(filtroTexto);
+    listaIngresosCompleta = ingresosCrudos.filter(i =>
+      (!filtroCatIngreso || String(i.categoria_id) === filtroCatIngreso) &&
+      (!q || normalizar(`${i.concepto} ${i.notas || ''} ${i.categoria_nombre || ''} ${i.cliente_nombre || ''} ${i.cliente_folio || ''}`).includes(q))
+    );
+    paginaIngresos = 1;
+    renderTablaIngresosPaginada();
   }
 
   function renderTablaEgresosPaginada() {
     const tabla = document.getElementById('tabla-egresos');
 
     if (!listaEgresosCompleta.length) {
-      tabla.innerHTML = `<div class="estado-vacio">Aún no has registrado egresos.</div>`;
+      tabla.innerHTML = `<div class="estado-vacio">${egresosCrudos.length ? 'Ningún egreso coincide con esos filtros.' : `No hay egresos registrados en ${nombreMesLargo(mesSeleccionado)}.`}</div>`;
       return;
     }
 
@@ -185,7 +309,7 @@
         if (!confirm('¿Eliminar este egreso?')) return;
         try {
           await API.del(`/api/finanzas/egresos/${btn.dataset.borrar}`);
-          cargarEgresos(); cargarKpis(); cargarGraficas();
+          cargarEgresos(); refrescarResumen();
         } catch (err) { alert(err.message); }
       });
     });
@@ -260,8 +384,9 @@
         } else {
           await API.solicitarConArchivo('/api/finanzas/egresos', formData, 'POST');
         }
+        const fechaGuardada = document.getElementById('e-fecha').value;
         cerrar();
-        cargarEgresos(); cargarKpis(); cargarGraficas();
+        if (!irAMesDeFecha(fechaGuardada)) { cargarEgresos(); refrescarResumen(); }
       } catch (err) { errorBox.textContent = err.message; errorBox.classList.remove('oculto'); }
     });
   }
@@ -278,9 +403,8 @@
   async function cargarIngresosExtra() {
     const tabla = document.getElementById('tabla-ingresos-extra');
     try {
-      listaIngresosCompleta = await API.get('/api/finanzas/ingresos-extra');
-      paginaIngresos = 1;
-      renderTablaIngresosPaginada();
+      ingresosCrudos = await API.get(`/api/finanzas/ingresos-extra?mes=${mesSeleccionado}`);
+      aplicarFiltrosIngresos();
     } catch (err) {
       tabla.innerHTML = `<div class="error-msg">${err.message}</div>`;
     }
@@ -290,7 +414,7 @@
     const tabla = document.getElementById('tabla-ingresos-extra');
 
     if (!listaIngresosCompleta.length) {
-      tabla.innerHTML = `<div class="estado-vacio">Aún no hay ingresos extra registrados (se llenan solos cuando un técnico cobra una instalación).</div>`;
+      tabla.innerHTML = `<div class="estado-vacio">${ingresosCrudos.length ? 'Ningún ingreso extra coincide con esos filtros.' : `No hay ingresos extra registrados en ${nombreMesLargo(mesSeleccionado)}.`}</div>`;
       return;
     }
 
@@ -330,7 +454,7 @@
         if (!confirm('¿Eliminar este ingreso?')) return;
         try {
           await API.del(`/api/finanzas/ingresos-extra/${btn.dataset.borrarIngreso}`);
-          cargarIngresosExtra(); cargarKpis(); cargarGraficas();
+          cargarIngresosExtra(); refrescarResumen();
         } catch (err) { alert(err.message); }
       });
     });
@@ -439,8 +563,9 @@
         } else {
           await API.solicitarConArchivo('/api/finanzas/ingresos-extra', formData, 'POST');
         }
+        const fechaGuardada = document.getElementById('i-fecha').value;
         cerrar();
-        cargarIngresosExtra(); cargarKpis(); cargarGraficas();
+        if (!irAMesDeFecha(fechaGuardada)) { cargarIngresosExtra(); refrescarResumen(); }
       } catch (err) { errorBox.textContent = err.message; errorBox.classList.remove('oculto'); }
     });
   }

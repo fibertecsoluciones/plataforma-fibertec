@@ -1,45 +1,62 @@
 const db = require('../config/db');
 
-// Resumen mensual: ingresos (pagos + ingresos extra) vs egresos, últimos N meses
+// Lee el parámetro ?mes=YYYY-MM (opcional). Si no viene o es inválido, devuelve null
+// y las consultas usan el mes en curso.
+function mesParam(req) {
+  const m = String(req.query.mes || '');
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(m) ? `${m}-01` : null;
+}
+
+// Resumen mensual: ingresos (pagos + ingresos extra) vs egresos, N meses que TERMINAN
+// en el mes elegido (?mes=YYYY-MM) o en el mes en curso si no se manda.
 async function resumenMensual(req, res) {
-  const meses = parseInt(req.query.meses || '6', 10);
+  const meses = Math.min(Math.max(parseInt(req.query.meses || '6', 10) || 6, 1), 24);
+  const base = mesParam(req);
 
   const ingresos = await db.query(
     `SELECT mes, SUM(total)::numeric(12,2) AS total FROM (
        SELECT to_char(periodo, 'YYYY-MM') AS mes, monto AS total FROM pagos
-       WHERE periodo >= date_trunc('month', CURRENT_DATE) - ($1 || ' months')::interval
+       WHERE periodo >= date_trunc('month', COALESCE($2::date, CURRENT_DATE)) - make_interval(months => $1::int - 1)
+         AND periodo < date_trunc('month', COALESCE($2::date, CURRENT_DATE)) + interval '1 month'
        UNION ALL
        SELECT to_char(fecha, 'YYYY-MM') AS mes, monto AS total FROM ingresos_extra
-       WHERE fecha >= date_trunc('month', CURRENT_DATE) - ($1 || ' months')::interval
+       WHERE fecha >= date_trunc('month', COALESCE($2::date, CURRENT_DATE)) - make_interval(months => $1::int - 1)
+         AND fecha < date_trunc('month', COALESCE($2::date, CURRENT_DATE)) + interval '1 month'
      ) combinado
      GROUP BY mes ORDER BY mes`,
-    [meses]
+    [meses, base]
   );
 
   const egresos = await db.query(
     `SELECT to_char(fecha, 'YYYY-MM') AS mes, SUM(monto)::numeric(12,2) AS total
      FROM egresos
-     WHERE fecha >= date_trunc('month', CURRENT_DATE) - ($1 || ' months')::interval
+     WHERE fecha >= date_trunc('month', COALESCE($2::date, CURRENT_DATE)) - make_interval(months => $1::int - 1)
+       AND fecha < date_trunc('month', COALESCE($2::date, CURRENT_DATE)) + interval '1 month'
      GROUP BY mes ORDER BY mes`,
-    [meses]
+    [meses, base]
   );
 
   res.json({ ingresos: ingresos.rows, egresos: egresos.rows });
 }
 
-// Totales del mes en curso, para las tarjetas del dashboard
+// Totales de un mes (?mes=YYYY-MM, por defecto el mes en curso), para las tarjetas
 async function resumenMesActual(req, res) {
+  const base = mesParam(req);
+
   const pagosRes = await db.query(
     `SELECT COALESCE(SUM(monto),0)::numeric(12,2) AS total FROM pagos
-     WHERE periodo = date_trunc('month', CURRENT_DATE)::date`
+     WHERE periodo = date_trunc('month', COALESCE($1::date, CURRENT_DATE))::date`,
+    [base]
   );
   const extraRes = await db.query(
     `SELECT COALESCE(SUM(monto),0)::numeric(12,2) AS total FROM ingresos_extra
-     WHERE date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)`
+     WHERE date_trunc('month', fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))`,
+    [base]
   );
   const egresos = await db.query(
     `SELECT COALESCE(SUM(monto),0)::numeric(12,2) AS total FROM egresos
-     WHERE date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)`
+     WHERE date_trunc('month', fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))`,
+    [base]
   );
   const clientesActivos = await db.query(`SELECT COUNT(*)::int AS total FROM clientes WHERE estado = 'activo'`);
 
@@ -59,12 +76,14 @@ async function resumenMesActual(req, res) {
 }
 
 async function egresosPorCategoria(req, res) {
+  const base = mesParam(req);
   const r = await db.query(
     `SELECT cat.nombre AS categoria, COALESCE(SUM(e.monto),0)::numeric(12,2) AS total
      FROM egresos_categorias cat
      LEFT JOIN egresos e ON e.categoria_id = cat.id
-       AND date_trunc('month', e.fecha) = date_trunc('month', CURRENT_DATE)
-     GROUP BY cat.nombre ORDER BY total DESC`
+       AND date_trunc('month', e.fecha) = date_trunc('month', COALESCE($1::date, CURRENT_DATE))
+     GROUP BY cat.nombre ORDER BY total DESC`,
+    [base]
   );
   res.json(r.rows);
 }
@@ -77,6 +96,8 @@ async function listarEgresos(req, res) {
   const params = [];
   if (desde) { params.push(desde); sql += ` AND e.fecha >= $${params.length}`; }
   if (hasta) { params.push(hasta); sql += ` AND e.fecha <= $${params.length}`; }
+  const base = mesParam(req);
+  if (base) { params.push(base); sql += ` AND date_trunc('month', e.fecha) = date_trunc('month', $${params.length}::date)`; }
   sql += ' ORDER BY e.creado_en DESC, e.id DESC';
   const r = await db.query(sql, params);
   res.json(r.rows);
@@ -135,6 +156,8 @@ async function listarIngresosExtra(req, res) {
   const params = [];
   if (desde) { params.push(desde); sql += ` AND i.fecha >= $${params.length}`; }
   if (hasta) { params.push(hasta); sql += ` AND i.fecha <= $${params.length}`; }
+  const base = mesParam(req);
+  if (base) { params.push(base); sql += ` AND date_trunc('month', i.fecha) = date_trunc('month', $${params.length}::date)`; }
   sql += ' ORDER BY i.creado_en DESC, i.id DESC';
   const r = await db.query(sql, params);
   res.json(r.rows);
