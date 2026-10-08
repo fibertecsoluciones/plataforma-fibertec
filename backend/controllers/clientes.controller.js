@@ -390,9 +390,71 @@ async function importarClientes(req, res) {
   res.json(resultado);
 }
 
+// ---------- Reporte de clientes (Excel) ----------
+// Columnas: folio, cliente, fecha de pago mensual (día del mes), estado y zona.
+//   ?zona_id=N       (opcional; sin él salen todas las zonas, ordenadas por zona y folio)
+//   ?incluir_baja=1  (opcional; por defecto NO incluye clientes dados de baja)
+async function reporteClientes(req, res) {
+  try {
+    const hayZona = req.query.zona_id !== undefined && req.query.zona_id !== '';
+    const zonaId = hayZona ? Number(req.query.zona_id) : null;
+    if (hayZona && !Number.isInteger(zonaId)) {
+      return res.status(400).json({ error: 'La zona elegida no es válida.' });
+    }
+    const incluirBaja = ['1', 'true'].includes(String(req.query.incluir_baja));
+
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (zonaId !== null) { params.push(zonaId); where += ` AND c.zona_id = $${params.length}`; }
+    if (!incluirBaja) where += ` AND c.estado <> 'baja'`;
+
+    const r = await db.query(
+      `SELECT c.cliente_id AS folio, c.nombre, c.dia_pago, c.estado, z.nombre AS zona
+       FROM clientes c
+       JOIN zonas z ON z.id = c.zona_id
+       ${where}
+       ORDER BY z.nombre, length(c.cliente_id), c.cliente_id`,
+      params
+    );
+
+    if (!r.rows.length) {
+      return res.status(404).json({ error: 'No hay clientes con esos filtros, no se generó el reporte.' });
+    }
+
+    const ETIQUETA_ESTADO = { activo: 'Activo', suspendido: 'Suspendido', baja: 'Baja' };
+    const encabezados = ['FOLIO', 'CLIENTE', 'FECHA DE PAGO MENSUAL', 'ESTADO', 'ZONA'];
+    const filas = r.rows.map(c => [c.folio, c.nombre, Number(c.dia_pago), ETIQUETA_ESTADO[c.estado] || c.estado, c.zona]);
+
+    const hoja = XLSX.utils.aoa_to_sheet([encabezados, ...filas]);
+    hoja['!cols'] = [{ wch: 12 }, { wch: 38 }, { wch: 24 }, { wch: 14 }, { wch: 18 }];
+    hoja['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length, c: 4 } }) };
+    // El día de pago se guarda como número (para poder ordenar/filtrar en Excel) pero se ve como "Día 15".
+    filas.forEach((_, i) => {
+      const celda = hoja[XLSX.utils.encode_cell({ r: i + 1, c: 2 })];
+      if (celda) celda.z = '"Día "0';
+    });
+
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Clientes');
+    const buffer = XLSX.write(libro, { type: 'buffer', bookType: 'xlsx' });
+
+    const etiquetaZona = zonaId !== null ? r.rows[0].zona : 'TODAS_LAS_ZONAS';
+    const slug = String(etiquetaZona).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
+    const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date()); // YYYY-MM-DD
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="reporte_clientes_${slug}_${hoy}.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error en reporteClientes:', err);
+    res.status(500).json({ error: 'No se pudo generar el reporte de clientes.' });
+  }
+}
+
 module.exports = {
   listarClientes, obtenerCliente, buscarPorFolio,
   crearCliente, actualizarCliente, eliminarCliente, eliminarClientePermanente,
   resumenSemaforo,
-  descargarPlantilla, importarClientes
+  descargarPlantilla, importarClientes, reporteClientes
 };

@@ -66,6 +66,7 @@
           </div>
           ${esAdmin ? `
             <div class="flex-gap">
+              <button class="btn btn-secundario" id="btn-reporte">📄 Reporte</button>
               <button class="btn btn-secundario" id="btn-importar">📥 Importar clientes</button>
               <button class="btn btn-verde" id="btn-nuevo">+ Nuevo cliente</button>
             </div>
@@ -108,6 +109,7 @@
   if (esAdmin) {
     document.getElementById('btn-nuevo').addEventListener('click', () => abrirModal());
     document.getElementById('btn-importar').addEventListener('click', () => abrirModalImportar());
+    document.getElementById('btn-reporte').addEventListener('click', () => abrirModalReporte());
   }
 
   await cargarTabla();
@@ -566,6 +568,80 @@
   // ==========================================================
   // IMPORTAR CLIENTES DESDE EXCEL/CSV
   // ==========================================================
+  // ==========================================================
+  // REPORTE DE CLIENTES (Excel): folio, cliente, fecha de pago mensual, estado y zona
+  // ==========================================================
+  function abrirModalReporte() {
+    const modalCont = document.getElementById('modal-contenedor');
+    modalCont.innerHTML = `
+      <div class="modal-fondo">
+        <div class="modal">
+          <div class="modal-cabecera">
+            <h3>📄 Reporte de clientes</h3>
+            <button class="cerrar-modal" id="cerrar-modal">&times;</button>
+          </div>
+          <div class="modal-cuerpo">
+            <div id="error-reporte" class="error-msg oculto"></div>
+            <p class="texto-gris" style="margin-top:0;">
+              Se descarga un Excel con: <b>Folio, Cliente, Fecha de pago mensual, Estado y Zona</b>.
+            </p>
+            <div class="campo">
+              <label>Zona</label>
+              <select id="rep-zona">
+                <option value="">Todas las zonas</option>
+                ${zonas.map(z => `<option value="${z.id}" ${z.nombre === filtroActual.zona ? 'selected' : ''}>${z.nombre}</option>`).join('')}
+              </select>
+            </div>
+            <div class="campo">
+              <label style="display:flex; align-items:center; gap:8px; font-weight:500; cursor:pointer;">
+                <input type="checkbox" id="rep-baja" style="width:auto; padding:0;" />
+                Incluir clientes dados de baja
+              </label>
+            </div>
+          </div>
+          <div class="modal-pie">
+            <button class="btn btn-secundario" id="cancelar-reporte">Cancelar</button>
+            <button class="btn btn-primario" id="descargar-reporte">⬇️ Descargar Excel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const cerrar = () => { modalCont.innerHTML = ''; };
+    document.getElementById('cerrar-modal').addEventListener('click', cerrar);
+    document.getElementById('cancelar-reporte').addEventListener('click', cerrar);
+
+    document.getElementById('descargar-reporte').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const errorBox = document.getElementById('error-reporte');
+      errorBox.classList.add('oculto');
+
+      const zonaId = document.getElementById('rep-zona').value;
+      const zona = zonas.find(z => String(z.id) === zonaId);
+      const qs = new URLSearchParams();
+      if (zonaId) qs.set('zona_id', zonaId);
+      if (document.getElementById('rep-baja').checked) qs.set('incluir_baja', '1');
+
+      const etiquetaZona = zona
+        ? zona.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase()
+        : 'TODAS_LAS_ZONAS';
+      const d = new Date(); // fecha LOCAL (no UTC), para que después de las 6 PM no salga la de mañana
+      const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      btn.disabled = true;
+      btn.textContent = 'Generando…';
+      try {
+        await API.descargarArchivo(`/api/clientes/reporte?${qs.toString()}`, `reporte_clientes_${etiquetaZona}_${hoy}.xlsx`);
+        cerrar();
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('oculto');
+        btn.disabled = false;
+        btn.textContent = '⬇️ Descargar Excel';
+      }
+    });
+  }
+
   function abrirModalImportar() {
     const modalCont = document.getElementById('modal-contenedor');
     modalCont.innerHTML = `
