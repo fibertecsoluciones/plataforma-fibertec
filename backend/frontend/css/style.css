@@ -585,6 +585,7 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 .pill.tipo-mantenimiento{ background: #EAF5EE; color: #2A7A4F; }
 .pill.tipo-falla{ background: #FBEAEA; color: #A83A3A; }
 .pill.tipo-libranza{ background: #F1EEF9; color: #6A4FA8; }
+.pill.tipo-gestion{ background: #E3F4F4; color: #1F7A7A; }
 .mapa-selector{ width:100%; height:230px; border-radius: var(--radio-sm); border:1px solid var(--borde); z-index:1; }
 .grafica-contenedor{ position:relative; height: 280px; }
 

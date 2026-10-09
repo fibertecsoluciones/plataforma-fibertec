@@ -8,7 +8,7 @@
 
   const ETIQUETA_PRIORIDAD = { alta: 'Alta', media: 'Media', baja: 'Baja' };
   const ETIQUETA_ESTADO_ACT = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' };
-  const ETIQUETA_TIPO = { instalacion: '🔌 Instalación', mantenimiento: '🔧 Mantenimiento', falla: '⚠️ Falla', libranza: '🌴 Libranza' };
+  const ETIQUETA_TIPO = { instalacion: '🔌 Instalación', mantenimiento: '🔧 Mantenimiento', falla: '⚠️ Falla', libranza: '🌴 Libranza', gestion: '🗂️ Gestión' };
 
   let tecnicos = [];
   let filtroTecnico = '';
@@ -45,6 +45,7 @@
               <option value="mantenimiento">🔧 Mantenimiento</option>
               <option value="falla">⚠️ Falla</option>
               <option value="libranza">🌴 Libranza</option>
+              <option value="gestion">🗂️ Gestión</option>
             </select>
           </div>
           ${esAdmin ? `<button class="btn btn-verde" id="btn-nueva-actividad">+ Nueva actividad</button>` : ''}
@@ -385,6 +386,7 @@
                   <option value="mantenimiento">🔧 Mantenimiento</option>
                   <option value="falla">⚠️ Falla</option>
                   <option value="libranza">🌴 Libranza</option>
+                  <option value="gestion">🗂️ Gestión</option>
                 </select>
               </div>
               <div class="campo">
@@ -564,6 +566,7 @@
                   <option value="mantenimiento" ${a.tipo === 'mantenimiento' ? 'selected' : ''}>🔧 Mantenimiento</option>
                   <option value="falla" ${a.tipo === 'falla' ? 'selected' : ''}>⚠️ Falla</option>
                   <option value="libranza" ${a.tipo === 'libranza' ? 'selected' : ''}>🌴 Libranza</option>
+                  <option value="gestion" ${a.tipo === 'gestion' ? 'selected' : ''}>🗂️ Gestión</option>
                 </select>
               </div>
               <div class="campo">

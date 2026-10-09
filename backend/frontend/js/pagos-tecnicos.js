@@ -6,7 +6,7 @@
   const cont = document.getElementById('pagina-contenido');
   const BASE = '/api/finanzas/pagos-tecnicos';
 
-  const ETIQUETA_TIPO = { instalacion: '🔌 Instalación', mantenimiento: '🔧 Mantenimiento', falla: '⚠️ Falla', libranza: '🌴 Libranza' };
+  const ETIQUETA_TIPO = { instalacion: '🔌 Instalación', mantenimiento: '🔧 Mantenimiento', falla: '⚠️ Falla', libranza: '🌴 Libranza', gestion: '🗂️ Gestión' };
   const ETIQUETA_ESTADO_ACT = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' };
   const METODOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', deposito: 'Depósito', tarjeta: 'Tarjeta' };
   const ESTADO_PAGO = { pendiente: ['pago-pendiente', 'Pendiente'], parcial: ['pago-parcial', 'Parcial'], pagado: ['pago-pagado', 'Pagado'] };
