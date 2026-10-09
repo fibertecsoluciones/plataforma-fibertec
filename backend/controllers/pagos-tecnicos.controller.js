@@ -3,9 +3,10 @@ const db = require('../config/db');
 // ==========================================================
 // PAGOS A TÉCNICOS
 //
-// El administrador junta actividades terminadas de un técnico, le pone un monto a su
-// criterio y lo deja PENDIENTE (no afecta Finanzas). Al marcarlo como PAGADO se crea un
-// egreso en Finanzas; "deshacer" lo borra y regresa el pago a pendiente.
+// El administrador junta actividades terminadas de un técnico y le pone un TOTAL a su criterio;
+// queda PENDIENTE (no afecta Finanzas). Ese total se puede pagar completo o EN PARTES (abonos):
+// cada parte que se registra crea su propio egreso en Finanzas, y el pago pasa a PARCIAL hasta
+// que se liquida (PAGADO). Cada abono se puede deshacer por separado (borra solo su egreso).
 //
 // Reglas: solo cuentan actividades COMPLETADAS, que no sean de categoría Libranza, que NO
 // estén asignadas a un administrador, que no estén marcadas "sin pago" y que no estén ya
@@ -33,6 +34,10 @@ class ErrorNegocio extends Error {
 function responderError(res, err, contexto, mensajeGenerico) {
   if (err && err.code === '23505') err = new ErrorNegocio(MENSAJE_NO_DISPONIBLES, 409); // otra persona agrupó lo mismo al mismo tiempo
   if (err instanceof ErrorNegocio) return res.status(err.status).json({ error: err.message });
+  if (err && err.code === '42P01') { // tabla inexistente: falta correr la migración
+    console.error(`Error en ${contexto}: falta una migración de la base de datos`, err.message);
+    return res.status(500).json({ error: 'Falta correr una migración de la base de datos. En la Shell del backend ejecuta: npm run db:migrate migrations/021_abonos_pagos_tecnicos.sql (y antes la 020 si no la has corrido).' });
+  }
   console.error(`Error en ${contexto}:`, err);
   return res.status(500).json({ error: mensajeGenerico });
 }
@@ -67,6 +72,15 @@ function fechaISO(valor) {
   }
   return v;
 }
+const aCentavos = (n) => Math.round(Number(n) * 100);
+const dinero2 = (centavos) => (centavos / 100).toFixed(2);
+// Convierte los campos numéricos de un pago (que pg entrega como texto) y calcula lo que falta
+function conSaldo(p, pagado) {
+  const monto = Number(p.monto);
+  const pag = Number(pagado || 0);
+  return { ...p, monto, pagado: pag, saldo: Number(((aCentavos(monto) - aCentavos(pag)) / 100).toFixed(2)) };
+}
+
 function hoyMexico() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date()); // YYYY-MM-DD
 }
@@ -114,10 +128,13 @@ async function resumen(req, res) {
       `SELECT
          (SELECT COUNT(*)::int FROM actividades a JOIN usuarios u ON u.id = a.tecnico_id WHERE ${ELEGIBLES}) AS actividades_por_agrupar,
          (SELECT COUNT(DISTINCT a.tecnico_id)::int FROM actividades a JOIN usuarios u ON u.id = a.tecnico_id WHERE ${ELEGIBLES}) AS tecnicos_con_pendientes,
-         (SELECT COUNT(*)::int FROM pagos_tecnicos WHERE estado = 'pendiente') AS pagos_pendientes,
-         (SELECT COALESCE(SUM(monto), 0)::numeric(12,2) FROM pagos_tecnicos WHERE estado = 'pendiente') AS monto_pendiente,
-         (SELECT COALESCE(SUM(monto), 0)::numeric(12,2) FROM pagos_tecnicos
-            WHERE estado = 'pagado' AND date_trunc('month', fecha_pago) = date_trunc('month', CURRENT_DATE)) AS pagado_mes`
+         (SELECT COUNT(*)::int FROM pagos_tecnicos WHERE estado IN ('pendiente','parcial')) AS pagos_pendientes,
+         (SELECT COUNT(*)::int FROM pagos_tecnicos WHERE estado = 'parcial') AS pagos_parciales,
+         -- lo que todavía se debe: total de los pagos sin liquidar menos lo ya abonado a esos mismos pagos
+         (SELECT (COALESCE(SUM(p.monto), 0) - COALESCE(SUM((SELECT SUM(a.monto) FROM pagos_tecnicos_abonos a WHERE a.pago_id = p.id)), 0))::numeric(12,2)
+            FROM pagos_tecnicos p WHERE p.estado IN ('pendiente','parcial')) AS monto_pendiente,
+         (SELECT COALESCE(SUM(monto), 0)::numeric(12,2) FROM pagos_tecnicos_abonos
+            WHERE date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)) AS pagado_mes`
     );
     const f = r.rows[0];
     res.json({ ...f, monto_pendiente: Number(f.monto_pendiente), pagado_mes: Number(f.pagado_mes) });
@@ -166,20 +183,24 @@ async function listarPagos(req, res) {
   try {
     const params = [];
     let where = 'WHERE 1=1';
-    if (req.query.estado === 'pendiente' || req.query.estado === 'pagado') { params.push(req.query.estado); where += ` AND p.estado = $${params.length}`; }
+    const e = req.query.estado;
+    if (e === 'por_pagar') where += ` AND p.estado IN ('pendiente','parcial')`;
+    else if (e === 'pendiente' || e === 'parcial' || e === 'pagado') { params.push(e); where += ` AND p.estado = $${params.length}`; }
     if (req.query.tecnico_id) { params.push(entero(req.query.tecnico_id, 'El técnico')); where += ` AND p.tecnico_id = $${params.length}`; }
     const r = await db.query(
       `SELECT p.id, p.tecnico_id, u.nombre AS tecnico_nombre, p.monto, p.notas, p.estado, p.fecha_pago,
-              p.metodo_pago, p.egreso_id, p.creado_en,
-              (SELECT COUNT(*)::int FROM pagos_tecnicos_actividades pa WHERE pa.pago_id = p.id) AS num_actividades
+              p.metodo_pago, p.creado_en,
+              (SELECT COUNT(*)::int FROM pagos_tecnicos_actividades pa WHERE pa.pago_id = p.id) AS num_actividades,
+              ab.pagado, COALESCE(ab.num_abonos, 0) AS num_abonos
        FROM pagos_tecnicos p
        JOIN usuarios u ON u.id = p.tecnico_id
+       LEFT JOIN LATERAL (SELECT SUM(a.monto) AS pagado, COUNT(*)::int AS num_abonos FROM pagos_tecnicos_abonos a WHERE a.pago_id = p.id) ab ON TRUE
        ${where}
        ORDER BY p.creado_en DESC, p.id DESC
        LIMIT 200`,
       params
     );
-    res.json(r.rows);
+    res.json(r.rows.map(x => conSaldo(x, x.pagado)));
   } catch (err) { responderError(res, err, 'listarPagos', 'No se pudieron cargar los pagos.'); }
 }
 
@@ -201,7 +222,14 @@ async function obtenerPago(req, res) {
        ORDER BY COALESCE(a.completado_en, a.creado_en) DESC, a.id DESC`,
       [id]
     );
-    res.json({ ...p.rows[0], actividades: acts.rows });
+    const abonos = await db.query(
+      `SELECT id, monto, fecha, metodo_pago, notas, egreso_id, creado_en
+       FROM pagos_tecnicos_abonos WHERE pago_id = $1 ORDER BY fecha, id`,
+      [id]
+    );
+    const abonosNum = abonos.rows.map(a => ({ ...a, monto: Number(a.monto) }));
+    const pagado = abonosNum.reduce((t, a) => t + aCentavos(a.monto), 0) / 100;
+    res.json({ ...conSaldo(p.rows[0], pagado), actividades: acts.rows, abonos: abonosNum });
   } catch (err) { responderError(res, err, 'obtenerPago', 'No se pudo cargar el pago.'); }
 }
 
@@ -235,7 +263,8 @@ async function crearPago(req, res) {
   } catch (err) { responderError(res, err, 'crearPago', 'No se pudo guardar el pago.'); }
 }
 
-// Cambia monto / notas / actividades de un pago que todavía está PENDIENTE
+// Cambia total / notas / actividades. Pendiente: todo. Parcial (ya tiene abonos): solo el total (nunca menor
+// a lo ya pagado) y las notas; las actividades quedan fijas. Pagado: nada (hay que deshacer abonos).
 async function actualizarPago(req, res) {
   try {
     const id = entero(req.params.id, 'El pago');
@@ -249,8 +278,17 @@ async function actualizarPago(req, res) {
     const pago = await conTransaccion(async (c) => {
       const p = await c.query('SELECT * FROM pagos_tecnicos WHERE id = $1 FOR UPDATE', [id]);
       if (!p.rows[0]) throw new ErrorNegocio('Pago no encontrado.', 404);
-      if (p.rows[0].estado !== 'pendiente') {
-        throw new ErrorNegocio('Este pago ya está pagado. Desházlo primero si necesitas cambiarlo.', 409);
+      const estado = p.rows[0].estado;
+      if (estado === 'pagado') {
+        throw new ErrorNegocio('Este pago ya está liquidado. Deshaz alguno de sus abonos si necesitas cambiarlo.', 409);
+      }
+      if (estado === 'parcial' && idsNuevos) {
+        throw new ErrorNegocio('Este pago ya tiene abonos registrados: sus actividades ya no se pueden cambiar (sí puedes cambiar el total y las notas).', 409);
+      }
+
+      const pagadoC = aCentavos((await c.query('SELECT COALESCE(SUM(monto), 0) AS t FROM pagos_tecnicos_abonos WHERE pago_id = $1', [id])).rows[0].t);
+      if (montoNuevo !== undefined && aCentavos(montoNuevo) < pagadoC) {
+        throw new ErrorNegocio(`Ya se han pagado $${dinero2(pagadoC)}: el total no puede ser menor a eso.`);
       }
 
       if (idsNuevos) {
@@ -267,12 +305,16 @@ async function actualizarPago(req, res) {
       const sets = []; const params = [];
       if (montoNuevo !== undefined) { params.push(montoNuevo); sets.push(`monto = $${params.length}`); }
       if (notas !== undefined) { params.push(String(notas || '').trim() || null); sets.push(`notas = $${params.length}`); }
+      // Si el nuevo total es justo lo ya pagado, el pago queda liquidado
+      if (montoNuevo !== undefined && pagadoC > 0 && aCentavos(montoNuevo) === pagadoC) {
+        sets.push(`estado = 'pagado'`, `fecha_pago = (SELECT MAX(fecha) FROM pagos_tecnicos_abonos WHERE pago_id = ${id})`);
+      }
       if (!sets.length) return p.rows[0];
       params.push(id);
       const upd = await c.query(`UPDATE pagos_tecnicos SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
       return upd.rows[0];
     });
-    res.json(pago);
+    res.json({ ...pago, monto: Number(pago.monto) });
   } catch (err) { responderError(res, err, 'actualizarPago', 'No se pudo actualizar el pago.'); }
 }
 
@@ -284,7 +326,7 @@ async function cancelarPago(req, res) {
       const p = await c.query('SELECT estado FROM pagos_tecnicos WHERE id = $1 FOR UPDATE', [id]);
       if (!p.rows[0]) throw new ErrorNegocio('Pago no encontrado.', 404);
       if (p.rows[0].estado !== 'pendiente') {
-        throw new ErrorNegocio('Este pago ya está pagado. Usa "Deshacer pago" antes de cancelarlo.', 409);
+        throw new ErrorNegocio('Este pago ya tiene abonos registrados. Deshaz primero sus abonos para poder cancelarlo.', 409);
       }
       await c.query('DELETE FROM pagos_tecnicos WHERE id = $1', [id]);
     });
@@ -292,13 +334,16 @@ async function cancelarPago(req, res) {
   } catch (err) { responderError(res, err, 'cancelarPago', 'No se pudo cancelar el pago.'); }
 }
 
-// Marca el pago como PAGADO → aquí (y solo aquí) se crea el egreso en Finanzas
-async function marcarPagado(req, res) {
+// Registra un pago (completo o una parte) → crea un egreso en Finanzas por ESE monto.
+// Sin "monto" se paga todo lo que falta. No se puede pagar más de lo que falta.
+async function registrarAbono(req, res) {
   try {
     const id = entero(req.params.id, 'El pago');
     const fecha = req.body.fecha_pago ? fechaISO(req.body.fecha_pago) : hoyMexico();
     const metodo = req.body.metodo_pago || 'efectivo';
     if (!METODOS.includes(metodo)) throw new ErrorNegocio('El método de pago no es válido.');
+    const pedido = (req.body.monto === undefined || req.body.monto === null || req.body.monto === '') ? null : dinero(req.body.monto);
+    const notasAbono = req.body.notas ? String(req.body.notas).trim() || null : null;
 
     const pago = await conTransaccion(async (c) => {
       const p = await c.query(
@@ -308,49 +353,74 @@ async function marcarPagado(req, res) {
       );
       const pt = p.rows[0];
       if (!pt) throw new ErrorNegocio('Pago no encontrado.', 404);
-      if (pt.estado === 'pagado') throw new ErrorNegocio('Este pago ya estaba marcado como pagado.', 409);
+      if (pt.estado === 'pagado') throw new ErrorNegocio('Este pago ya está liquidado: no falta nada por pagar.', 409);
 
-      const n = (await c.query('SELECT COUNT(*)::int AS n FROM pagos_tecnicos_actividades WHERE pago_id = $1', [id])).rows[0].n;
-      if (n === 0) throw new ErrorNegocio('Este pago ya no tiene actividades (se borraron). Cancélalo y crea uno nuevo.', 409);
+      const ab = (await c.query('SELECT COUNT(*)::int AS n, COALESCE(SUM(monto), 0) AS total FROM pagos_tecnicos_abonos WHERE pago_id = $1', [id])).rows[0];
+      const totalC = aCentavos(pt.monto), pagadoC = aCentavos(ab.total), saldoC = totalC - pagadoC;
+      const montoC = pedido === null ? saldoC : aCentavos(pedido);
+      if (montoC <= 0) throw new ErrorNegocio('El monto debe ser mayor a 0.');
+      if (montoC > saldoC) {
+        throw new ErrorNegocio(`El pago de $${dinero2(montoC)} es mayor a lo que falta por pagar ($${dinero2(saldoC)}).`);
+      }
+
+      const nAct = (await c.query('SELECT COUNT(*)::int AS n FROM pagos_tecnicos_actividades WHERE pago_id = $1', [id])).rows[0].n;
+      if (nAct === 0) throw new ErrorNegocio('Este pago ya no tiene actividades (se borraron). Cancélalo y crea uno nuevo.', 409);
 
       let cat = await c.query('SELECT id FROM egresos_categorias WHERE nombre = $1', [CATEGORIA_EGRESO]);
       if (!cat.rows[0]) cat = await c.query('INSERT INTO egresos_categorias (nombre) VALUES ($1) RETURNING id', [CATEGORIA_EGRESO]);
 
-      const concepto = `Pago a técnico: ${pt.tecnico_nombre} (${n} actividad${n === 1 ? '' : 'es'})`.slice(0, 150);
+      const liquida = pagadoC + montoC === totalC;
+      const sufijo = (ab.n === 0 && liquida) ? '' : ` — abono ${ab.n + 1}`;
+      const concepto = `Pago a técnico: ${pt.tecnico_nombre} (${nAct} actividad${nAct === 1 ? '' : 'es'})${sufijo}`.slice(0, 150);
       const egreso = await c.query(
         `INSERT INTO egresos (categoria_id, concepto, monto, fecha, registrado_por, notas)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-        [cat.rows[0].id, concepto, pt.monto, fecha, req.usuario.id, pt.notas]
+        [cat.rows[0].id, concepto, montoC / 100, fecha, req.usuario.id, notasAbono || pt.notas]
+      );
+      await c.query(
+        `INSERT INTO pagos_tecnicos_abonos (pago_id, monto, fecha, metodo_pago, notas, egreso_id, creado_por)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [id, montoC / 100, fecha, metodo, notasAbono, egreso.rows[0].id, req.usuario.id]
       );
       const upd = await c.query(
-        `UPDATE pagos_tecnicos SET estado = 'pagado', fecha_pago = $1, metodo_pago = $2, egreso_id = $3, pagado_en = now()
-         WHERE id = $4 RETURNING *`,
-        [fecha, metodo, egreso.rows[0].id, id]
+        liquida
+          ? `UPDATE pagos_tecnicos SET estado = 'pagado', fecha_pago = (SELECT MAX(fecha) FROM pagos_tecnicos_abonos WHERE pago_id = $1),
+               metodo_pago = $2, pagado_en = now() WHERE id = $1 RETURNING *`
+          : `UPDATE pagos_tecnicos SET estado = 'parcial', fecha_pago = NULL, metodo_pago = NULL, pagado_en = NULL WHERE id = $1 RETURNING *`,
+        liquida ? [id, metodo] : [id]
       );
-      return upd.rows[0];
+      return conSaldo(upd.rows[0], (pagadoC + montoC) / 100);
     });
     res.json(pago);
-  } catch (err) { responderError(res, err, 'marcarPagado', 'No se pudo marcar el pago como pagado.'); }
+  } catch (err) { responderError(res, err, 'registrarAbono', 'No se pudo registrar el pago.'); }
 }
 
-// Deshace un pago ya pagado: borra su egreso de Finanzas y lo regresa a pendiente
-async function deshacerPago(req, res) {
+// Deshace UN abono: borra su egreso de Finanzas y recalcula el estado del pago
+async function deshacerAbono(req, res) {
   try {
     const id = entero(req.params.id, 'El pago');
+    const abonoId = entero(req.params.abonoId, 'El abono');
     const pago = await conTransaccion(async (c) => {
       const p = await c.query('SELECT * FROM pagos_tecnicos WHERE id = $1 FOR UPDATE', [id]);
       if (!p.rows[0]) throw new ErrorNegocio('Pago no encontrado.', 404);
-      if (p.rows[0].estado !== 'pagado') throw new ErrorNegocio('Este pago no está marcado como pagado.', 409);
-      if (p.rows[0].egreso_id) await c.query('DELETE FROM egresos WHERE id = $1', [p.rows[0].egreso_id]);
+      const ab = await c.query('SELECT * FROM pagos_tecnicos_abonos WHERE id = $1 AND pago_id = $2 FOR UPDATE', [abonoId, id]);
+      if (!ab.rows[0]) throw new ErrorNegocio('Ese abono no existe en este pago.', 404);
+
+      if (ab.rows[0].egreso_id) await c.query('DELETE FROM egresos WHERE id = $1', [ab.rows[0].egreso_id]);
+      await c.query('DELETE FROM pagos_tecnicos_abonos WHERE id = $1', [abonoId]);
+
+      const pagado = (await c.query('SELECT COALESCE(SUM(monto), 0) AS t FROM pagos_tecnicos_abonos WHERE pago_id = $1', [id])).rows[0].t;
+      const estado = aCentavos(pagado) === 0 ? 'pendiente' : (aCentavos(pagado) >= aCentavos(p.rows[0].monto) ? 'pagado' : 'parcial');
       const upd = await c.query(
-        `UPDATE pagos_tecnicos SET estado = 'pendiente', fecha_pago = NULL, metodo_pago = NULL, egreso_id = NULL, pagado_en = NULL
-         WHERE id = $1 RETURNING *`,
-        [id]
+        estado === 'pagado'
+          ? `UPDATE pagos_tecnicos SET estado = 'pagado', fecha_pago = (SELECT MAX(fecha) FROM pagos_tecnicos_abonos WHERE pago_id = $1) WHERE id = $1 RETURNING *`
+          : `UPDATE pagos_tecnicos SET estado = $2, fecha_pago = NULL, metodo_pago = NULL, pagado_en = NULL, egreso_id = NULL WHERE id = $1 RETURNING *`,
+        estado === 'pagado' ? [id] : [id, estado]
       );
-      return upd.rows[0];
+      return conSaldo(upd.rows[0], pagado);
     });
     res.json(pago);
-  } catch (err) { responderError(res, err, 'deshacerPago', 'No se pudo deshacer el pago.'); }
+  } catch (err) { responderError(res, err, 'deshacerAbono', 'No se pudo deshacer el abono.'); }
 }
 
 // ---------- actividades que no generan pago ----------
@@ -417,6 +487,6 @@ async function excluirAnteriores(req, res) {
 module.exports = {
   listarTecnicos, resumen, actividadesPorAgrupar, actividadesFueraDePago,
   listarPagos, obtenerPago,
-  crearPago, actualizarPago, cancelarPago, marcarPagado, deshacerPago,
+  crearPago, actualizarPago, cancelarPago, registrarAbono, deshacerAbono,
   excluirActividades, incluirActividades, excluirAnteriores
 };

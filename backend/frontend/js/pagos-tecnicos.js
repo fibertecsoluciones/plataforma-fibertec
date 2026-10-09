@@ -9,11 +9,13 @@
   const ETIQUETA_TIPO = { instalacion: '🔌 Instalación', mantenimiento: '🔧 Mantenimiento', falla: '⚠️ Falla', libranza: '🌴 Libranza' };
   const ETIQUETA_ESTADO_ACT = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' };
   const METODOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', deposito: 'Depósito', tarjeta: 'Tarjeta' };
+  const ESTADO_PAGO = { pendiente: ['pago-pendiente', 'Pendiente'], parcial: ['pago-parcial', 'Parcial'], pagado: ['pago-pagado', 'Pagado'] };
+  const pillPago = (estado) => `<span class="pill ${ESTADO_PAGO[estado][0]}">${ESTADO_PAGO[estado][1]}</span>`;
 
   let tecnicos = [];
   let pestana = 'agrupar';          // 'agrupar' | 'pagos' | 'fuera'
   let filtroTecnico = '';
-  let filtroEstadoPago = 'pendiente'; // 'pendiente' | 'pagado' | ''
+  let filtroEstadoPago = 'por_pagar'; // 'por_pagar' (pendientes y parciales) | 'pagado' | ''
   let seleccion = new Set();        // actividades marcadas con la casilla (se conservan al recargar)
   let porAgrupar = [], pagos = [], fuera = [], resumen = null;
   let aviso = '';                   // mensaje verde después de una acción
@@ -22,6 +24,7 @@
   const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const hoyLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const fechaAct = (a) => fechaHoraCorta(a.completado_en || a.creado_en);
+  const fechaLocal = (ts) => new Date(ts).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }); // en la hora de quien lo ve
   const textoActividades = (n) => `${n} actividad${n === 1 ? '' : 'es'}`;
   const qsTecnico = () => filtroTecnico ? `?tecnico_id=${filtroTecnico}` : '';
 
@@ -35,8 +38,8 @@
             <option value="">Todos los técnicos</option>
           </select>
           <span class="texto-gris" style="font-size:12px; flex:1; min-width:240px;">
-            Junta las actividades terminadas de un técnico y ponles un monto. Queda como <b>pendiente</b> y
-            <b>no se refleja en Finanzas</b> hasta que lo marques como pagado.
+            Junta las actividades terminadas de un técnico y ponles un total. Queda como <b>pendiente</b> y
+            <b>no se refleja en Finanzas</b> hasta que registres un pago (completo o en partes).
           </span>
         </div>
       </div>
@@ -94,9 +97,9 @@
         <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">terminadas, de ${resumen.tecnicos_con_pendientes} técnico${resumen.tecnicos_con_pendientes === 1 ? '' : 's'}</div>
       </div>
       <div class="kpi borde-naranja">
-        <div class="kpi-etiqueta">Pagos pendientes</div>
+        <div class="kpi-etiqueta">Falta por pagar</div>
         <div class="kpi-valor">${mxn(resumen.monto_pendiente)}</div>
-        <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">${resumen.pagos_pendientes} pago${resumen.pagos_pendientes === 1 ? '' : 's'} · aún no están en Finanzas</div>
+        <div class="texto-gris" style="font-size:11.5px; margin-top:2px;">${resumen.pagos_pendientes} pago${resumen.pagos_pendientes === 1 ? '' : 's'} con saldo${resumen.pagos_parciales ? ` (${resumen.pagos_parciales} en partes)` : ''} · aún no está en Finanzas</div>
       </div>
       <div class="kpi borde-verde">
         <div class="kpi-etiqueta">Pagado este mes</div>
@@ -205,7 +208,7 @@
           </div>
           <div class="grid-formulario">
             <div class="campo">
-              <label>Monto a pagar</label>
+              <label>Total a pagar</label>
               <input type="number" id="np-monto" min="0.01" step="0.01" inputmode="decimal" placeholder="Ej. 1500" />
             </div>
             <div class="campo ancho-total">
@@ -214,7 +217,7 @@
             </div>
           </div>
           <div class="texto-gris" style="font-size:12px; margin-top:6px;">
-            Se guarda como <b>pendiente</b>. No se refleja en Finanzas hasta que lo marques como pagado.
+            Se guarda como <b>pendiente</b>. Después podrás pagarlo completo o en partes; no se refleja en Finanzas hasta que registres un pago.
           </div>
         </div>
         <div class="modal-pie">
@@ -235,8 +238,8 @@
         await API.post(BASE, { tecnico_id: tecId, actividad_ids: ids, monto, notas: document.getElementById('np-notas').value.trim() });
         ids.forEach(id => seleccion.delete(id));
         cerrarModal();
-        aviso = `✅ Pago de <b>${mxn(monto)}</b> para ${esc(nombre)} guardado como <b>pendiente</b>. Todavía no aparece en Finanzas.`;
-        pestana = 'pagos'; filtroEstadoPago = 'pendiente';
+        aviso = `✅ Pago de <b>${mxn(monto)}</b> para ${esc(nombre)} guardado como <b>pendiente</b>. Todavía no aparece en Finanzas; regístralo cuando lo pagues, completo o en partes.`;
+        pestana = 'pagos'; filtroEstadoPago = 'por_pagar';
         await recargar();
       } catch (e2) {
         err.textContent = e2.message; err.classList.remove('oculto');
@@ -254,32 +257,32 @@
     const filtro = `
       <div class="tarjeta"><div class="tarjeta-cuerpo flex-gap">
         <select id="pt-estado-pago" style="padding:9px 12px; border:1px solid var(--borde); border-radius:6px;">
-          <option value="pendiente" ${filtroEstadoPago === 'pendiente' ? 'selected' : ''}>Solo pendientes</option>
+          <option value="por_pagar" ${filtroEstadoPago === 'por_pagar' ? 'selected' : ''}>Por pagar (pendientes y en partes)</option>
           <option value="pagado" ${filtroEstadoPago === 'pagado' ? 'selected' : ''}>Solo pagados</option>
           <option value="" ${filtroEstadoPago === '' ? 'selected' : ''}>Todos</option>
         </select>
       </div></div>`;
     if (!pagos.length) {
       c.innerHTML = filtro + `<div class="tarjeta"><div class="tarjeta-cuerpo estado-vacio">${
-        filtroEstadoPago === 'pendiente' ? 'No tienes pagos pendientes.' : filtroEstadoPago === 'pagado' ? 'Aún no has marcado ningún pago como pagado.' : 'Todavía no hay pagos.'}</div></div>`;
+        filtroEstadoPago === 'por_pagar' ? 'No tienes pagos por pagar.' : filtroEstadoPago === 'pagado' ? 'Aún no has liquidado ningún pago.' : 'Todavía no hay pagos.'}</div></div>`;
       return;
     }
     c.innerHTML = filtro + `
       <div class="tarjeta"><div class="tarjeta-cuerpo tabla-envoltura">
         <table class="tabla">
-          <thead><tr><th>Técnico</th><th>Actividades</th><th>Monto</th><th>Estado</th><th>Creado</th><th>Fecha de pago</th><th></th></tr></thead>
+          <thead><tr><th>Técnico</th><th>Actividades</th><th>Total</th><th>Pagado</th><th>Falta</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             ${pagos.map(p => `
               <tr>
-                <td class="celda-tarjeta-titulo">${esc(p.tecnico_nombre)}${p.notas ? `<div class="celda-meta" style="white-space:normal;">${esc(p.notas)}</div>` : ''}</td>
+                <td class="celda-tarjeta-titulo">${esc(p.tecnico_nombre)}${p.notas ? `<div class="celda-meta" style="white-space:normal;">${esc(p.notas)}</div>` : ''}<div class="celda-meta">Creado ${fechaLocal(p.creado_en)}</div></td>
                 <td data-label="Actividades">${p.num_actividades}</td>
-                <td data-label="Monto"><b>${mxn(p.monto)}</b></td>
-                <td data-label="Estado"><span class="pill ${p.estado === 'pagado' ? 'pago-pagado' : 'pago-pendiente'}">${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}</span></td>
-                <td data-label="Creado">${fechaHoraCorta(p.creado_en)}</td>
-                <td data-label="Fecha de pago">${p.fecha_pago ? `${fechaCorta(p.fecha_pago)}<div class="celda-meta">${esc(METODOS[p.metodo_pago] || p.metodo_pago || '')}</div>` : '—'}</td>
+                <td data-label="Total"><b>${mxn(p.monto)}</b></td>
+                <td data-label="Pagado">${p.pagado > 0 ? `${mxn(p.pagado)}${p.num_abonos > 1 ? `<div class="celda-meta">${p.num_abonos} pagos</div>` : ''}` : '—'}</td>
+                <td data-label="Falta">${p.saldo > 0 ? `<b>${mxn(p.saldo)}</b>` : '—'}</td>
+                <td data-label="Estado">${pillPago(p.estado)}${p.fecha_pago ? `<div class="celda-meta">${fechaCorta(p.fecha_pago)}</div>` : ''}</td>
                 <td class="celda-acciones-movil"><div class="fila-acciones">
                   <button class="btn btn-secundario btn-sm" data-ver-pago="${p.id}">Ver</button>
-                  ${p.estado === 'pendiente' ? `<button class="btn btn-verde btn-sm" data-pagar="${p.id}">Marcar pagado</button>` : ''}
+                  ${p.estado !== 'pagado' ? `<button class="btn btn-verde btn-sm" data-pagar="${p.id}" style="white-space:nowrap;">Registrar pago</button>` : ''}
                 </div></td>
               </tr>`).join('')}
           </tbody>
@@ -296,46 +299,62 @@
       if (p.estado === 'pendiente') disponibles = await API.get(`${BASE}/por-agrupar?tecnico_id=${p.tecnico_id}`);
     } catch (err) { modalCont.innerHTML = ''; alert(err.message); return; }
 
-    const pendiente = p.estado === 'pendiente';
+    const editable = p.estado !== 'pagado';          // total y notas
+    const editaActs = p.estado === 'pendiente';      // actividades (solo mientras no haya abonos)
+    const porcentaje = p.monto > 0 ? Math.min(100, Math.round((p.pagado / p.monto) * 100)) : 0;
     const lineaAct = (a, incluida) => `
-      <label>
-        ${pendiente ? `<input type="checkbox" data-incl="${a.id}" ${incluida ? 'checked' : ''} />` : '<span>•</span>'}
+      <label ${editaActs ? '' : 'style="cursor:default;"'}>
+        ${editaActs ? `<input type="checkbox" data-incl="${a.id}" ${incluida ? 'checked' : ''} />` : '<span>•</span>'}
         <span>${esc(a.titulo)}<span class="texto-gris"> · ${ETIQUETA_TIPO[a.tipo] || esc(a.tipo)} · ${fechaAct(a)}${a.cliente_folio ? ` · ${esc(a.cliente_folio)}` : ''}</span></span>
       </label>`;
 
     modalCont.innerHTML = `
       <div class="modal-fondo"><div class="modal">
         <div class="modal-cabecera">
-          <h3>Pago a ${esc(p.tecnico_nombre)} <span class="pill ${pendiente ? 'pago-pendiente' : 'pago-pagado'}" style="margin-left:8px; vertical-align:middle;">${pendiente ? 'Pendiente' : 'Pagado'}</span></h3>
+          <h3>Pago a ${esc(p.tecnico_nombre)} <span style="margin-left:8px; vertical-align:middle;">${pillPago(p.estado)}</span></h3>
           <button class="cerrar-modal" id="cerrar-modal">&times;</button>
         </div>
         <div class="modal-cuerpo">
           <div id="dp-error" class="error-msg oculto"></div>
-          ${pendiente ? `
+
+          <div class="grid-kpi" style="grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:${p.pagado > 0 ? '10px' : '16px'};">
+            <div class="kpi borde-azul" style="padding:10px 12px;"><div class="kpi-etiqueta">Total</div><div class="kpi-valor" style="font-size:18px;">${mxn(p.monto)}</div></div>
+            <div class="kpi borde-verde" style="padding:10px 12px;"><div class="kpi-etiqueta">Pagado</div><div class="kpi-valor" style="font-size:18px;">${mxn(p.pagado)}</div></div>
+            <div class="kpi ${p.saldo > 0 ? 'borde-naranja' : 'borde-verde'}" style="padding:10px 12px;"><div class="kpi-etiqueta">Falta</div><div class="kpi-valor" style="font-size:18px;">${p.saldo > 0 ? mxn(p.saldo) : '✅ $0.00'}</div></div>
+          </div>
+          ${p.pagado > 0 ? `<div class="barra-progreso" style="margin:0 0 16px;"><div class="barra-progreso-relleno" style="width:${porcentaje}%;"></div></div>` : ''}
+
+          ${editable ? `
             <div class="grid-formulario">
-              <div class="campo"><label>Monto</label><input type="number" id="dp-monto" min="0.01" step="0.01" inputmode="decimal" value="${Number(p.monto)}" /></div>
+              <div class="campo"><label>Total del pago${p.pagado > 0 ? ` (no menor a ${mxn(p.pagado)})` : ''}</label>
+                <input type="number" id="dp-monto" min="${p.pagado > 0 ? p.pagado : 0.01}" step="0.01" inputmode="decimal" value="${p.monto}" /></div>
               <div class="campo ancho-total"><label>Notas</label><textarea id="dp-notas" rows="2">${esc(p.notas || '')}</textarea></div>
-            </div>` : `
-            <div style="font-size:14px; line-height:1.7;">
-              <div><b>Monto:</b> ${mxn(p.monto)}</div>
-              <div><b>Pagado el:</b> ${fechaCorta(p.fecha_pago)} · ${esc(METODOS[p.metodo_pago] || p.metodo_pago || '')}</div>
-              ${p.notas ? `<div><b>Notas:</b> ${esc(p.notas)}</div>` : ''}
-            </div>
-            <div class="aviso-ok" style="margin-top:12px;">Este pago ya está registrado como egreso en <a href="/finanzas.html">Finanzas</a> (categoría “Pago a técnicos”).</div>`}
-          <h4 style="font-size:13px; margin:16px 0 8px;">${pendiente ? 'Actividades incluidas (quita la palomita para sacar alguna)' : `Actividades incluidas (${p.actividades.length})`}</h4>
+            </div>` : (p.notas ? `<div style="font-size:13px; margin-bottom:12px;"><b>Notas:</b> ${esc(p.notas)}</div>` : '')}
+
+          ${p.abonos.length ? `
+            <h4 style="font-size:13px; margin:${editable ? '4px' : '0'} 0 8px;">Pagos registrados (cada uno ya está en <a href="/finanzas.html">Finanzas</a>)</h4>
+            <div class="lista-check" style="margin-bottom:16px;">
+              ${p.abonos.map((a, i) => `
+                <label style="cursor:default; align-items:center; justify-content:space-between;">
+                  <span><b>${mxn(a.monto)}</b> <span class="texto-gris">· ${fechaCorta(a.fecha)} · ${esc(METODOS[a.metodo_pago] || a.metodo_pago)}${a.notas ? ` · ${esc(a.notas)}` : ''}</span></span>
+                  <button type="button" class="btn btn-peligro btn-sm" data-deshacer-abono="${a.id}" data-monto="${a.monto}" data-fecha="${esc(String(a.fecha).slice(0, 10))}">Deshacer</button>
+                </label>`).join('')}
+            </div>` : ''}
+
+          <h4 style="font-size:13px; margin:0 0 8px;">${editaActs ? 'Actividades incluidas (quita la palomita para sacar alguna)' : `Actividades incluidas (${p.actividades.length})`}</h4>
+          ${!editaActs && p.estado === 'parcial' ? `<div class="texto-gris" style="font-size:11.5px; margin:-4px 0 8px;">Como ya tiene pagos registrados, las actividades quedan fijas.</div>` : ''}
           <div class="lista-check">${p.actividades.length ? p.actividades.map(a => lineaAct(a, true)).join('') : '<label class="texto-gris">Este pago se quedó sin actividades.</label>'}</div>
-          ${pendiente && disponibles.length ? `
+          ${editaActs && disponibles.length ? `
             <h4 style="font-size:13px; margin:16px 0 8px;">Agregar otras actividades terminadas de ${esc(p.tecnico_nombre)}</h4>
             <div class="lista-check">${disponibles.map(a => lineaAct(a, false)).join('')}</div>` : ''}
         </div>
         <div class="modal-pie" style="justify-content:space-between; flex-wrap:wrap;">
-          <div>${pendiente
-            ? `<button class="btn btn-peligro" id="dp-cancelar-pago">Cancelar este pago</button>`
-            : `<button class="btn btn-peligro" id="dp-deshacer">Deshacer pago</button>`}</div>
+          <div>${p.estado === 'pendiente' ? `<button class="btn btn-peligro" id="dp-cancelar-pago">Cancelar este pago</button>`
+            : p.estado === 'parcial' ? `<span class="texto-gris" style="font-size:11.5px;">Para cancelarlo, deshaz antes sus pagos.</span>` : ''}</div>
           <div class="flex-gap" style="margin-left:auto;">
             <button class="btn btn-secundario" id="dp-cerrar">Cerrar</button>
-            ${pendiente ? `<button class="btn btn-secundario" id="dp-guardar">Guardar cambios</button>
-                           <button class="btn btn-verde" id="dp-pagar">Marcar como pagado…</button>` : ''}
+            ${editable ? `<button class="btn btn-secundario" id="dp-guardar">Guardar cambios</button>
+                          <button class="btn btn-verde" id="dp-pagar">Registrar pago…</button>` : ''}
           </div>
         </div>
       </div></div>`;
@@ -344,71 +363,118 @@
     document.getElementById('cerrar-modal').addEventListener('click', cerrarModal);
     document.getElementById('dp-cerrar').addEventListener('click', cerrarModal);
 
-    if (pendiente) {
+    // deshacer UN pago registrado
+    modalCont.querySelectorAll('[data-deshacer-abono]').forEach(btn => btn.addEventListener('click', async () => {
+      if (!confirm(`¿Deshacer el pago de ${mxn(btn.dataset.monto)} del ${btn.dataset.fecha}?\n\nSe borrará su egreso de Finanzas y ese dinero volverá a figurar como pendiente.`)) return;
+      try {
+        await API.del(`${BASE}/${id}/abonos/${btn.dataset.deshacerAbono}`);
+        aviso = `↩️ Pago de ${mxn(btn.dataset.monto)} deshecho: su egreso ya no aparece en Finanzas.`;
+        if (filtroEstadoPago === 'pagado') filtroEstadoPago = 'por_pagar'; // ya no está liquidado: que no desaparezca de la lista
+        await recargar();
+        abrirDetallePago(id);
+      } catch (e2) { mostrarError(e2.message); }
+    }));
+
+    if (editable) {
       document.getElementById('dp-guardar').addEventListener('click', async (e) => {
-        const ids = [...modalCont.querySelectorAll('[data-incl]:checked')].map(x => Number(x.dataset.incl));
         const monto = Number(document.getElementById('dp-monto').value);
-        if (!(monto > 0)) return mostrarError('El monto debe ser mayor a 0.');
-        if (!ids.length) return mostrarError('Deja al menos una actividad, o usa "Cancelar este pago".');
+        if (!(monto > 0)) return mostrarError('El total debe ser mayor a 0.');
+        if (monto < p.pagado) return mostrarError(`Ya se han pagado ${mxn(p.pagado)}: el total no puede ser menor.`);
+        const cambios = { monto, notas: document.getElementById('dp-notas').value.trim() };
+        if (editaActs) {
+          const ids = [...modalCont.querySelectorAll('[data-incl]:checked')].map(x => Number(x.dataset.incl));
+          if (!ids.length) return mostrarError('Deja al menos una actividad, o usa "Cancelar este pago".');
+          cambios.actividad_ids = ids;
+        }
         const btn = e.currentTarget; btn.disabled = true;
         try {
-          await API.put(`${BASE}/${id}`, { monto, notas: document.getElementById('dp-notas').value.trim(), actividad_ids: ids });
-          cerrarModal(); aviso = '✅ Cambios guardados. El pago sigue pendiente.'; await recargar();
+          await API.put(`${BASE}/${id}`, cambios);
+          cerrarModal(); aviso = monto === p.pagado ? '✅ Cambios guardados: con ese total el pago quedó liquidado.' : '✅ Cambios guardados.'; await recargar();
         } catch (e2) { mostrarError(e2.message); btn.disabled = false; }
       });
       document.getElementById('dp-pagar').addEventListener('click', () => abrirModalPagar(p));
+    }
+    if (p.estado === 'pendiente') {
       document.getElementById('dp-cancelar-pago').addEventListener('click', async () => {
         if (!confirm(`¿Cancelar este pago de ${mxn(p.monto)} a ${p.tecnico_nombre}?\nSus actividades quedarán libres otra vez para agruparlas de nuevo.`)) return;
         try { await API.del(`${BASE}/${id}`); cerrarModal(); aviso = 'Pago cancelado. Sus actividades quedaron libres otra vez.'; pestana = 'agrupar'; await recargar(); }
         catch (e2) { mostrarError(e2.message); }
       });
-    } else {
-      document.getElementById('dp-deshacer').addEventListener('click', async () => {
-        if (!confirm(`¿Deshacer este pago de ${mxn(p.monto)} a ${p.tecnico_nombre}?\n\nSe borrará su egreso de Finanzas y el pago regresará a pendiente.`)) return;
-        try { await API.post(`${BASE}/${id}/deshacer`, {}); cerrarModal(); aviso = '↩️ Pago deshecho: el egreso ya no aparece en Finanzas y el pago volvió a pendiente.'; filtroEstadoPago = 'pendiente'; await recargar(); }
-        catch (e2) { mostrarError(e2.message); }
-      });
     }
   }
 
-  // ---------- ventana: marcar como pagado ----------
+  // ---------- ventana: registrar un pago (completo o una parte) ----------
   function abrirModalPagar(p) {
+    const saldo = p.saldo;
     modalCont.innerHTML = `
       <div class="modal-fondo"><div class="modal">
-        <div class="modal-cabecera"><h3>Marcar como pagado</h3><button class="cerrar-modal" id="cerrar-modal">&times;</button></div>
+        <div class="modal-cabecera"><h3>Registrar pago</h3><button class="cerrar-modal" id="cerrar-modal">&times;</button></div>
         <div class="modal-cuerpo">
           <div id="mp-error" class="error-msg oculto"></div>
-          <p style="margin-top:0; font-size:14px;"><b>${mxn(p.monto)}</b> a <b>${esc(p.tecnico_nombre)}</b> · ${textoActividades(p.num_actividades ?? (p.actividades || []).length)}</p>
+          <p style="margin-top:0; font-size:14px;"><b>${esc(p.tecnico_nombre)}</b> · ${textoActividades(p.num_actividades ?? (p.actividades || []).length)}</p>
+          <div class="grid-kpi" style="grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:14px;">
+            <div class="kpi borde-azul" style="padding:10px 12px;"><div class="kpi-etiqueta">Total</div><div class="kpi-valor" style="font-size:17px;">${mxn(p.monto)}</div></div>
+            <div class="kpi borde-verde" style="padding:10px 12px;"><div class="kpi-etiqueta">Ya pagado</div><div class="kpi-valor" style="font-size:17px;">${mxn(p.pagado)}</div></div>
+            <div class="kpi borde-naranja" style="padding:10px 12px;"><div class="kpi-etiqueta">Falta</div><div class="kpi-valor" style="font-size:17px;">${mxn(saldo)}</div></div>
+          </div>
           <div class="grid-formulario">
+            <div class="campo ancho-total">
+              <label>¿Cuánto le pagas ahora?</label>
+              <div class="ubicacion-campo">
+                <input type="number" id="mp-monto" min="0.01" max="${saldo}" step="0.01" inputmode="decimal" value="${saldo}" />
+                <button type="button" class="btn btn-secundario btn-sm" id="mp-todo" style="white-space:nowrap;">Todo lo que falta</button>
+              </div>
+            </div>
             <div class="campo"><label>Fecha de pago</label><input type="date" id="mp-fecha" value="${hoyLocal()}" /></div>
             <div class="campo"><label>Método</label>
               <select id="mp-metodo">${Object.entries(METODOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
             </div>
+            <div class="campo ancho-total"><label>Nota de este pago (opcional)</label><input type="text" id="mp-notas" placeholder="Ej. Anticipo, o segunda parte" /></div>
           </div>
-          <div class="aviso-ok" style="margin-top:14px; background:var(--sem-amarillo-bg); color:var(--sem-amarillo);">
-            Al confirmar se registra un <b>egreso de ${mxn(p.monto)}</b> en Finanzas (categoría “Pago a técnicos”) en el mes de la fecha de pago.
-            Si te equivocas puedes usar “Deshacer pago”.
-          </div>
+          <div class="aviso-ok" id="mp-resumen" style="margin-top:6px; background:var(--sem-amarillo-bg); color:var(--sem-amarillo);"></div>
         </div>
         <div class="modal-pie">
           <button class="btn btn-secundario" id="mp-volver">Volver</button>
           <button class="btn btn-verde" id="mp-confirmar">Confirmar pago</button>
         </div>
       </div></div>`;
+    const inputMonto = document.getElementById('mp-monto');
+    const resumenEl = document.getElementById('mp-resumen');
+    const centavos = (n) => Math.round(Number(n) * 100);
+    const actualizarResumen = () => {
+      const m = Number(inputMonto.value);
+      if (!(m > 0)) { resumenEl.innerHTML = 'Escribe cuánto le vas a pagar ahora.'; return; }
+      const resta = centavos(saldo) - centavos(m);
+      resumenEl.innerHTML = resta < 0
+        ? `⚠️ Eso es más de lo que falta (${mxn(saldo)}).`
+        : `Se registrará un <b>egreso de ${mxn(m)}</b> en Finanzas (categoría “Pago a técnicos”), en el mes de la fecha de pago. ${
+            resta === 0 ? '<b>Con esto queda liquidado.</b>' : `Después faltarán <b>${mxn(resta / 100)}</b>.`} Si te equivocas puedes deshacerlo.`;
+    };
+    inputMonto.addEventListener('input', actualizarResumen);
+    document.getElementById('mp-todo').addEventListener('click', () => { inputMonto.value = saldo; actualizarResumen(); });
+    actualizarResumen();
     document.getElementById('cerrar-modal').addEventListener('click', cerrarModal);
     document.getElementById('mp-volver').addEventListener('click', () => abrirDetallePago(p.id));
     document.getElementById('mp-confirmar').addEventListener('click', async (e) => {
       const err = document.getElementById('mp-error');
+      const mostrar = (m) => { err.textContent = m; err.classList.remove('oculto'); };
+      const monto = Number(inputMonto.value);
       const fecha = document.getElementById('mp-fecha').value;
-      if (!fecha) { err.textContent = 'Elige la fecha de pago.'; err.classList.remove('oculto'); return; }
+      if (!(monto > 0)) return mostrar('Escribe cuánto le vas a pagar ahora (mayor a 0).');
+      if (centavos(monto) > centavos(saldo)) return mostrar(`No puedes pagar más de lo que falta (${mxn(saldo)}).`);
+      if (!fecha) return mostrar('Elige la fecha de pago.');
       const btn = e.currentTarget; btn.disabled = true; btn.textContent = 'Registrando…';
       try {
-        await API.post(`${BASE}/${p.id}/pagar`, { fecha_pago: fecha, metodo_pago: document.getElementById('mp-metodo').value });
+        const r = await API.post(`${BASE}/${p.id}/abonos`, {
+          monto, fecha_pago: fecha, metodo_pago: document.getElementById('mp-metodo').value, notas: document.getElementById('mp-notas').value.trim()
+        });
         cerrarModal();
-        aviso = `✅ Pago de <b>${mxn(p.monto)}</b> a ${esc(p.tecnico_nombre)} registrado. Ya aparece como egreso en <a href="/finanzas.html">Finanzas</a>.`;
-        filtroEstadoPago = 'pendiente';
+        aviso = r.estado === 'pagado'
+          ? `✅ <b>${mxn(monto)}</b> a ${esc(p.tecnico_nombre)} registrado: el pago quedó <b>liquidado</b>. Ya aparece como egreso en <a href="/finanzas.html">Finanzas</a>.`
+          : `✅ <b>${mxn(monto)}</b> a ${esc(p.tecnico_nombre)} registrado (ya aparece en <a href="/finanzas.html">Finanzas</a>). Todavía falta <b>${mxn(r.saldo)}</b>.`;
+        filtroEstadoPago = 'por_pagar';
         await recargar();
-      } catch (e2) { err.textContent = e2.message; err.classList.remove('oculto'); btn.disabled = false; btn.textContent = 'Confirmar pago'; }
+      } catch (e2) { mostrar(e2.message); btn.disabled = false; btn.textContent = 'Confirmar pago'; }
     });
   }
 

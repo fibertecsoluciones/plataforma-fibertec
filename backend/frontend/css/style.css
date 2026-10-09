@@ -738,3 +738,4 @@ table.tabla tbody tr:nth-child(even):hover{ background: var(--fondo); }
 .lista-check input[type="checkbox"]{ width:17px; height:17px; margin-top:1px; flex-shrink:0; }
 .pill.pago-pendiente{ background: var(--sem-naranja-bg); color: var(--sem-naranja); }
 .pill.pago-pagado{ background: var(--sem-verde-bg); color: var(--sem-verde); }
+.pill.pago-parcial{ background: var(--sem-amarillo-bg); color: var(--sem-amarillo); }

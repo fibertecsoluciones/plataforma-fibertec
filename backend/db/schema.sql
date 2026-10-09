@@ -520,12 +520,12 @@ INSERT INTO planes (nombre, velocidad, precio) VALUES
 CREATE TABLE IF NOT EXISTS pagos_tecnicos (
   id           SERIAL PRIMARY KEY,
   tecnico_id   INTEGER NOT NULL REFERENCES usuarios(id),
-  monto        NUMERIC(10,2) NOT NULL CHECK (monto > 0),
+  monto        NUMERIC(10,2) NOT NULL CHECK (monto > 0),   -- total acordado (se puede pagar en partes)
   notas        TEXT,
-  estado       VARCHAR(10) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','pagado')),
-  fecha_pago   DATE,
+  estado       VARCHAR(10) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','parcial','pagado')),
+  fecha_pago   DATE,                                        -- solo si está liquidado: fecha del último abono
   metodo_pago  VARCHAR(30),
-  egreso_id    INTEGER REFERENCES egresos(id) ON DELETE SET NULL,
+  egreso_id    INTEGER REFERENCES egresos(id) ON DELETE SET NULL,  -- (en desuso: ahora cada abono tiene su egreso)
   creado_por   INTEGER REFERENCES usuarios(id),
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
   pagado_en    TIMESTAMPTZ,
@@ -546,6 +546,21 @@ CREATE TABLE IF NOT EXISTS actividades_sin_pago (
   marcado_por   INTEGER REFERENCES usuarios(id),
   creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Cada parte pagada de un pago (migración 021). Cada abono tiene su propio egreso en Finanzas.
+CREATE TABLE IF NOT EXISTS pagos_tecnicos_abonos (
+  id           SERIAL PRIMARY KEY,
+  pago_id      INTEGER NOT NULL REFERENCES pagos_tecnicos(id) ON DELETE CASCADE,
+  monto        NUMERIC(10,2) NOT NULL CHECK (monto > 0),
+  fecha        DATE NOT NULL,
+  metodo_pago  VARCHAR(30) NOT NULL DEFAULT 'efectivo',
+  notas        TEXT,
+  egreso_id    INTEGER REFERENCES egresos(id) ON DELETE SET NULL,
+  creado_por   INTEGER REFERENCES usuarios(id),
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pt_abonos_pago ON pagos_tecnicos_abonos(pago_id);
+CREATE INDEX IF NOT EXISTS idx_pt_abonos_egreso ON pagos_tecnicos_abonos(egreso_id);
 
 CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_estado ON pagos_tecnicos(estado);
 CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_tecnico ON pagos_tecnicos(tecnico_id);

@@ -37,7 +37,8 @@ router.post('/pagos-tecnicos', pagosTecnicos.crearPago);
 router.get('/pagos-tecnicos/:id', pagosTecnicos.obtenerPago);
 router.put('/pagos-tecnicos/:id', pagosTecnicos.actualizarPago);
 router.delete('/pagos-tecnicos/:id', pagosTecnicos.cancelarPago);
-router.post('/pagos-tecnicos/:id/pagar', pagosTecnicos.marcarPagado);
-router.post('/pagos-tecnicos/:id/deshacer', pagosTecnicos.deshacerPago);
+router.post('/pagos-tecnicos/:id/abonos', pagosTecnicos.registrarAbono);   // pagar todo o una parte
+router.post('/pagos-tecnicos/:id/pagar', pagosTecnicos.registrarAbono);    // (igual que /abonos; sin "monto" paga todo lo que falta)
+router.delete('/pagos-tecnicos/:id/abonos/:abonoId', pagosTecnicos.deshacerAbono);
 
 module.exports = router;

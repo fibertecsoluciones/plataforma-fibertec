@@ -177,11 +177,11 @@ async function ingresosDetalle(req, res) {
 }
 
 // ---------- CRUD de egresos ----------
-// Los egresos que nacen de "Pago a técnicos" se gestionan desde ese módulo (para que el pago y el egreso
-// nunca queden desajustados). Si la tabla aún no existe (migración sin correr), se trata como "no ligado".
+// Los egresos que nacen de "Pago a técnicos" (uno por cada abono) se gestionan desde ese módulo, para que el
+// pago y el egreso nunca queden desajustados. Si la tabla aún no existe (migración sin correr), se trata como "no ligado".
 async function pagoTecnicoLigado(egresoId) {
   try {
-    const r = await db.query('SELECT id, monto, fecha_pago FROM pagos_tecnicos WHERE egreso_id = $1', [egresoId]);
+    const r = await db.query('SELECT id, monto, fecha AS fecha_pago FROM pagos_tecnicos_abonos WHERE egreso_id = $1', [egresoId]);
     return r.rows[0] || null;
   } catch (err) {
     if (err.code === '42P01') return null;
@@ -205,7 +205,7 @@ async function listarEgresos(req, res) {
   let ligados = new Set();
   if (r.rows.length) {
     try {
-      const l = await db.query('SELECT egreso_id FROM pagos_tecnicos WHERE egreso_id = ANY($1::int[])', [r.rows.map(e => e.id)]);
+      const l = await db.query('SELECT egreso_id FROM pagos_tecnicos_abonos WHERE egreso_id = ANY($1::int[])', [r.rows.map(e => e.id)]);
       ligados = new Set(l.rows.map(x => x.egreso_id));
     } catch (err) { if (err.code !== '42P01') throw err; }
   }
@@ -238,7 +238,7 @@ async function actualizarEgreso(req, res) {
     const mismoMonto = Number(monto) === Number(ligado.monto);
     const mismaFecha = !fecha || String(fecha).slice(0, 10) === new Date(ligado.fecha_pago).toISOString().slice(0, 10);
     if (!mismoMonto || !mismaFecha) {
-      return res.status(409).json({ error: 'Este egreso viene de un pago a técnicos: el monto y la fecha se cambian desde "Pago a técnicos" (deshaz el pago y vuelve a marcarlo).' });
+      return res.status(409).json({ error: 'Este egreso viene de un pago a técnicos: el monto y la fecha se cambian desde "Pago a técnicos" (deshaz ese abono y vuelve a registrarlo).' });
     }
   }
 
@@ -259,7 +259,7 @@ async function actualizarEgreso(req, res) {
 async function eliminarEgreso(req, res) {
   const { id } = req.params;
   if (await pagoTecnicoLigado(id)) {
-    return res.status(409).json({ error: 'Este egreso viene de un pago a técnicos. Para quitarlo usa "Deshacer pago" en la sección Pago a técnicos.' });
+    return res.status(409).json({ error: 'Este egreso viene de un pago a técnicos. Para quitarlo deshaz ese abono en la sección Pago a técnicos.' });
   }
   const r = await db.query('DELETE FROM egresos WHERE id = $1 RETURNING *', [id]);
   if (!r.rows[0]) return res.status(404).json({ error: 'Egreso no encontrado.' });

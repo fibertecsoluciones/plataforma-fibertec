@@ -307,8 +307,8 @@ async function eliminarActividad(req, res) {
   try {
     const { id } = req.params;
     const pago = await pagoDeActividad(id);
-    if (pago && pago.estado === 'pagado') {
-      return res.status(409).json({ error: 'Esta actividad ya forma parte de un pago a técnicos que está pagado. No se puede eliminar; si de verdad hace falta, deshaz ese pago primero (en Pago a técnicos).' });
+    if (pago && pago.estado !== 'pendiente') {
+      return res.status(409).json({ error: 'Esta actividad ya forma parte de un pago a técnicos con abonos registrados. No se puede eliminar; si de verdad hace falta, deshaz esos abonos primero (en Pago a técnicos).' });
     }
     const r = await db.query('DELETE FROM actividades WHERE id = $1 RETURNING *', [id]);
     if (!r.rows[0]) return res.status(404).json({ error: 'Actividad no encontrada.' });
