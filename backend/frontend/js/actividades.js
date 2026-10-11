@@ -4,7 +4,6 @@
 
   renderLayout('actividades', 'Actividades');
   const cont = document.getElementById('pagina-contenido');
-  cont.classList.add('sap-host');
   const esAdmin = usuario.rol === 'admin';
 
   // ==========================================================
@@ -91,17 +90,6 @@
   const opciones = (obj, vacio) => `<option value="">${vacio}</option>` + Object.entries(obj).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   cont.innerHTML = `
     <div class="sap-app">
-      <header class="sap-pageheader">
-        <div>
-          <h1>Actividades</h1>
-          <div class="sap-subtle" id="sap-resumen">Cargando…</div>
-        </div>
-        <div class="sap-pageheader__actions">
-          <button class="sap-btn" id="sap-actualizar" title="Volver a consultar">${ico('ciclo')} Actualizar</button>
-          ${esAdmin ? `<button class="sap-btn sap-btn--emphasized" id="sap-crear">${ico('mas')} Crear actividad</button>` : ''}
-        </div>
-      </header>
-
       <section class="sap-filterbar" aria-label="Filtros">
         ${esAdmin ? `<div class="sap-field"><label for="sap-f-tecnico">Técnico</label>
           <select class="sap-select" id="sap-f-tecnico"><option value="">Todos</option>${tecnicos.map(t => `<option value="${t.id}">${esc(t.nombre)}</option>`).join('')}</select></div>` : ''}
@@ -141,6 +129,13 @@
   `;
 
   const $ = (id) => document.getElementById(id);
+
+  // El resumen y los botones principales viven en la cabecera de página del cascarón
+  const phSub = document.getElementById('ft-ph-sub') || document.createElement('div');
+  const phAcc = document.getElementById('ft-ph-acciones') || document.createElement('div');
+  phSub.textContent = 'Cargando…';
+  phAcc.innerHTML = `<button class="btn btn-secundario" id="sap-actualizar" title="Volver a consultar">${ico('ciclo')} Actualizar</button>
+    ${esAdmin ? `<button class="btn btn-primario" id="sap-crear">${ico('mas')} Crear actividad</button>` : ''}`;
   const drawerHost = $('sap-drawer-host');
   const modalCont = $('modal-contenedor');
 
@@ -164,7 +159,7 @@
       return true;
     } catch (err) {
       $('sap-tabla').innerHTML = `<div class="sap-error">${esc(err.message)}</div>`;
-      $('sap-resumen').textContent = 'No se pudieron cargar las actividades';
+      phSub.textContent = 'No se pudieron cargar las actividades';
       return false;
     }
   }
@@ -227,7 +222,7 @@
     puedeReordenar = esAdmin && !hayFiltros() && orden.col === 'orden' && orden.dir === 'asc';
 
     const sinCompletar = todas.filter(a => a.estado !== 'completada').length;
-    $('sap-resumen').textContent = `${todas.length} actividad${todas.length === 1 ? '' : 'es'} en total · ${sinCompletar} sin completar` + (conteo.vencidas ? ` · ${conteo.vencidas} vencida${conteo.vencidas === 1 ? '' : 's'}` : '');
+    phSub.textContent = `${todas.length} actividad${todas.length === 1 ? '' : 'es'} en total · ${sinCompletar} sin completar` + (conteo.vencidas ? ` · ${conteo.vencidas} vencida${conteo.vencidas === 1 ? '' : 's'}` : '');
     $('sap-titulo-tabla').innerHTML = `Actividades <span>(${lista.length})</span>`;
     $('sap-orden-movil').value = COMPARADORES[orden.col] && ['orden', 'prioridad', 'estado', 'limite', 'titulo'].includes(orden.col) ? orden.col : 'orden';
     $('sap-ayuda-orden').innerHTML = esAdmin
@@ -484,6 +479,11 @@
   // ==========================================================
   // EVENTOS (delegados: sobreviven a los re-renders)
   // ==========================================================
+  phAcc.addEventListener('click', async (e) => {
+    if (e.target.closest('#sap-actualizar')) { await cargar(); toast('Lista actualizada'); }
+    else if (e.target.closest('#sap-crear')) abrirDialogo(null);
+  });
+
   cont.addEventListener('click', async (e) => {
     const t = e.target;
     const q = (sel) => t.closest(sel);
@@ -492,10 +492,8 @@
 
     // --- encabezado y filtros ---
     if (q('[data-tab-estado]')) { filtros.estado = q('[data-tab-estado]').dataset.tabEstado; renderTabla(); return; }
-    if (q('#sap-actualizar')) { await cargar(); toast('Lista actualizada'); return; }
     if (q('#sap-ir')) { leerFiltros(); renderTabla(); return; }
     if (q('#sap-restablecer')) { restablecerFiltros(); return; }
-    if (q('#sap-crear')) { abrirDialogo(null); return; }
 
     // --- ordenar por columna: asc → desc → vuelve al orden manual ---
     const th = q('th[data-orden]');
