@@ -40,7 +40,8 @@ const FT_ICONOS = {
   enchufe: '<line x1="9" y1="3" x2="9" y2="8"/><line x1="15" y1="3" x2="15" y2="8"/><path d="M6 8h12v4a6 6 0 0 1-12 0z"/><line x1="12" y1="18" x2="12" y2="21"/>',
   sol: '<circle cx="12" cy="12" r="4"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.3" y1="5.3" x2="7" y2="7"/><line x1="17" y1="17" x2="18.7" y2="18.7"/><line x1="18.7" y1="5.3" x2="17" y2="7"/><line x1="7" y1="17" x2="5.3" y2="18.7"/>',
   salir: '<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><polyline points="15 8 20 12 15 16"/><line x1="20" y1="12" x2="9" y2="12"/>',
-  chevron: '<polyline points="6 9 12 15 18 9"/>'
+  chevron: '<polyline points="6 9 12 15 18 9"/>',
+  tendencia: '<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>'
 };
 function ftIcono(nombre, tam) {
   const t = tam || 18;
@@ -112,6 +113,7 @@ const NAV_ITEMS = [
   ]},
   { grupo: 'Administración', items: [
     { id: 'finanzas', href: '/finanzas.html', icono: 'dinero', label: 'Finanzas', soloAdmin: true },
+    { id: 'proyeccion', href: '/proyeccion.html', icono: 'tendencia', label: 'Proyección', soloAdmin: true },
     { id: 'pagos-tecnicos', href: '/pagos-tecnicos.html', icono: 'cartera', label: 'Pago a técnicos', soloAdmin: true },
     { id: 'ajustes',  href: '/ajustes.html',  icono: 'ajustes', label: 'Ajustes', soloAdmin: true },
   ]}

@@ -3,6 +3,7 @@ const ctrl = require('../controllers/finanzas.controller');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const pagosTecnicos = require('../controllers/pagos-tecnicos.controller');
+const proyeccion = require('../controllers/proyeccion.controller');
 
 router.use(requireAuth);
 router.use(requireRole('admin')); // toda la sección de finanzas es exclusiva de administradores
@@ -40,5 +41,9 @@ router.delete('/pagos-tecnicos/:id', pagosTecnicos.cancelarPago);
 router.post('/pagos-tecnicos/:id/abonos', pagosTecnicos.registrarAbono);   // pagar todo o una parte
 router.post('/pagos-tecnicos/:id/pagar', pagosTecnicos.registrarAbono);    // (igual que /abonos; sin "monto" paga todo lo que falta)
 router.delete('/pagos-tecnicos/:id/abonos/:abonoId', pagosTecnicos.deshacerAbono);
+
+// ---------- Proyección de ingresos por mensualidades ----------
+router.get('/proyeccion', proyeccion.proyeccion);
+router.get('/proyeccion/excel', proyeccion.proyeccionExcel);
 
 module.exports = router;
