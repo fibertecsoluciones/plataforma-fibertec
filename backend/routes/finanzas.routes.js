@@ -45,5 +45,10 @@ router.delete('/pagos-tecnicos/:id/abonos/:abonoId', pagosTecnicos.deshacerAbono
 // ---------- Proyección de ingresos por mensualidades ----------
 router.get('/proyeccion', proyeccion.proyeccion);
 router.get('/proyeccion/excel', proyeccion.proyeccionExcel);
+router.get('/proyeccion/gastos', proyeccion.listarGastos);
+router.post('/proyeccion/gastos', proyeccion.crearGasto);
+router.put('/proyeccion/gastos/:id', proyeccion.actualizarGasto);
+router.put('/proyeccion/gastos/:id/activo', proyeccion.cambiarActivo);
+router.delete('/proyeccion/gastos/:id', proyeccion.eliminarGasto);
 
 module.exports = router;
