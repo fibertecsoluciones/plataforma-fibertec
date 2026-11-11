@@ -24,6 +24,10 @@ const etiquetaMes = (clave) => { const [a, m] = clave.split('-'); return `${MESE
 class ErrorNegocio extends Error { constructor(m, status = 400) { super(m); this.status = status; } }
 function responderError(res, err, contexto, generico) {
   if (err instanceof ErrorNegocio) return res.status(err.status).json({ error: err.message });
+  if (err && err.code === '42P01') { // tabla inexistente: falta correr la migración
+    console.error(`Error en ${contexto}: falta la migración 023 (tabla proyeccion_gastos)`);
+    return res.status(500).json({ error: 'Falta correr una migración de la base de datos. En la Shell del backend ejecuta: node db/migrate.js migrations/023_proyeccion_gastos.sql' });
+  }
   console.error(`Error en ${contexto}:`, err);
   return res.status(500).json({ error: generico });
 }
@@ -165,7 +169,14 @@ async function calcular(meses) {
              date_trunc('month', (now() AT TIME ZONE 'America/Mexico_City')))::int AS mes_gratis
      FROM clientes`
   );
-  const gastosRows = (await db.query(`SELECT ${SELECT_GASTO} FROM proyeccion_gastos ORDER BY activo DESC, categoria, concepto, id`)).rows;
+  // Si la migración 023 aún no se ha corrido, la proyección de INGRESOS sigue funcionando (sin gastos)
+  let gastosRows = [], gastosDisponibles = true;
+  try {
+    gastosRows = (await db.query(`SELECT ${SELECT_GASTO} FROM proyeccion_gastos ORDER BY activo DESC, categoria, concepto, id`)).rows;
+  } catch (err) {
+    if (err.code !== '42P01') throw err;
+    gastosDisponibles = false;
+  }
   const gastosActivos = gastosRows.filter(g => g.activo);
 
   const porMes = new Map();
@@ -214,6 +225,7 @@ async function calcular(meses) {
     zonas: [...zonas].sort((a, b) => a.localeCompare(b, 'es')),
     planes: [...planes].sort((a, b) => a.localeCompare(b, 'es')),
     gastos: gastosRows,
+    gastos_disponibles: gastosDisponibles,
     resumen: {
       clientes_activos: c.activos,
       ingreso_mes_actual: m0 ? m0.total : 0,

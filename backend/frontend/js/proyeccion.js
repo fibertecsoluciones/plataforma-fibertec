@@ -140,6 +140,14 @@
   function renderGastos() {
     const cont2 = document.getElementById('proy-gastos');
     const gs = datos.gastos;
+    if (datos.gastos_disponibles === false) {
+      document.getElementById('proy-agregar').disabled = true;
+      cont2.innerHTML = `<div class="estado-vacio" style="padding:28px 20px;">
+        <b>Falta activar la captura de gastos.</b><br>
+        <span class="texto-gris" style="font-size:12.5px;">Corre una sola vez esta migración en la Shell del backend y recarga la página:</span><br>
+        <code style="display:inline-block; margin-top:8px; padding:6px 10px; background:var(--ft-hover, #F3F6F7); border-radius:6px; font-size:12.5px;">node db/migrate.js migrations/023_proyeccion_gastos.sql</code></div>`;
+      return;
+    }
     if (!gs.length) {
       cont2.innerHTML = `<div class="estado-vacio" style="padding:28px 20px;">
         Aún no capturas ningún gasto.<br><span class="texto-gris" style="font-size:12.5px;">Agrega el pago de tu servicio de internet, gasolina, refacciones, módems, gastos operativos… y verás cómo se comportan contra tus ingresos.</span></div>`;
