@@ -115,6 +115,7 @@ const NAV_ITEMS = [
     { id: 'finanzas', href: '/finanzas.html', icono: 'dinero', label: 'Finanzas', soloAdmin: true },
     { id: 'proyeccion', href: '/proyeccion.html', icono: 'tendencia', label: 'Proyección', soloAdmin: true },
     { id: 'pagos-tecnicos', href: '/pagos-tecnicos.html', icono: 'cartera', label: 'Pago a técnicos', soloAdmin: true },
+    { id: 'cuentas-por-pagar', href: '/cuentas-por-pagar.html', icono: 'recibo', label: 'Cuentas por pagar', soloAdmin: true },
     { id: 'ajustes',  href: '/ajustes.html',  icono: 'ajustes', label: 'Ajustes', soloAdmin: true },
   ]}
 ];

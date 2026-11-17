@@ -566,34 +566,46 @@ CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_estado ON pagos_tecnicos(estado);
 CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_tecnico ON pagos_tecnicos(tecnico_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_tecnicos_egreso ON pagos_tecnicos(egreso_id);
 
+-- Cuentas por pagar (migración 024)
+CREATE TABLE IF NOT EXISTS cuentas_por_pagar (
+  id                 SERIAL PRIMARY KEY,
+  proveedor          VARCHAR(120) NOT NULL,
+  concepto           VARCHAR(150) NOT NULL,
+  categoria_id       INTEGER REFERENCES egresos_categorias(id) ON DELETE SET NULL,
+  monto              NUMERIC(10,2) NOT NULL CHECK (monto > 0),
+  fecha_vencimiento  DATE NOT NULL,
+  notas              TEXT,
+  estado             VARCHAR(10) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','parcial','pagada')),
+  fecha_pago         DATE,
+  creado_por         INTEGER REFERENCES usuarios(id),
+  creado_en          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT cuentas_por_pagar_fecha_si_pagada CHECK ((estado = 'pagada') = (fecha_pago IS NOT NULL))
+);
+
+CREATE TABLE IF NOT EXISTS cuentas_por_pagar_abonos (
+  id           SERIAL PRIMARY KEY,
+  cuenta_id    INTEGER NOT NULL REFERENCES cuentas_por_pagar(id) ON DELETE CASCADE,
+  monto        NUMERIC(10,2) NOT NULL CHECK (monto > 0),
+  fecha        DATE NOT NULL,
+  metodo_pago  VARCHAR(30) NOT NULL DEFAULT 'efectivo',
+  notas        TEXT,
+  egreso_id    INTEGER REFERENCES egresos(id) ON DELETE SET NULL,
+  creado_por   INTEGER REFERENCES usuarios(id),
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cxp_estado ON cuentas_por_pagar(estado);
+CREATE INDEX IF NOT EXISTS idx_cxp_vence ON cuentas_por_pagar(fecha_vencimiento);
+CREATE INDEX IF NOT EXISTS idx_cxp_abonos_cuenta ON cuentas_por_pagar_abonos(cuenta_id);
+CREATE INDEX IF NOT EXISTS idx_cxp_abonos_egreso ON cuentas_por_pagar_abonos(egreso_id);
+
+
 INSERT INTO inventario_categorias (nombre) VALUES
   ('Herramienta'),('Material de red'),('Equipo/Modem'),('Consumible');
 
 INSERT INTO egresos_categorias (nombre) VALUES
   ('Nómina'),('Combustible'),('Herramientas'),('Renta / Torres'),
-  ('Mantenimiento de red'),('Publicidad'),('Otros'),('Pago a técnicos');
-
--- ============================================================
--- PROYECCIÓN DE INGRESOS: gastos planeados para la simulación (migración 023)
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS proyeccion_gastos (
-  id          SERIAL PRIMARY KEY,
-  concepto    VARCHAR(120) NOT NULL,
-  categoria   VARCHAR(30)  NOT NULL CHECK (categoria IN ('Servicio de internet','Gastos operativos','Gasolina','Refacciones','Módems','Otro')),
-  monto       NUMERIC(12,2) NOT NULL CHECK (monto > 0),
-  frecuencia  VARCHAR(10)  NOT NULL CHECK (frecuencia IN ('mensual','unica')),
-  mes_inicio  DATE,
-  mes_fin     DATE,
-  activo      BOOLEAN NOT NULL DEFAULT TRUE,
-  notas       TEXT,
-  creado_por  INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT proyeccion_gastos_unica_con_mes CHECK (frecuencia <> 'unica' OR (mes_inicio IS NOT NULL AND mes_fin IS NULL)),
-  CONSTRAINT proyeccion_gastos_rango CHECK (mes_fin IS NULL OR mes_inicio IS NULL OR mes_fin >= mes_inicio),
-  CONSTRAINT proyeccion_gastos_dia_uno CHECK ((mes_inicio IS NULL OR EXTRACT(day FROM mes_inicio) = 1) AND (mes_fin IS NULL OR EXTRACT(day FROM mes_fin) = 1))
-);
-CREATE INDEX IF NOT EXISTS idx_proyeccion_gastos_activo ON proyeccion_gastos(activo);
+  ('Mantenimiento de red'),('Publicidad'),('Otros'),('Pago a técnicos'),('Cuentas por pagar');
 
 INSERT INTO ingresos_categorias (nombre) VALUES
   ('Instalación'),('Reconexión'),('Venta de equipo'),('Otro');

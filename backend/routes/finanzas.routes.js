@@ -4,6 +4,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const pagosTecnicos = require('../controllers/pagos-tecnicos.controller');
 const proyeccion = require('../controllers/proyeccion.controller');
+const cuentasPorPagar = require('../controllers/cuentas-por-pagar.controller');
 
 router.use(requireAuth);
 router.use(requireRole('admin')); // toda la sección de finanzas es exclusiva de administradores
@@ -45,10 +46,16 @@ router.delete('/pagos-tecnicos/:id/abonos/:abonoId', pagosTecnicos.deshacerAbono
 // ---------- Proyección de ingresos por mensualidades ----------
 router.get('/proyeccion', proyeccion.proyeccion);
 router.get('/proyeccion/excel', proyeccion.proyeccionExcel);
-router.get('/proyeccion/gastos', proyeccion.listarGastos);
-router.post('/proyeccion/gastos', proyeccion.crearGasto);
-router.put('/proyeccion/gastos/:id', proyeccion.actualizarGasto);
-router.put('/proyeccion/gastos/:id/activo', proyeccion.cambiarActivo);
-router.delete('/proyeccion/gastos/:id', proyeccion.eliminarGasto);
+
+// ---------- Cuentas por pagar (proveedores) ----------
+// Las rutas fijas van ANTES de /:id
+router.get('/cuentas-por-pagar/resumen', cuentasPorPagar.resumen);
+router.get('/cuentas-por-pagar', cuentasPorPagar.listar);
+router.post('/cuentas-por-pagar', cuentasPorPagar.crear);
+router.get('/cuentas-por-pagar/:id', cuentasPorPagar.obtener);
+router.put('/cuentas-por-pagar/:id', cuentasPorPagar.actualizar);
+router.delete('/cuentas-por-pagar/:id', cuentasPorPagar.eliminar);
+router.post('/cuentas-por-pagar/:id/abonos', cuentasPorPagar.registrarAbono);
+router.delete('/cuentas-por-pagar/:id/abonos/:abonoId', cuentasPorPagar.deshacerAbono);
 
 module.exports = router;

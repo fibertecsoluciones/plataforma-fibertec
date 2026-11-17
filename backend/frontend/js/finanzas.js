@@ -460,7 +460,7 @@
           <tbody>
             ${egresos.map(e => `
               <tr>
-                <td class="celda-tarjeta-titulo">${e.concepto}${e.es_pago_tecnico ? `<div class="celda-meta" style="white-space:normal;">🔗 Viene de <a href="/pagos-tecnicos.html">Pago a técnicos</a>: para quitarlo deshaz ese pago ahí</div>` : ''}</td>
+                <td class="celda-tarjeta-titulo">${e.concepto}${e.es_pago_tecnico ? `<div class="celda-meta" style="white-space:normal;">🔗 Viene de <a href="/pagos-tecnicos.html">Pago a técnicos</a>: para quitarlo deshaz ese pago ahí</div>` : ''}${e.es_cuenta_por_pagar ? `<div class="celda-meta" style="white-space:normal;">🔗 Viene de <a href="/cuentas-por-pagar.html">Cuentas por pagar</a>: para quitarlo deshaz ese pago ahí</div>` : ''}</td>
                 <td data-label="Categoría">${e.categoria_nombre || '—'}</td>
                 <td data-label="Monto">${mxn(e.monto)}</td>
                 <td data-label="Fecha">${fechaCorta(e.fecha)}</td>
@@ -468,7 +468,7 @@
                 <td class="celda-acciones-movil">
                   <div class="fila-acciones">
                     <button class="btn btn-secundario btn-sm btn-icono" data-editar-egreso="${e.id}" title="Editar">✏️</button>
-                    ${e.es_pago_tecnico ? '' : `<button class="btn btn-peligro btn-sm btn-icono" data-borrar="${e.id}" title="Eliminar">🗑️</button>`}
+                    ${(e.es_pago_tecnico || e.es_cuenta_por_pagar) ? '' : `<button class="btn btn-peligro btn-sm btn-icono" data-borrar="${e.id}" title="Eliminar">🗑️</button>`}
                   </div>
                 </td>
               </tr>
@@ -519,9 +519,10 @@
                   ${categorias.map(c => `<option value="${c.id}" ${egreso && String(egreso.categoria_id) === String(c.id) ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                 </select>
               </div>
-              <div class="campo"><label>Monto</label><input type="number" id="e-monto" min="0" step="0.01" value="${egreso ? egreso.monto : ''}" ${egreso && egreso.es_pago_tecnico ? 'readonly' : ''} required /></div>
-              <div class="campo"><label>Fecha</label><input type="date" id="e-fecha" value="${egreso ? String(egreso.fecha).slice(0,10) : new Date().toISOString().slice(0,10)}" ${egreso && egreso.es_pago_tecnico ? 'readonly' : ''} /></div>
+              <div class="campo"><label>Monto</label><input type="number" id="e-monto" min="0" step="0.01" value="${egreso ? egreso.monto : ''}" ${egreso && (egreso.es_pago_tecnico || egreso.es_cuenta_por_pagar) ? 'readonly' : ''} required /></div>
+              <div class="campo"><label>Fecha</label><input type="date" id="e-fecha" value="${egreso ? String(egreso.fecha).slice(0,10) : new Date().toISOString().slice(0,10)}" ${egreso && (egreso.es_pago_tecnico || egreso.es_cuenta_por_pagar) ? 'readonly' : ''} /></div>
               ${egreso && egreso.es_pago_tecnico ? '<div class="campo ancho-total" style="margin-top:-8px;"><span class="texto-gris" style="font-size:11.5px;">🔗 Este egreso viene de un pago a técnicos: el monto y la fecha no se cambian aquí (deshaz ese pago en Pago a técnicos y vuelve a registrarlo).</span></div>' : ''}
+              ${egreso && egreso.es_cuenta_por_pagar ? '<div class="campo ancho-total" style="margin-top:-8px;"><span class="texto-gris" style="font-size:11.5px;">🔗 Este egreso viene de una cuenta por pagar: el monto y la fecha no se cambian aquí (deshaz ese pago en Cuentas por pagar y vuelve a registrarlo).</span></div>' : ''}
               <div class="campo ancho-total">
                 <label>Comprobante ${egreso ? '(sube uno solo si quieres reemplazar el actual)' : '(opcional)'}</label>
                 <input type="file" id="e-comprobante" accept="image/*,.pdf" />

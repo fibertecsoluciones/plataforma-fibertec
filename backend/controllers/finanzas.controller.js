@@ -189,6 +189,26 @@ async function pagoTecnicoLigado(egresoId) {
   }
 }
 
+// Igual, pero para los egresos que nacen de "Cuentas por pagar" (uno por cada pago de una cuenta)
+async function cuentaPorPagarLigada(egresoId) {
+  try {
+    const r = await db.query('SELECT id, monto, fecha AS fecha_pago FROM cuentas_por_pagar_abonos WHERE egreso_id = $1', [egresoId]);
+    return r.rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01') return null;
+    throw err;
+  }
+}
+
+// Devuelve a qué módulo pertenece un egreso ligado (o null si es un egreso normal)
+async function egresoLigado(egresoId) {
+  const t = await pagoTecnicoLigado(egresoId);
+  if (t) return { ...t, modulo: 'Pago a técnicos' };
+  const c = await cuentaPorPagarLigada(egresoId);
+  if (c) return { ...c, modulo: 'Cuentas por pagar' };
+  return null;
+}
+
 async function listarEgresos(req, res) {
   const { desde, hasta } = req.query;
   let sql = `SELECT e.*, c.nombre AS categoria_nombre FROM egresos e
@@ -201,15 +221,21 @@ async function listarEgresos(req, res) {
   sql += ' ORDER BY e.creado_en DESC, e.id DESC';
   const r = await db.query(sql, params);
 
-  // Marca los egresos que vienen de un pago a técnicos
+  // Marca los egresos que vienen de un pago a técnicos o de una cuenta por pagar
   let ligados = new Set();
+  let ligadosCxp = new Set();
   if (r.rows.length) {
+    const ids = r.rows.map(e => e.id);
     try {
-      const l = await db.query('SELECT egreso_id FROM pagos_tecnicos_abonos WHERE egreso_id = ANY($1::int[])', [r.rows.map(e => e.id)]);
+      const l = await db.query('SELECT egreso_id FROM pagos_tecnicos_abonos WHERE egreso_id = ANY($1::int[])', [ids]);
       ligados = new Set(l.rows.map(x => x.egreso_id));
     } catch (err) { if (err.code !== '42P01') throw err; }
+    try {
+      const l = await db.query('SELECT egreso_id FROM cuentas_por_pagar_abonos WHERE egreso_id = ANY($1::int[])', [ids]);
+      ligadosCxp = new Set(l.rows.map(x => x.egreso_id));
+    } catch (err) { if (err.code !== '42P01') throw err; }
   }
-  res.json(r.rows.map(e => ({ ...e, es_pago_tecnico: ligados.has(e.id) })));
+  res.json(r.rows.map(e => ({ ...e, es_pago_tecnico: ligados.has(e.id), es_cuenta_por_pagar: ligadosCxp.has(e.id) })));
 }
 
 async function crearEgreso(req, res) {
@@ -233,12 +259,12 @@ async function actualizarEgreso(req, res) {
     return res.status(400).json({ error: 'Concepto y monto son obligatorios.' });
   }
 
-  const ligado = await pagoTecnicoLigado(id);
+  const ligado = await egresoLigado(id);
   if (ligado) {
     const mismoMonto = Number(monto) === Number(ligado.monto);
     const mismaFecha = !fecha || String(fecha).slice(0, 10) === new Date(ligado.fecha_pago).toISOString().slice(0, 10);
     if (!mismoMonto || !mismaFecha) {
-      return res.status(409).json({ error: 'Este egreso viene de un pago a técnicos: el monto y la fecha se cambian desde "Pago a técnicos" (deshaz ese abono y vuelve a registrarlo).' });
+      return res.status(409).json({ error: `Este egreso viene de "${ligado.modulo}": el monto y la fecha se cambian desde ahí (deshaz ese pago y vuelve a registrarlo).` });
     }
   }
 
@@ -258,8 +284,9 @@ async function actualizarEgreso(req, res) {
 
 async function eliminarEgreso(req, res) {
   const { id } = req.params;
-  if (await pagoTecnicoLigado(id)) {
-    return res.status(409).json({ error: 'Este egreso viene de un pago a técnicos. Para quitarlo deshaz ese abono en la sección Pago a técnicos.' });
+  const ligado = await egresoLigado(id);
+  if (ligado) {
+    return res.status(409).json({ error: `Este egreso viene de "${ligado.modulo}". Para quitarlo deshaz ese pago en esa sección.` });
   }
   const r = await db.query('DELETE FROM egresos WHERE id = $1 RETURNING *', [id]);
   if (!r.rows[0]) return res.status(404).json({ error: 'Egreso no encontrado.' });

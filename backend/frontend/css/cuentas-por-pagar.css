@@ -1,0 +1,8 @@
+/* Cuentas por pagar: estados y filas con fecha de vencimiento */
+.pill.cx-pendiente{ background: var(--sem-naranja-bg); color: var(--sem-naranja); }
+.pill.cx-parcial{ background: var(--sem-amarillo-bg); color: var(--sem-amarillo); }
+.pill.cx-pagada{ background: var(--sem-verde-bg); color: var(--sem-verde); }
+.pill.cx-vencida{ background: var(--sem-rojo-bg); color: var(--sem-rojo); }
+.cx-vence-rojo{ color: var(--sem-rojo); font-weight:600; }
+.cx-vence-ambar{ color: var(--sem-amarillo); font-weight:600; }
+.cx-buscador{ flex:1; min-width:220px; max-width:380px; padding:9px 12px; border:1px solid var(--borde); border-radius:6px; }
