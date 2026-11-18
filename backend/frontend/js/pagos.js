@@ -339,8 +339,10 @@
                 <input type="month" id="p-periodo" value="${periodoActual}" required />
               </div>
               ${sinMontos ? `
-              <div class="campo ancho-total">
-                <div class="texto-gris" style="font-size:12.5px;">El sistema registra automáticamente lo que falta de ese mes. Si el cliente pagó una cantidad distinta o varios meses juntos, avísale al administrador.</div>
+              <div class="campo">
+                <label>Monto recibido</label>
+                <input type="number" id="p-monto" min="0.01" step="0.01" placeholder="¿Cuánto te dio el cliente?" required />
+                <div class="texto-gris" style="font-size:11.5px; margin-top:4px;">Escribe exactamente lo que recibiste. Si pagó varios meses juntos, avísale al administrador.</div>
               </div>` : `
               <div class="campo">
                 <label>Meses cubiertos en esta exhibición</label>
@@ -406,14 +408,15 @@
       const payload = {
         cliente_id: clientePk,
         periodo,
-        ...(sinMontos ? {} : { monto: Number(inputMonto.value), meses_cubiertos: Number(selectMeses.value) }),
+        monto: Number(inputMonto.value),
+        ...(sinMontos ? {} : { meses_cubiertos: Number(selectMeses.value) }),
         metodo_pago: document.getElementById('p-metodo').value,
         fecha_pago: document.getElementById('p-fecha').value,
         notas: document.getElementById('p-notas').value.trim()
       };
 
-      if (!periodo || (!sinMontos && !payload.monto)) {
-        errorBox.textContent = sinMontos ? 'Elige el mes que se paga.' : 'El mes y el monto son obligatorios.';
+      if (!periodo || !payload.monto) {
+        errorBox.textContent = 'El mes y el monto son obligatorios.';
         errorBox.classList.remove('oculto');
         return;
       }

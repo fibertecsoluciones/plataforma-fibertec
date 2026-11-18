@@ -244,7 +244,7 @@
                   <option value="false" ${!(usuarioEditar && usuarioEditar.ocultar_montos) ? 'selected' : ''}>Sí, ve los montos</option>
                   <option value="true" ${usuarioEditar && usuarioEditar.ocultar_montos ? 'selected' : ''}>No — ocultar montos</option>
                 </select>
-                <div class="texto-gris" style="font-size:11.5px; margin-top:4px;">Si los ocultas, no ve tarifas, saldos ni pagos, y al registrar un pago el sistema cobra solo lo que falta del mes.</div>
+                <div class="texto-gris" style="font-size:11.5px; margin-top:4px;">Si los ocultas, no ve tarifas, saldos ni montos del historial. Al registrar un pago sí escribe lo que recibió (un mes por pago).</div>
               </div>
               <div class="campo"><label>Teléfono</label><input type="text" id="u-telefono" value="${usuarioEditar && usuarioEditar.telefono ? usuarioEditar.telefono : ''}" /></div>
               ${usuarioEditar ? `

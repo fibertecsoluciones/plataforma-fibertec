@@ -56,29 +56,21 @@ async function registrarPago(req, res) {
   let { cliente_id, periodo, monto, metodo_pago, meses_cubiertos, notas, fecha_pago } = req.body;
   const oculta = ocultaMontos(req);
 
-  if (!cliente_id || !periodo || (!oculta && monto === undefined)) {
-    return res.status(400).json({ error: oculta ? 'Cliente y mes son obligatorios.' : 'Cliente, periodo (mes) y monto son obligatorios.' });
+  if (!cliente_id || !periodo || monto === undefined || monto === null || monto === '') {
+    return res.status(400).json({ error: 'Cliente, periodo (mes) y monto son obligatorios.' });
+  }
+  if (!Number.isFinite(Number(monto)) || Number(monto) <= 0) {
+    return res.status(400).json({ error: 'El monto debe ser mayor a cero.' });
   }
 
   if (!(await puedeVerCliente(req, res, cliente_id))) return;
 
   if (oculta) {
-    // Sin montos: no puede capturar cantidad ni pagar varios meses juntos. El sistema cobra
-    // automáticamente lo que falta del mes elegido (tarifa del plan menos lo ya abonado ese mes).
+    // Sin montos a la vista: captura lo que le entregaron, pero solo un mes por pago
+    // (los pagos de varios meses los registra el administrador). El admin lo revisa después.
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(periodo))) {
       return res.status(400).json({ error: 'El mes no es válido.' });
     }
-    const r = await db.query(
-      `SELECT pl.precio::numeric AS precio,
-              COALESCE((SELECT SUM(monto) FROM pagos WHERE cliente_id = c.id
-                        AND date_trunc('month', periodo) = date_trunc('month', $2::date)), 0)::numeric AS pagado
-       FROM clientes c JOIN planes pl ON pl.id = c.plan_id WHERE c.id = $1`,
-      [Number(cliente_id), periodo + '-01']
-    );
-    if (!r.rows[0]) return res.status(404).json({ error: 'Cliente no encontrado.' });
-    const falta = Number(r.rows[0].precio) - Number(r.rows[0].pagado);
-    if (falta <= 0) return res.status(409).json({ error: 'Ese mes ya está pagado completo.' });
-    monto = falta.toFixed(2);
     meses_cubiertos = 1;
   }
 
