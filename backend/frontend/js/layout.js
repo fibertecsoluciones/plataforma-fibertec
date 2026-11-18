@@ -126,7 +126,7 @@ function renderLayout(paginaActiva, tituloTopbar) {
 
   const gruposHtml = NAV_ITEMS.map(grupo => {
     const items = grupo.items
-      .filter(it => !it.soloAdmin || usuario.rol === 'admin')
+      .filter(it => usuario.rol === 'cobranza' ? it.id === 'pagos' : (!it.soloAdmin || usuario.rol === 'admin'))
       .map(it => `
         <a class="nav-link ${it.id === paginaActiva ? 'activo' : ''}" href="${it.href}" ${it.id === paginaActiva ? 'aria-current="page"' : ''}>
           <span class="icono">${ftIcono(it.icono, 19)}</span><span>${it.label}</span>
@@ -136,17 +136,17 @@ function renderLayout(paginaActiva, tituloTopbar) {
   }).join('');
 
   const iniciales = String(usuario.nombre || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
-  const rolTexto = usuario.rol === 'admin' ? 'Administrador' : (usuario.rol === 'tecnico' ? 'Técnico' : usuario.rol);
+  const rolTexto = usuario.rol === 'admin' ? 'Administrador' : (usuario.rol === 'tecnico' ? 'Técnico' : (usuario.rol === 'cobranza' ? 'Cobranza' : usuario.rol));
 
   const shell = document.getElementById('app-shell');
   shell.innerHTML = `
     <header class="ft-shell">
       <button class="btn-menu" id="btn-menu" aria-label="Abrir menú">${ftIcono('menu', 22)}</button>
-      <a class="ft-logo" href="${usuario.rol === 'tecnico' ? '/actividades.html' : '/dashboard.html'}" aria-label="FiberTec — inicio"><img src="/img/logo.png" alt="FiberTec" /></a>
+      <a class="ft-logo" href="${API.paginaInicio(usuario.rol)}" aria-label="FiberTec — inicio"><img src="/img/logo.png" alt="FiberTec" /></a>
       <div class="ft-shell__sep"></div>
       <div class="ft-shell__title">Gestión de red</div>
       <div class="ft-shell__right">
-        <div class="notif-envoltura">
+        <div class="notif-envoltura ${usuario.rol === 'cobranza' ? 'oculto' : ''}">
           <button class="btn-notif" id="btn-notif" title="Notificaciones" aria-label="Notificaciones">
             ${ftIcono('campana', 20)}
             <span class="notif-badge oculto" id="notif-badge">0</span>
@@ -201,7 +201,7 @@ function renderLayout(paginaActiva, tituloTopbar) {
   btnUsuario.addEventListener('click', (e) => { e.stopPropagation(); const abierto = menuUsuario.classList.toggle('oculto') === false; btnUsuario.setAttribute('aria-expanded', abierto); });
   document.addEventListener('click', (e) => { if (!menuUsuario.contains(e.target)) { menuUsuario.classList.add('oculto'); btnUsuario.setAttribute('aria-expanded', 'false'); } });
 
-  configurarNotificaciones();
+  if (usuario.rol !== 'cobranza') configurarNotificaciones(); // cobranza no ve notificaciones
 }
 
 // Campanita de notificaciones en la barra superior: avisa de clientes con adeudo

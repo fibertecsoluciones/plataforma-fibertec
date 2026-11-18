@@ -16,6 +16,11 @@ const API = {
     localStorage.setItem('ft_usuario', JSON.stringify(usuario));
   },
 
+  // Página a la que cae cada rol al iniciar sesión
+  paginaInicio(rol) {
+    return rol === 'admin' ? '/dashboard.html' : (rol === 'cobranza' ? '/pagos.html' : '/actividades.html');
+  },
+
   cerrarSesion() {
     localStorage.removeItem('ft_token');
     localStorage.removeItem('ft_usuario');
@@ -101,6 +106,11 @@ function protegerPagina(rolesPermitidos) {
   const usuario = API.usuario();
   if (!token || !usuario) {
     window.location.href = '/index.html';
+    return null;
+  }
+  // Cobranza solo puede estar en Pagos: cualquier otra página lo regresa ahí (sin avisos ni ciclos)
+  if (usuario.rol === 'cobranza' && !/\/pagos\.html$/.test(window.location.pathname)) {
+    window.location.href = '/pagos.html';
     return null;
   }
   if (rolesPermitidos && !rolesPermitidos.includes(usuario.rol)) {

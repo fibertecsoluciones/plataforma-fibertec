@@ -36,7 +36,7 @@
 <script>
   // Si ya hay sesión activa, saltar directo a su pantalla correspondiente
   if (API.token() && API.usuario()) {
-    window.location.href = API.usuario().rol === 'admin' ? '/dashboard.html' : '/actividades.html';
+    window.location.href = API.paginaInicio(API.usuario().rol);
   }
 
   const form = document.getElementById('form-login');
@@ -54,7 +54,7 @@
       const password = document.getElementById('password').value;
       const data = await API.post('/api/auth/login', { usuario, password });
       API.guardarSesion(data.token, data.usuario);
-      window.location.href = data.usuario.rol === 'admin' ? '/dashboard.html' : '/actividades.html';
+      window.location.href = API.paginaInicio(data.usuario.rol);
     } catch (err) {
       errorBox.textContent = err.message;
       errorBox.classList.remove('oculto');

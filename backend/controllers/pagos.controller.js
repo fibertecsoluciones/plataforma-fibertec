@@ -1,10 +1,28 @@
 const db = require('../config/db');
 
+// Cobranza con zona asignada solo puede tocar pagos de clientes de esa zona.
+// Devuelve true si puede; si no, ya respondió 404 (igual que un cliente inexistente).
+async function puedeVerCliente(req, res, clienteId) {
+  if (!req.usuario || req.usuario.rol !== 'cobranza' || !req.usuario.zona_id) return true;
+  const idNum = Number(clienteId);
+  const r = Number.isInteger(idNum)
+    ? await db.query('SELECT zona_id FROM clientes WHERE id = $1', [idNum])
+    : { rows: [] };
+  if (!r.rows[0] || Number(r.rows[0].zona_id) !== Number(req.usuario.zona_id)) {
+    res.status(404).json({ error: 'Cliente no encontrado.' });
+    return false;
+  }
+  return true;
+}
+
 // Historial de pagos de un cliente (vista mes a mes)
 async function historialCliente(req, res) {
   const { clienteId } = req.params;
+  if (!(await puedeVerCliente(req, res, clienteId))) return;
   const r = await db.query(
-    `SELECT * FROM pagos WHERE cliente_id = $1 ORDER BY periodo DESC`,
+    `SELECT p.*, u.nombre AS registrado_por_nombre
+     FROM pagos p LEFT JOIN usuarios u ON u.id = p.registrado_por
+     WHERE p.cliente_id = $1 ORDER BY p.periodo DESC, p.id DESC`,
     [clienteId]
   );
   res.json(r.rows);
@@ -36,6 +54,8 @@ async function registrarPago(req, res) {
   if (!cliente_id || !periodo || monto === undefined) {
     return res.status(400).json({ error: 'Cliente, periodo (mes) y monto son obligatorios.' });
   }
+
+  if (!(await puedeVerCliente(req, res, cliente_id))) return;
 
   const meses = Math.min(Math.max(parseInt(meses_cubiertos || 1, 10), 1), 3);
   const esExcepcion = meses > 1;
@@ -87,6 +107,7 @@ async function registrarPago(req, res) {
 // corresponde cualquier saldo pendiente, en vez de solo un número suelto.
 async function desgloseCliente(req, res) {
   const { clienteId } = req.params;
+  if (!(await puedeVerCliente(req, res, clienteId))) return;
 
   const clienteRes = await db.query(
     `SELECT c.fecha_alta, c.fecha_inicio_conteo, c.dia_pago, c.dias_tolerancia, p.precio

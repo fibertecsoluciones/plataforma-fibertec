@@ -169,7 +169,7 @@
   // ==========================================================
   async function cargarTecnicos() {
     const tabla = document.getElementById('tabla-tecnicos');
-    const tecnicos = await API.get('/api/catalogos/tecnicos');
+    const tecnicos = await API.get('/api/catalogos/tecnicos?todos=1');
     tabla.innerHTML = tecnicos.length ? `
       <table class="tabla">
         <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead>
@@ -177,7 +177,7 @@
           <tr>
             <td class="celda-tarjeta-titulo">${t.nombre}</td>
             <td class="mono" data-label="Usuario">${t.usuario}</td>
-            <td data-label="Rol"><span class="pill">${t.rol}</span></td>
+            <td data-label="Rol"><span class="pill">${t.rol}</span>${t.rol === 'cobranza' ? `<div class="celda-meta">${t.zona_nombre ? 'Solo zona ' + t.zona_nombre : 'Todas las zonas'}</div>` : ''}</td>
             <td data-label="Teléfono">${t.telefono || '—'}</td>
             <td data-label="Estado"><span class="pill ${t.activo ? 'activo' : 'baja'}">${t.activo ? 'activo' : 'inactivo'}</span></td>
             <td class="celda-acciones-movil">
@@ -203,7 +203,9 @@
     });
   }
 
-  function abrirModalUsuario(usuarioEditar) {
+  async function abrirModalUsuario(usuarioEditar) {
+    let zonasUsuario = [];
+    try { zonasUsuario = (await API.get('/api/catalogos/zonas')).filter(z => z.activo !== false); } catch (e) { /* sin zonas: solo 'todas' */ }
     const modalCont = document.getElementById('modal-contenedor');
     modalCont.innerHTML = `
       <div class="modal-fondo">
@@ -226,6 +228,14 @@
                 <select id="u-rol">
                   <option value="tecnico" ${usuarioEditar && usuarioEditar.rol === 'tecnico' ? 'selected' : ''}>Técnico</option>
                   <option value="admin" ${usuarioEditar && usuarioEditar.rol === 'admin' ? 'selected' : ''}>Administrador</option>
+                  <option value="cobranza" ${usuarioEditar && usuarioEditar.rol === 'cobranza' ? 'selected' : ''}>Cobranza (solo Pagos)</option>
+                </select>
+              </div>
+              <div class="campo" id="u-zona-campo">
+                <label>Zona que puede ver (solo cobranza)</label>
+                <select id="u-zona">
+                  <option value="">Todas las zonas</option>
+                  ${zonasUsuario.map(z => `<option value="${z.id}" ${usuarioEditar && String(usuarioEditar.zona_id) === String(z.id) ? 'selected' : ''}>${z.nombre}</option>`).join('')}
                 </select>
               </div>
               <div class="campo"><label>Teléfono</label><input type="text" id="u-telefono" value="${usuarioEditar && usuarioEditar.telefono ? usuarioEditar.telefono : ''}" /></div>
@@ -242,14 +252,21 @@
           <div class="modal-pie"><button class="btn btn-secundario" id="cancelar">Cancelar</button><button class="btn btn-primario" id="guardar">Guardar</button></div>
         </div>
       </div>`;
+    // La zona solo aplica al rol Cobranza
+    const selRol = document.getElementById('u-rol'), campoZona = document.getElementById('u-zona-campo');
+    const mostrarZona = () => campoZona.classList.toggle('oculto', selRol.value !== 'cobranza');
+    selRol.addEventListener('change', mostrarZona); mostrarZona();
+
     conectarModalSimple(async () => {
       const password = document.getElementById('u-password').value;
+      const zona_id = document.getElementById('u-rol').value === 'cobranza' ? (document.getElementById('u-zona').value || null) : null;
 
       if (usuarioEditar) {
         const payload = {
           nombre: document.getElementById('u-nombre').value.trim(),
           rol: document.getElementById('u-rol').value,
           telefono: document.getElementById('u-telefono').value.trim(),
+          zona_id,
           activo: document.getElementById('u-activo').value === 'true'
         };
         if (password) payload.password = password;
@@ -260,6 +277,7 @@
           usuario: document.getElementById('u-usuario').value.trim(),
           password,
           rol: document.getElementById('u-rol').value,
+          zona_id,
           telefono: document.getElementById('u-telefono').value.trim()
         });
       }

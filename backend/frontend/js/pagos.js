@@ -1,10 +1,11 @@
 (async function () {
-  const usuario = protegerPagina(['admin']);
+  const usuario = protegerPagina(['admin', 'cobranza']);
   if (!usuario) return;
 
   renderLayout('pagos', 'Pagos');
   const cont = document.getElementById('pagina-contenido');
   const esAdmin = usuario.rol === 'admin';
+  const esCobranza = usuario.rol === 'cobranza'; // solo registra y consulta pagos: no elimina, no ve el listado general
 
   const params = new URLSearchParams(window.location.search);
   const clienteIdPk = params.get('cliente');
@@ -16,13 +17,55 @@
     if (!e.target.closest('[data-regresar]')) return;
     const vieneDeLaApp = document.referrer && new URL(document.referrer).origin === window.location.origin;
     if (vieneDeLaApp && window.history.length > 1) window.history.back();
-    else window.location.href = '/clientes.html';
+    else window.location.href = esCobranza ? '/pagos.html' : '/clientes.html';
   });
 
   if (clienteIdPk) {
     await vistaClienteEspecifico(clienteIdPk);
+  } else if (esCobranza) {
+    await vistaBuscador();
   } else {
     await vistaGeneral();
+  }
+
+  // ==========================================================
+  // VISTA (cobranza): buscar a un cliente para ver sus pagos / registrar uno
+  // ==========================================================
+  async function vistaBuscador() {
+    cont.innerHTML = `
+      <div class="tarjeta">
+        <div class="tarjeta-cuerpo">
+          <input type="text" id="cb-buscar" placeholder="Buscar cliente por nombre o folio…" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px;" autocomplete="off" />
+        </div>
+      </div>
+      <div class="tarjeta"><div class="tarjeta-cuerpo tabla-envoltura" id="cb-resultados"><div class="cargando">Cargando…</div></div></div>
+    `;
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    async function buscar(q) {
+      const caja = document.getElementById('cb-resultados');
+      try {
+        const lista = await API.get('/api/clientes' + (q ? '?q=' + encodeURIComponent(q) : ''));
+        if (!lista.length) { caja.innerHTML = `<div class="estado-vacio">No se encontraron clientes.</div>`; return; }
+        caja.innerHTML = `
+          <table class="tabla">
+            <thead><tr><th>Folio</th><th>Cliente</th><th>Plan</th><th>Pago</th><th>Adeudo</th><th></th></tr></thead>
+            <tbody>
+              ${lista.map(c => `
+                <tr>
+                  <td data-label="Folio"><span class="folio">${esc(c.cliente_id)}</span></td>
+                  <td class="celda-tarjeta-titulo"><div class="celda-principal">${esc(c.nombre)}</div><div class="celda-meta">${esc(c.zona)}</div></td>
+                  <td data-label="Plan">${esc(c.plan)} · ${mxn(c.precio)}</td>
+                  <td data-label="Pago"><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span><div class="celda-meta">Día ${c.dia_pago}</div></td>
+                  <td data-label="Adeudo">${c.meses_adeudados > 0 ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}</div>` : '<span class="texto-gris">Al día</span>'}</td>
+                  <td class="celda-acciones-movil"><a class="btn btn-verde btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } catch (err) { caja.innerHTML = `<div class="error-msg">${esc(err.message)}</div>`; }
+    }
+    let t;
+    document.getElementById('cb-buscar').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => buscar(e.target.value.trim()), 300); });
+    await buscar('');
   }
 
   // ==========================================================
@@ -96,7 +139,7 @@
               ${cliente.adeudo_manual_meses > 0 ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">📌 Incluye ${cliente.adeudo_manual_meses} mes(es) capturados a mano${cliente.adeudo_manual_detalle ? ': ' + cliente.adeudo_manual_detalle : ''}</div>` : ''}
               ${cliente.estado === 'suspendido' && cliente.fecha_suspension ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">🧊 Suspendido desde ${fechaCorta(cliente.fecha_suspension)} — el adeudo está congelado desde esa fecha (no le siguen sumando meses nuevos mientras siga suspendido).</div>` : ''}
             </div>
-            ${esAdmin ? `<button class="btn btn-verde" id="btn-registrar-pago">+ Registrar pago</button>` : ''}
+            <button class="btn btn-verde" id="btn-registrar-pago">+ Registrar pago</button>
           </div>
         </div>
 
@@ -154,7 +197,7 @@
           <div class="tarjeta-cuerpo tabla-envoltura">
             ${historial.length ? `
               <table class="tabla">
-                <thead><tr><th>Periodo</th><th>Monto</th><th>Fecha de pago</th><th>Método</th><th>Excepción</th>${esAdmin ? '<th></th>' : ''}</tr></thead>
+                <thead><tr><th>Periodo</th><th>Monto</th><th>Fecha de pago</th><th>Método</th><th>Excepción</th><th>Registró</th>${esAdmin ? '<th></th>' : ''}</tr></thead>
                 <tbody>
                   ${historial.map(p => `
                     <tr>
@@ -163,6 +206,7 @@
                       <td data-label="Fecha de pago">${fechaCorta(p.fecha_pago)}</td>
                       <td data-label="Método">${p.metodo_pago}</td>
                       <td data-label="Excepción">${p.es_excepcion ? `<span class="pill suspendido">Pago de ${p.meses_cubiertos} meses</span>` : '—'}</td>
+                      <td data-label="Registró">${p.registrado_por_nombre || '—'}</td>
                       ${esAdmin ? `<td class="celda-acciones-movil"><button class="btn btn-peligro btn-sm" data-borrar="${p.id}">Eliminar</button></td>` : ''}
                     </tr>
                   `).join('')}

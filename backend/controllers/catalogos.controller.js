@@ -91,65 +91,96 @@ async function eliminarPlan(req, res) {
 }
 
 // ---------- TÉCNICOS / USUARIOS ----------
-// Devuelve TODOS los usuarios (admins y técnicos), no solo técnicos.
+// Devuelve los usuarios. Sin parámetros: solo administradores y técnicos (lo usan las listas para
+// asignar actividades). Con ?todos=1 (pantalla de Ajustes): también los de cobranza, con su zona.
 async function getTecnicos(req, res) {
+  const todos = req.query.todos === '1';
   const r = await db.query(
-    `SELECT id, nombre, usuario, rol, telefono, activo FROM usuarios ORDER BY rol, nombre`
+    `SELECT u.id, u.nombre, u.usuario, u.rol, u.telefono, u.activo, u.zona_id, z.nombre AS zona_nombre
+     FROM usuarios u LEFT JOIN zonas z ON z.id = u.zona_id
+     ${todos ? '' : `WHERE u.rol <> 'cobranza'`}
+     ORDER BY u.rol, u.nombre`
   );
   res.json(r.rows);
 }
 
+const ROLES = ['admin', 'tecnico', 'cobranza'];
+
+// La zona solo aplica al rol cobranza. Devuelve null (todas las zonas) o el id de una zona activa.
+async function zonaParaRol(rol, zona_id) {
+  if (rol !== 'cobranza' || zona_id === undefined || zona_id === null || zona_id === '') return null;
+  const id = Number(zona_id);
+  const z = Number.isInteger(id) ? await db.query('SELECT id FROM zonas WHERE id = $1 AND activo = TRUE', [id]) : { rows: [] };
+  if (!z.rows[0]) { const e = new Error('La zona elegida no existe.'); e.status = 400; throw e; }
+  return id;
+}
+
 async function crearUsuario(req, res) {
-  const { nombre, usuario, password, rol, telefono } = req.body;
+  const { nombre, usuario, password, rol, telefono, zona_id } = req.body;
   if (!nombre || !usuario || !password || !rol) {
     return res.status(400).json({ error: 'Nombre, usuario, password y rol son obligatorios.' });
   }
-  if (!['admin', 'tecnico'].includes(rol)) {
+  if (!ROLES.includes(rol)) {
     return res.status(400).json({ error: 'Rol inválido.' });
   }
   try {
+    const zona = await zonaParaRol(rol, zona_id);
     const hash = await bcrypt.hash(password, 10);
     const r = await db.query(
-      `INSERT INTO usuarios (nombre, usuario, password_hash, rol, telefono)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id, nombre, usuario, rol, telefono, activo`,
-      [nombre, usuario, hash, rol, telefono]
+      `INSERT INTO usuarios (nombre, usuario, password_hash, rol, telefono, zona_id)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, nombre, usuario, rol, telefono, activo, zona_id`,
+      [nombre, usuario, hash, rol, telefono, zona]
     );
     res.status(201).json(r.rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
+    if (err.code === '23514') return res.status(400).json({ error: 'Falta correr la migración del rol de cobranza: node db/migrate.js migrations/025_rol_cobranza.sql' });
     res.status(400).json({ error: 'No se pudo crear el usuario (¿nombre de usuario repetido?).' });
   }
 }
 
-// Edita nombre, teléfono, rol y estado activo. La contraseña solo se cambia si se envía.
+// Edita nombre, teléfono, rol, zona y estado activo. La contraseña solo se cambia si se envía.
 async function actualizarUsuario(req, res) {
   const { id } = req.params;
-  const { nombre, telefono, rol, activo, password } = req.body;
+  const { nombre, telefono, rol, activo, password, zona_id } = req.body;
 
   const sets = []; const params = [];
-  if (nombre !== undefined) { params.push(nombre); sets.push(`nombre = $${params.length}`); }
-  if (telefono !== undefined) { params.push(telefono); sets.push(`telefono = $${params.length}`); }
-  if (rol !== undefined) {
-    if (!['admin', 'tecnico'].includes(rol)) return res.status(400).json({ error: 'Rol inválido.' });
-    params.push(rol); sets.push(`rol = $${params.length}`);
-  }
-  if (activo !== undefined) { params.push(activo); sets.push(`activo = $${params.length}`); }
-  if (password) {
-    const hash = await bcrypt.hash(password, 10);
-    params.push(hash); sets.push(`password_hash = $${params.length}`);
-  }
-
-  if (!sets.length) return res.status(400).json({ error: 'No se enviaron campos para actualizar.' });
-
-  params.push(id);
   try {
+    if (nombre !== undefined) { params.push(nombre); sets.push(`nombre = $${params.length}`); }
+    if (telefono !== undefined) { params.push(telefono); sets.push(`telefono = $${params.length}`); }
+    if (rol !== undefined) {
+      if (!ROLES.includes(rol)) return res.status(400).json({ error: 'Rol inválido.' });
+      params.push(rol); sets.push(`rol = $${params.length}`);
+    }
+    // La zona se guarda con el rol que quedará (el enviado, o el que ya tiene)
+    if (zona_id !== undefined || rol !== undefined) {
+      let rolFinal = rol;
+      if (rolFinal === undefined) {
+        const actual = await db.query('SELECT rol FROM usuarios WHERE id = $1', [id]);
+        if (!actual.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+        rolFinal = actual.rows[0].rol;
+      }
+      params.push(await zonaParaRol(rolFinal, zona_id)); sets.push(`zona_id = $${params.length}`);
+    }
+    if (activo !== undefined) { params.push(activo); sets.push(`activo = $${params.length}`); }
+    if (password) {
+      const hash = await bcrypt.hash(password, 10);
+      params.push(hash); sets.push(`password_hash = $${params.length}`);
+    }
+
+    if (!sets.length) return res.status(400).json({ error: 'No se enviaron campos para actualizar.' });
+
+    params.push(id);
     const r = await db.query(
       `UPDATE usuarios SET ${sets.join(', ')} WHERE id = $${params.length}
-       RETURNING id, nombre, usuario, rol, telefono, activo`,
+       RETURNING id, nombre, usuario, rol, telefono, activo, zona_id`,
       params
     );
     if (!r.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
     res.json(r.rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
+    if (err.code === '23514') return res.status(400).json({ error: 'Falta correr la migración del rol de cobranza: node db/migrate.js migrations/025_rol_cobranza.sql' });
     res.status(400).json({ error: 'No se pudo actualizar el usuario.' });
   }
 }

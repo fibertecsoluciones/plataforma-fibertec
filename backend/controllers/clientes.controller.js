@@ -1,6 +1,12 @@
 const db = require('../config/db');
 const XLSX = require('xlsx');
 
+// Cobranza solo ve clientes de su zona (si tiene una asignada) y solo los datos necesarios para cobrar.
+const esCobranza = (req) => req.usuario && req.usuario.rol === 'cobranza';
+const CAMPOS_COBRANZA_LISTA = ['cliente_id_pk', 'cliente_id', 'nombre', 'zona', 'plan', 'precio', 'dia_pago', 'fecha_vencimiento', 'semaforo', 'meses_adeudados', 'saldo_pendiente', 'estado_cliente'];
+const CAMPOS_COBRANZA_DETALLE = ['id', 'cliente_id', 'nombre', 'estado', 'zona_nombre', 'plan_nombre', 'precio', 'dia_pago', 'fecha_suspension', 'adeudo_manual_meses', 'adeudo_manual_detalle', 'semaforo', 'meses_adeudados', 'saldo_pendiente', 'fecha_vencimiento'];
+const soloCampos = (fila, campos) => Object.fromEntries(campos.filter(k => k in fila).map(k => [k, fila[k]]));
+
 // Lista de clientes con su estado de pago (semáforo) - para el dashboard general
 async function listarClientes(req, res) {
   const { zona, estado, semaforo, q } = req.query;
@@ -23,15 +29,24 @@ async function listarClientes(req, res) {
     params.push(semaforo);
     sql += ` AND semaforo = $${params.length}`;
   }
+  if (esCobranza(req) && req.usuario.zona_id) {
+    params.push(req.usuario.zona_id);
+    sql += ` AND zona = (SELECT nombre FROM zonas WHERE id = $${params.length})`;
+  }
   if (q) {
     params.push(`%${q.toLowerCase()}%`);
-    sql += ` AND (LOWER(nombre) LIKE $${params.length} OR LOWER(cliente_id) LIKE $${params.length} OR ip LIKE $${params.length})`;
+    // Cobranza no busca por IP (es un dato que no necesita)
+    sql += esCobranza(req)
+      ? ` AND (LOWER(nombre) LIKE $${params.length} OR LOWER(cliente_id) LIKE $${params.length})`
+      : ` AND (LOWER(nombre) LIKE $${params.length} OR LOWER(cliente_id) LIKE $${params.length} OR ip LIKE $${params.length})`;
   }
 
   sql += ' ORDER BY semaforo = \'rojo\' DESC, meses_adeudados DESC, semaforo = \'naranja\' DESC, semaforo = \'amarillo\' DESC, nombre ASC';
 
+  if (esCobranza(req)) sql += ' LIMIT 300';
+
   const r = await db.query(sql, params);
-  res.json(r.rows);
+  res.json(esCobranza(req) ? r.rows.map(f => soloCampos(f, CAMPOS_COBRANZA_LISTA)) : r.rows);
 }
 
 // Detalle completo de un cliente (para edición y para la pantalla de pagos)
@@ -55,6 +70,13 @@ async function obtenerCliente(req, res) {
     [id]
   );
   if (!r.rows[0]) return res.status(404).json({ error: 'Cliente no encontrado.' });
+  if (esCobranza(req)) {
+    // Un cliente de otra zona se responde igual que uno que no existe
+    if (req.usuario.zona_id && Number(r.rows[0].zona_id) !== Number(req.usuario.zona_id)) {
+      return res.status(404).json({ error: 'Cliente no encontrado.' });
+    }
+    return res.json(soloCampos(r.rows[0], CAMPOS_COBRANZA_DETALLE));
+  }
   res.json(r.rows[0]);
 }
 

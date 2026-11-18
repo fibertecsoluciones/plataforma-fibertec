@@ -26,13 +26,14 @@ CREATE TABLE planes (
   activo        BOOLEAN NOT NULL DEFAULT TRUE
 );
 
--- Usuarios del sistema (administradores y técnicos)
+-- Usuarios del sistema (administradores, técnicos y cobranza)
 CREATE TABLE usuarios (
   id            SERIAL PRIMARY KEY,
   nombre        VARCHAR(100) NOT NULL,
   usuario       VARCHAR(50) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  rol           VARCHAR(20) NOT NULL CHECK (rol IN ('admin','tecnico')),
+  rol           VARCHAR(20) NOT NULL CHECK (rol IN ('admin','tecnico','cobranza')),
+  zona_id       INTEGER REFERENCES zonas(id),   -- solo cobranza: si tiene zona, solo ve clientes de esa zona (NULL = todas)
   telefono      VARCHAR(20),
   activo        BOOLEAN NOT NULL DEFAULT TRUE,
   creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
