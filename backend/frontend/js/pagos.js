@@ -7,6 +7,13 @@
   const esAdmin = usuario.rol === 'admin';
   const esCobranza = usuario.rol === 'cobranza'; // solo registra y consulta pagos: no elimina, no ve el listado general
 
+  // Cobranza con "Ocultar montos": no ve ninguna cantidad y el sistema cobra solo lo que falta del mes.
+  // Se pregunta al servidor (no a la sesión guardada) para que el cambio aplique sin volver a entrar.
+  let sinMontos = false;
+  if (esCobranza) {
+    try { sinMontos = !!(await API.get('/api/auth/perfil')).usuario.ocultar_montos; } catch (e) { sinMontos = true; }
+  }
+
   const params = new URLSearchParams(window.location.search);
   const clienteIdPk = params.get('cliente');
 
@@ -54,9 +61,9 @@
                 <tr>
                   <td data-label="Folio"><span class="folio">${esc(c.cliente_id)}</span></td>
                   <td class="celda-tarjeta-titulo"><div class="celda-principal">${esc(c.nombre)}</div><div class="celda-meta">${esc(c.zona)}</div></td>
-                  <td data-label="Plan">${esc(c.plan)} · ${mxn(c.precio)}</td>
+                  <td data-label="Plan">${esc(c.plan)}${sinMontos ? '' : ' · ' + mxn(c.precio)}</td>
                   <td data-label="Pago"><span class="semaforo ${c.semaforo}">${ETIQUETA_SEMAFORO[c.semaforo]}</span><div class="celda-meta">Día ${c.dia_pago}</div></td>
-                  <td data-label="Adeudo">${c.meses_adeudados > 0 ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span><div class="celda-meta">${mxn(c.saldo_pendiente)}</div>` : '<span class="texto-gris">Al día</span>'}</td>
+                  <td data-label="Adeudo">${c.meses_adeudados > 0 ? `<span class="pill baja">${c.meses_adeudados} mes${c.meses_adeudados > 1 ? 'es' : ''}</span>${sinMontos ? '' : `<div class="celda-meta">${mxn(c.saldo_pendiente)}</div>`}` : '<span class="texto-gris">Al día</span>'}</td>
                   <td class="celda-acciones-movil"><a class="btn btn-verde btn-sm" href="/pagos.html?cliente=${c.cliente_id_pk}">Pagos</a></td>
                 </tr>`).join('')}
             </tbody>
@@ -133,9 +140,9 @@
               <div class="flex-gap" style="margin-bottom:6px;">
                 <span class="folio">${cliente.cliente_id}</span>
                 <h3 style="margin:0;">${cliente.nombre}</h3>
-                ${cliente.meses_adeudados > 0 ? `<span class="pill baja">Debe ${cliente.meses_adeudados} mes${cliente.meses_adeudados > 1 ? 'es' : ''} — ${mxn(cliente.saldo_pendiente)}</span>` : `<span class="pill activo">Al día</span>`}
+                ${cliente.meses_adeudados > 0 ? `<span class="pill baja">Debe ${cliente.meses_adeudados} mes${cliente.meses_adeudados > 1 ? 'es' : ''}${sinMontos ? '' : ' — ' + mxn(cliente.saldo_pendiente)}</span>` : `<span class="pill activo">Al día</span>`}
               </div>
-              <div class="texto-gris">${cliente.zona_nombre} · Plan ${cliente.plan_nombre} (${mxn(cliente.precio)}) · Día de pago ${cliente.dia_pago}</div>
+              <div class="texto-gris">${cliente.zona_nombre} · Plan ${cliente.plan_nombre}${sinMontos ? '' : ' (' + mxn(cliente.precio) + ')'} · Día de pago ${cliente.dia_pago}</div>
               ${cliente.adeudo_manual_meses > 0 ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">📌 Incluye ${cliente.adeudo_manual_meses} mes(es) capturados a mano${cliente.adeudo_manual_detalle ? ': ' + cliente.adeudo_manual_detalle : ''}</div>` : ''}
               ${cliente.estado === 'suspendido' && cliente.fecha_suspension ? `<div class="texto-gris" style="font-size:12px; margin-top:4px;">🧊 Suspendido desde ${fechaCorta(cliente.fecha_suspension)} — el adeudo está congelado desde esa fecha (no le siguen sumando meses nuevos mientras siga suspendido).</div>` : ''}
             </div>
@@ -171,14 +178,15 @@
           </div>
           <div class="tarjeta-cuerpo tabla-envoltura">
             <table class="tabla">
-              <thead><tr><th>Mes</th><th>Esperado</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead>
+              <thead><tr><th>Mes</th>${sinMontos ? '' : '<th>Esperado</th><th>Pagado</th><th>Saldo</th>'}<th>Estado</th></tr></thead>
               <tbody>
                 ${desglose.map(m => `
                   <tr>
                     <td class="celda-tarjeta-titulo">${mesLegible(m.periodo)}${m.esMesActual ? ' <span class="texto-gris" style="font-size:11px;">(mes actual)</span>' : ''}</td>
+                    ${sinMontos ? '' : `
                     <td data-label="Esperado">${mxn(m.esperado)}</td>
                     <td data-label="Pagado">${mxn(m.pagado)}${m.abonos > 1 ? ` <span class="texto-gris" style="font-size:11px;">(${m.abonos} abonos)</span>` : ''}</td>
-                    <td data-label="Saldo">${m.saldo > 0 ? mxn(m.saldo) : '—'}</td>
+                    <td data-label="Saldo">${m.saldo > 0 ? mxn(m.saldo) : '—'}</td>`}
                     <td data-label="Estado">
                       ${m.estado === 'completo' ? '<span class="pill activo">Completo</span>' : ''}
                       ${m.estado === 'parcial' ? '<span class="pill suspendido">Parcial</span>' : ''}
@@ -197,12 +205,12 @@
           <div class="tarjeta-cuerpo tabla-envoltura">
             ${historial.length ? `
               <table class="tabla">
-                <thead><tr><th>Periodo</th><th>Monto</th><th>Fecha de pago</th><th>Método</th><th>Excepción</th><th>Registró</th>${esAdmin ? '<th></th>' : ''}</tr></thead>
+                <thead><tr><th>Periodo</th>${sinMontos ? '' : '<th>Monto</th>'}<th>Fecha de pago</th><th>Método</th><th>Excepción</th><th>Registró</th>${esAdmin ? '<th></th>' : ''}</tr></thead>
                 <tbody>
                   ${historial.map(p => `
                     <tr>
                       <td class="celda-tarjeta-titulo">${mesLegible(p.periodo)}</td>
-                      <td data-label="Monto">${mxn(p.monto)}</td>
+                      ${sinMontos ? '' : `<td data-label="Monto">${mxn(p.monto)}</td>`}
                       <td data-label="Fecha de pago">${fechaCorta(p.fecha_pago)}</td>
                       <td data-label="Método">${p.metodo_pago}</td>
                       <td data-label="Excepción">${p.es_excepcion ? `<span class="pill suspendido">Pago de ${p.meses_cubiertos} meses</span>` : '—'}</td>
@@ -330,6 +338,10 @@
                 <label>Mes que cubre este pago</label>
                 <input type="month" id="p-periodo" value="${periodoActual}" required />
               </div>
+              ${sinMontos ? `
+              <div class="campo ancho-total">
+                <div class="texto-gris" style="font-size:12.5px;">El sistema registra automáticamente lo que falta de ese mes. Si el cliente pagó una cantidad distinta o varios meses juntos, avísale al administrador.</div>
+              </div>` : `
               <div class="campo">
                 <label>Meses cubiertos en esta exhibición</label>
                 <select id="p-meses">
@@ -345,7 +357,7 @@
                   ¿Solo te dio una parte? Cambia este monto por lo que sí pagó — el sistema lo marcará como
                   "parcial" y podrás registrar el resto después, para el mismo mes, cuando te complete.
                 </div>
-              </div>
+              </div>`}
               <div class="campo">
                 <label>Método de pago</label>
                 <select id="p-metodo">
@@ -382,7 +394,7 @@
 
     const selectMeses = document.getElementById('p-meses');
     const inputMonto = document.getElementById('p-monto');
-    selectMeses.addEventListener('change', () => {
+    if (selectMeses) selectMeses.addEventListener('change', () => {
       const meses = Number(selectMeses.value);
       document.getElementById('aviso-excepcion').classList.toggle('oculto', meses <= 1);
       inputMonto.value = (Number(cliente.precio) * meses).toFixed(2);
@@ -394,15 +406,14 @@
       const payload = {
         cliente_id: clientePk,
         periodo,
-        monto: Number(inputMonto.value),
-        meses_cubiertos: Number(selectMeses.value),
+        ...(sinMontos ? {} : { monto: Number(inputMonto.value), meses_cubiertos: Number(selectMeses.value) }),
         metodo_pago: document.getElementById('p-metodo').value,
         fecha_pago: document.getElementById('p-fecha').value,
         notas: document.getElementById('p-notas').value.trim()
       };
 
-      if (!periodo || !payload.monto) {
-        errorBox.textContent = 'El mes y el monto son obligatorios.';
+      if (!periodo || (!sinMontos && !payload.monto)) {
+        errorBox.textContent = sinMontos ? 'Elige el mes que se paga.' : 'El mes y el monto son obligatorios.';
         errorBox.classList.remove('oculto');
         return;
       }

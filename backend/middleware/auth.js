@@ -31,12 +31,12 @@ async function requireAuth(req, res, next) {
     // Para cobranza se consulta la base en cada petición: si lo desactivas o le cambias la zona,
     // el cambio aplica al instante (no hay que esperar a que expire su sesión).
     try {
-      const r = await db.query('SELECT rol, activo, zona_id FROM usuarios WHERE id = $1', [payload.id]);
+      const r = await db.query('SELECT rol, activo, zona_id, ocultar_montos FROM usuarios WHERE id = $1', [payload.id]);
       const u = r.rows[0];
       if (!u || !u.activo || u.rol !== 'cobranza') {
         return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión de nuevo.' });
       }
-      payload = { ...payload, zona_id: u.zona_id };
+      payload = { ...payload, zona_id: u.zona_id, ocultar_montos: u.ocultar_montos === true };
     } catch (err) {
       console.error('Error verificando usuario de cobranza:', err);
       return res.status(500).json({ error: 'No se pudo verificar la sesión.' });

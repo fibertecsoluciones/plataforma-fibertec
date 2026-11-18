@@ -96,7 +96,7 @@ async function eliminarPlan(req, res) {
 async function getTecnicos(req, res) {
   const todos = req.query.todos === '1';
   const r = await db.query(
-    `SELECT u.id, u.nombre, u.usuario, u.rol, u.telefono, u.activo, u.zona_id, z.nombre AS zona_nombre
+    `SELECT u.id, u.nombre, u.usuario, u.rol, u.telefono, u.activo, u.zona_id, u.ocultar_montos, z.nombre AS zona_nombre
      FROM usuarios u LEFT JOIN zonas z ON z.id = u.zona_id
      ${todos ? '' : `WHERE u.rol <> 'cobranza'`}
      ORDER BY u.rol, u.nombre`
@@ -116,7 +116,7 @@ async function zonaParaRol(rol, zona_id) {
 }
 
 async function crearUsuario(req, res) {
-  const { nombre, usuario, password, rol, telefono, zona_id } = req.body;
+  const { nombre, usuario, password, rol, telefono, zona_id, ocultar_montos } = req.body;
   if (!nombre || !usuario || !password || !rol) {
     return res.status(400).json({ error: 'Nombre, usuario, password y rol son obligatorios.' });
   }
@@ -127,14 +127,14 @@ async function crearUsuario(req, res) {
     const zona = await zonaParaRol(rol, zona_id);
     const hash = await bcrypt.hash(password, 10);
     const r = await db.query(
-      `INSERT INTO usuarios (nombre, usuario, password_hash, rol, telefono, zona_id)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, nombre, usuario, rol, telefono, activo, zona_id`,
-      [nombre, usuario, hash, rol, telefono, zona]
+      `INSERT INTO usuarios (nombre, usuario, password_hash, rol, telefono, zona_id, ocultar_montos)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, nombre, usuario, rol, telefono, activo, zona_id, ocultar_montos`,
+      [nombre, usuario, hash, rol, telefono, zona, rol === 'cobranza' && ocultar_montos === true]
     );
     res.status(201).json(r.rows[0]);
   } catch (err) {
     if (err.status === 400) return res.status(400).json({ error: err.message });
-    if (err.code === '23514') return res.status(400).json({ error: 'Falta correr la migración del rol de cobranza: node db/migrate.js migrations/025_rol_cobranza.sql' });
+    if (err.code === '23514') return res.status(400).json({ error: 'Falta correr la migración del rol de cobranza (025) o de ocultar montos (026): node db/migrate.js migrations/026_ocultar_montos.sql' });
     res.status(400).json({ error: 'No se pudo crear el usuario (¿nombre de usuario repetido?).' });
   }
 }
@@ -142,7 +142,7 @@ async function crearUsuario(req, res) {
 // Edita nombre, teléfono, rol, zona y estado activo. La contraseña solo se cambia si se envía.
 async function actualizarUsuario(req, res) {
   const { id } = req.params;
-  const { nombre, telefono, rol, activo, password, zona_id } = req.body;
+  const { nombre, telefono, rol, activo, password, zona_id, ocultar_montos } = req.body;
 
   const sets = []; const params = [];
   try {
@@ -162,6 +162,17 @@ async function actualizarUsuario(req, res) {
       }
       params.push(await zonaParaRol(rolFinal, zona_id)); sets.push(`zona_id = $${params.length}`);
     }
+    // "Ocultar montos" solo vale para cobranza: si el usuario deja de ser cobranza se apaga
+    if (ocultar_montos !== undefined || rol !== undefined) {
+      let rolFinal = rol;
+      if (rolFinal === undefined) {
+        const actual = await db.query('SELECT rol FROM usuarios WHERE id = $1', [id]);
+        if (!actual.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+        rolFinal = actual.rows[0].rol;
+      }
+      if (rolFinal !== 'cobranza') { sets.push('ocultar_montos = FALSE'); }
+      else if (ocultar_montos !== undefined) { params.push(ocultar_montos === true); sets.push(`ocultar_montos = $${params.length}`); }
+    }
     if (activo !== undefined) { params.push(activo); sets.push(`activo = $${params.length}`); }
     if (password) {
       const hash = await bcrypt.hash(password, 10);
@@ -173,14 +184,14 @@ async function actualizarUsuario(req, res) {
     params.push(id);
     const r = await db.query(
       `UPDATE usuarios SET ${sets.join(', ')} WHERE id = $${params.length}
-       RETURNING id, nombre, usuario, rol, telefono, activo, zona_id`,
+       RETURNING id, nombre, usuario, rol, telefono, activo, zona_id, ocultar_montos`,
       params
     );
     if (!r.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
     res.json(r.rows[0]);
   } catch (err) {
     if (err.status === 400) return res.status(400).json({ error: err.message });
-    if (err.code === '23514') return res.status(400).json({ error: 'Falta correr la migración del rol de cobranza: node db/migrate.js migrations/025_rol_cobranza.sql' });
+    if (err.code === '23514') return res.status(400).json({ error: 'Falta correr la migración del rol de cobranza (025) o de ocultar montos (026): node db/migrate.js migrations/026_ocultar_montos.sql' });
     res.status(400).json({ error: 'No se pudo actualizar el usuario.' });
   }
 }

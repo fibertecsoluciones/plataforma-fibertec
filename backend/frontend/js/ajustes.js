@@ -177,7 +177,7 @@
           <tr>
             <td class="celda-tarjeta-titulo">${t.nombre}</td>
             <td class="mono" data-label="Usuario">${t.usuario}</td>
-            <td data-label="Rol"><span class="pill">${t.rol}</span>${t.rol === 'cobranza' ? `<div class="celda-meta">${t.zona_nombre ? 'Solo zona ' + t.zona_nombre : 'Todas las zonas'}</div>` : ''}</td>
+            <td data-label="Rol"><span class="pill">${t.rol}</span>${t.rol === 'cobranza' ? `<div class="celda-meta">${t.zona_nombre ? 'Solo zona ' + t.zona_nombre : 'Todas las zonas'}</div>${t.ocultar_montos ? '<div class="celda-meta">🙈 Sin ver montos</div>' : ''}` : ''}</td>
             <td data-label="Teléfono">${t.telefono || '—'}</td>
             <td data-label="Estado"><span class="pill ${t.activo ? 'activo' : 'baja'}">${t.activo ? 'activo' : 'inactivo'}</span></td>
             <td class="celda-acciones-movil">
@@ -238,6 +238,14 @@
                   ${zonasUsuario.map(z => `<option value="${z.id}" ${usuarioEditar && String(usuarioEditar.zona_id) === String(z.id) ? 'selected' : ''}>${z.nombre}</option>`).join('')}
                 </select>
               </div>
+              <div class="campo" id="u-montos-campo">
+                <label>¿Puede ver los montos? (solo cobranza)</label>
+                <select id="u-montos">
+                  <option value="false" ${!(usuarioEditar && usuarioEditar.ocultar_montos) ? 'selected' : ''}>Sí, ve los montos</option>
+                  <option value="true" ${usuarioEditar && usuarioEditar.ocultar_montos ? 'selected' : ''}>No — ocultar montos</option>
+                </select>
+                <div class="texto-gris" style="font-size:11.5px; margin-top:4px;">Si los ocultas, no ve tarifas, saldos ni pagos, y al registrar un pago el sistema cobra solo lo que falta del mes.</div>
+              </div>
               <div class="campo"><label>Teléfono</label><input type="text" id="u-telefono" value="${usuarioEditar && usuarioEditar.telefono ? usuarioEditar.telefono : ''}" /></div>
               ${usuarioEditar ? `
               <div class="campo">
@@ -254,12 +262,14 @@
       </div>`;
     // La zona solo aplica al rol Cobranza
     const selRol = document.getElementById('u-rol'), campoZona = document.getElementById('u-zona-campo');
-    const mostrarZona = () => campoZona.classList.toggle('oculto', selRol.value !== 'cobranza');
+    const campoMontos = document.getElementById('u-montos-campo');
+    const mostrarZona = () => { campoZona.classList.toggle('oculto', selRol.value !== 'cobranza'); campoMontos.classList.toggle('oculto', selRol.value !== 'cobranza'); };
     selRol.addEventListener('change', mostrarZona); mostrarZona();
 
     conectarModalSimple(async () => {
       const password = document.getElementById('u-password').value;
       const zona_id = document.getElementById('u-rol').value === 'cobranza' ? (document.getElementById('u-zona').value || null) : null;
+      const ocultar_montos = document.getElementById('u-rol').value === 'cobranza' && document.getElementById('u-montos').value === 'true';
 
       if (usuarioEditar) {
         const payload = {
@@ -267,6 +277,7 @@
           rol: document.getElementById('u-rol').value,
           telefono: document.getElementById('u-telefono').value.trim(),
           zona_id,
+          ocultar_montos,
           activo: document.getElementById('u-activo').value === 'true'
         };
         if (password) payload.password = password;
@@ -278,6 +289,7 @@
           password,
           rol: document.getElementById('u-rol').value,
           zona_id,
+          ocultar_montos,
           telefono: document.getElementById('u-telefono').value.trim()
         });
       }

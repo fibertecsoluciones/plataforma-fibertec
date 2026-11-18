@@ -6,6 +6,11 @@ const esCobranza = (req) => req.usuario && req.usuario.rol === 'cobranza';
 const CAMPOS_COBRANZA_LISTA = ['cliente_id_pk', 'cliente_id', 'nombre', 'zona', 'plan', 'precio', 'dia_pago', 'fecha_vencimiento', 'semaforo', 'meses_adeudados', 'saldo_pendiente', 'estado_cliente'];
 const CAMPOS_COBRANZA_DETALLE = ['id', 'cliente_id', 'nombre', 'estado', 'zona_nombre', 'plan_nombre', 'precio', 'dia_pago', 'fecha_suspension', 'adeudo_manual_meses', 'adeudo_manual_detalle', 'semaforo', 'meses_adeudados', 'saldo_pendiente', 'fecha_vencimiento'];
 const soloCampos = (fila, campos) => Object.fromEntries(campos.filter(k => k in fila).map(k => [k, fila[k]]));
+// Cobranza con "Ocultar montos": se quitan tarifa, saldo y el texto libre del adeudo manual (podría traer cifras).
+const CAMPOS_CON_MONTOS = ['precio', 'saldo_pendiente', 'adeudo_manual_detalle'];
+const sinMontos = (fila) => Object.fromEntries(Object.entries(fila).filter(([k]) => !CAMPOS_CON_MONTOS.includes(k)));
+const ocultaMontos = (req) => esCobranza(req) && req.usuario.ocultar_montos === true;
+const paraCobranza = (req, fila, campos) => { const f = soloCampos(fila, campos); return ocultaMontos(req) ? sinMontos(f) : f; };
 
 // Lista de clientes con su estado de pago (semáforo) - para el dashboard general
 async function listarClientes(req, res) {
@@ -46,7 +51,7 @@ async function listarClientes(req, res) {
   if (esCobranza(req)) sql += ' LIMIT 300';
 
   const r = await db.query(sql, params);
-  res.json(esCobranza(req) ? r.rows.map(f => soloCampos(f, CAMPOS_COBRANZA_LISTA)) : r.rows);
+  res.json(esCobranza(req) ? r.rows.map(f => paraCobranza(req, f, CAMPOS_COBRANZA_LISTA)) : r.rows);
 }
 
 // Detalle completo de un cliente (para edición y para la pantalla de pagos)
@@ -75,7 +80,7 @@ async function obtenerCliente(req, res) {
     if (req.usuario.zona_id && Number(r.rows[0].zona_id) !== Number(req.usuario.zona_id)) {
       return res.status(404).json({ error: 'Cliente no encontrado.' });
     }
-    return res.json(soloCampos(r.rows[0], CAMPOS_COBRANZA_DETALLE));
+    return res.json(paraCobranza(req, r.rows[0], CAMPOS_COBRANZA_DETALLE));
   }
   res.json(r.rows[0]);
 }

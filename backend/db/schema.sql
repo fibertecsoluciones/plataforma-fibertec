@@ -34,6 +34,7 @@ CREATE TABLE usuarios (
   password_hash TEXT NOT NULL,
   rol           VARCHAR(20) NOT NULL CHECK (rol IN ('admin','tecnico','cobranza')),
   zona_id       INTEGER REFERENCES zonas(id),   -- solo cobranza: si tiene zona, solo ve clientes de esa zona (NULL = todas)
+  ocultar_montos BOOLEAN NOT NULL DEFAULT FALSE, -- solo cobranza: si es TRUE no ve ningún monto y el sistema cobra solo lo que falta del mes
   telefono      VARCHAR(20),
   activo        BOOLEAN NOT NULL DEFAULT TRUE,
   creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
