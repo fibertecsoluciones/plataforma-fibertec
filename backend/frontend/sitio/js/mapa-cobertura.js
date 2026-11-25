@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var el = document.getElementById('mapa-real');
   if (!el || !window.L || !window.FT_COLONIAS) return;
 
-  var map = L.map(el, { scrollWheelZoom: false });
+  var map = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false });
 
   // Satélite (como en la página anterior) con los nombres de lugares encima; o mapa de calles
   var satelite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
@@ -38,10 +38,16 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   map.fitBounds(window.FT_COLONIAS.map(function (c) { return c.coords; }), { padding: [60, 60] });
+  function lejos() { el.classList.toggle('z-lejos', map.getZoom() < 14); }
+  map.on('zoomend', lejos);
+  lejos();
 
   document.addEventListener('ft:colonia', function (e) {
     var c = e.detail; if (!c) return;
     map.flyTo(c.coords, 14, { duration: 1.1 });
+    document.querySelectorAll('.mk--hit').forEach(function (n) { n.classList.remove('mk--hit'); });
+    var mk = marcadores[c.id] && marcadores[c.id].getElement();
+    if (mk && mk.firstChild) mk.firstChild.classList.add('mk--hit');
     if (marcadores[c.id]) marcadores[c.id].openPopup();
   });
 });

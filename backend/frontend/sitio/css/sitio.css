@@ -459,3 +459,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Mapa real en portada y cobertura ancha */
+.hero__mapa { min-width: 0; }
+.mapa-real--hero { height: clamp(340px, 46vw, 560px); box-shadow: 0 18px 40px -24px rgba(16,48,58,.45); }
+@media (min-width: 960px) { .hero__in { grid-template-columns: .85fr 1.15fr; } }
+.mapa-real--ancho { height: clamp(400px, 56vw, 640px); width: 100%; }
+.colonias--dos { display: grid; gap: 28px 48px; margin-top: 32px; }
+@media (min-width: 720px) { .colonias--dos { grid-template-columns: 1fr 1fr; } }
+.colonias--dos ul + h3 { margin-top: 0; }
+.mk--hit .mk__pin { animation: mk-ping 1.2s ease-out 3; }
+@keyframes mk-ping { 0% { box-shadow: 0 0 0 0 rgba(245,168,43,.9); } 100% { box-shadow: 0 0 0 22px rgba(245,168,43,0); } }
+@media (prefers-reduced-motion: reduce) { .mk--hit .mk__pin { animation: none; } }

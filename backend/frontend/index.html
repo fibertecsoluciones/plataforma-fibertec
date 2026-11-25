@@ -18,7 +18,7 @@
 <link rel="preload" href="/sitio/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/sitio/fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/sitio/css/sitio.css?v=3">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"FiberTec","url":"https://www.fibertec.com.mx/","image":"https://www.fibertec.com.mx/sitio/img/logo.png","telephone":"+52 921 150 9583","description":"Internet de fibra óptica para hogares y negocios en Moloacán, Veracruz.","address":{"@type":"PostalAddress","addressLocality":"Moloacán","addressRegion":"Veracruz","addressCountry":"MX"},"areaServed":["Popotla","San Pedro Mezcalapa","El KM40","Pajaral"]}</script>
+<link rel="stylesheet" href="/sitio/vendor/leaflet/leaflet.css"><script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"FiberTec","url":"https://www.fibertec.com.mx/","image":"https://www.fibertec.com.mx/sitio/img/logo.png","telephone":"+52 921 150 9583","description":"Internet de fibra óptica para hogares y negocios en Moloacán, Veracruz.","address":{"@type":"PostalAddress","addressLocality":"Moloacán","addressRegion":"Veracruz","addressCountry":"MX"},"areaServed":["Popotla","San Pedro Mezcalapa","El KM40","Pajaral"]}</script>
 </head>
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
@@ -50,10 +50,10 @@
   <div class="checker__result" id="res-h" role="status" aria-live="polite"></div>
 </form>
     </div>
-    <figure class="senal">
-      <svg class="senal__svg" viewBox="0 0 500 560" role="img" aria-labelledby="senal-t"><title id="senal-t">Mapa esquemático de las comunidades con cobertura de FiberTec y las próximas</title><rect class="senal__bg" width="500" height="560" rx="20"/><image href="/sitio/img/senal-curvas.svg" width="500" height="560" preserveAspectRatio="none"/><g class="pin" data-id="popotla" style="--i:0"><circle class="pin__ring" cx="181.2" cy="75.0" r="11"/><circle class="pin__dot" cx="181.2" cy="75.0" r="9"/><circle class="pin__core" cx="181.2" cy="75.0" r="3"/><text class="senal__label" x="197.2" y="80.0" text-anchor="start">Popotla</text></g><g class="pin" data-id="san-pedro" style="--i:1"><circle class="pin__ring" cx="199.2" cy="387.6" r="11"/><circle class="pin__dot" cx="199.2" cy="387.6" r="9"/><circle class="pin__core" cx="199.2" cy="387.6" r="3"/><text class="senal__label" x="199.2" y="415.6" text-anchor="middle">San Pedro Mezcalapa</text></g><g class="pin" data-id="km40" style="--i:2"><circle class="pin__ring" cx="372.3" cy="277.1" r="11"/><circle class="pin__dot" cx="372.3" cy="277.1" r="9"/><circle class="pin__core" cx="372.3" cy="277.1" r="3"/><text class="senal__label" x="356.3" y="282.1" text-anchor="end">El KM40</text></g><g class="pin" data-id="pajaral" style="--i:3"><circle class="pin__ring" cx="411.1" cy="397.2" r="11"/><circle class="pin__dot" cx="411.1" cy="397.2" r="9"/><circle class="pin__core" cx="411.1" cy="397.2" r="3"/><text class="senal__label" x="411.1" y="380.2" text-anchor="middle">Pajaral</text></g><g class="pin pin--proxima" data-id="filisola" style="--i:4"><circle class="pin__ring" cx="88.9" cy="485.0" r="11"/><circle class="pin__dot" cx="88.9" cy="485.0" r="9"/><text class="senal__label senal__label--proxima" x="72.9" y="490.0" text-anchor="end">Filisola</text></g><g class="pin pin--proxima" data-id="pueblo-viejo" style="--i:5"><circle class="pin__ring" cx="224.8" cy="374.3" r="11"/><circle class="pin__dot" cx="224.8" cy="374.3" r="9"/><text class="senal__label senal__label--proxima" x="224.8" y="357.3" text-anchor="middle">Pueblo Viejo</text></g><g class="pin pin--proxima" data-id="la-concepcion" style="--i:6"><circle class="pin__ring" cx="105.5" cy="483.2" r="11"/><circle class="pin__dot" cx="105.5" cy="483.2" r="9"/><text class="senal__label senal__label--proxima" x="121.5" y="488.2" text-anchor="start">La Concepción</text></g><g class="pin pin--proxima" data-id="tacomango" style="--i:7"><circle class="pin__ring" cx="185.0" cy="278.3" r="11"/><circle class="pin__dot" cx="185.0" cy="278.3" r="9"/><text class="senal__label senal__label--proxima" x="201.0" y="283.3" text-anchor="start">Tacomango</text></g><g class="pin pin--proxima" data-id="san-martin" style="--i:8"><circle class="pin__ring" cx="164.6" cy="348.4" r="11"/><circle class="pin__dot" cx="164.6" cy="348.4" r="9"/><text class="senal__label senal__label--proxima" x="148.6" y="353.4" text-anchor="end">San Martín</text></g></svg>
-      <figcaption class="senal__legend"><span><i class="dot"></i> Ya tenemos cobertura</span><span><i class="dot dot--proxima"></i> Próximamente</span></figcaption>
-    </figure>
+    <div class="hero__mapa">
+      <div id="mapa-real" class="mapa-real mapa-real--hero" role="region" aria-label="Mapa de cobertura de FiberTec"></div>
+      <div class="senal__legend"><span><i class="dot"></i> Ya tenemos cobertura</span><span><i class="dot dot--proxima"></i> Próximamente</span></div>
+    </div>
   </div>
 </section>
 
@@ -163,6 +163,6 @@
 </footer>
 <a class="wa-float" href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg></a>
 <script src="/sitio/js/sitio.js?v=3"></script>
-<script src="/sitio/js/cobertura.js?v=3"></script>
+<script src="/sitio/vendor/leaflet/leaflet.js"></script><script src="/sitio/js/cobertura.js?v=3"></script><script src="/sitio/js/mapa-cobertura.js?v=3"></script>
 </body>
 </html>
