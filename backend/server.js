@@ -45,6 +45,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true, servicio: 'FiberTec IS
 const frontendPath = path.join(__dirname, 'frontend');
 // La entrada (/) es la página web pública; el sistema entra por /login.html
 app.get(['/login', '/sistema', '/acceso'], (req, res) => res.redirect('/login.html'));
+app.get(['/soluciones', '/soluciones.html'], (req, res) => res.redirect(301, '/servicios.html'));
 app.use(express.static(frontendPath));
 app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
   res.status(404).sendFile(path.join(frontendPath, '404.html'));
