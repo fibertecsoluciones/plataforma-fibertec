@@ -1,0 +1,328 @@
+/* ========================================
+   PÁGINA: CONTACTO
+   ======================================== */
+
+/* ========================================
+   PAGE HEADER - CORREGIDO
+   ======================================== */
+
+.page-header {
+    background: linear-gradient(135deg, #3188b2, #3ea682);
+    padding: var(--spacing-3xl) 0;
+    text-align: center;
+    margin-top: 80px;
+    position: relative;
+}
+
+/* Forzar que todo sea blanco */
+.page-header,
+.page-header * {
+    color: white !important;
+}
+
+.page-title {
+    font-size: var(--font-size-5xl);
+    font-weight: 800;
+    margin-bottom: var(--spacing-md);
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Neutralizar cualquier gradiente global */
+.page-title span,
+.page-title .gradient-text {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: white !important;
+    background-clip: unset !important;
+    color: white !important;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-weight: 800;
+}
+
+.page-description {
+    font-size: var(--font-size-xl);
+    max-width: 600px;
+    margin: 0 auto;
+    opacity: 0.95;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================
+   RESTO DEL CSS (IGUAL)
+   ======================================== */
+
+.contacto-rapido-section {
+    padding: var(--spacing-xl) 0;
+    background: var(--white);
+}
+
+.contacto-rapido-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-lg);
+}
+
+.contacto-rapido-card {
+    padding: var(--spacing-xl);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.contacto-rapido-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+}
+
+.contacto-rapido-card.whatsapp:hover {
+    border-color: #25D366;
+}
+
+.contacto-rapido-card.whatsapp-secundario:hover {
+    border-color: #25D366;
+}
+
+.contacto-rapido-card.facebook:hover {
+    border-color: #1877f2;
+}
+
+.contacto-rapido-card i {
+    font-size: var(--font-size-4xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.contacto-rapido-card.whatsapp i {
+    color: #25D366;
+}
+
+.contacto-rapido-card.whatsapp-secundario i {
+    color: #25D366;
+}
+
+.contacto-rapido-card.facebook i {
+    color: #1877f2;
+}
+
+.contacto-rapido-card h3 {
+    color: var(--dark);
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-lg);
+}
+
+.contacto-rapido-card p {
+    color: var(--gray);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.horario {
+    font-size: var(--font-size-xs);
+    font-weight: normal !important;
+    color: var(--accent) !important;
+}
+
+.formulario-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--light);
+}
+
+.formulario-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--white);
+    padding: var(--spacing-2xl);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+}
+
+.contacto-form-grande {
+    margin-top: var(--spacing-xl);
+}
+
+.form-checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-lg) 0;
+}
+
+.form-checkbox input[type="checkbox"] {
+    width: auto;
+    margin-right: var(--spacing-xs);
+    accent-color: var(--primary);
+}
+
+.form-checkbox label {
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+}
+
+.horarios-section {
+    padding: var(--spacing-xl) 0;
+    background: var(--white);
+}
+
+.horarios-card {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: var(--spacing-2xl);
+    background: var(--light);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.horarios-card i {
+    font-size: var(--font-size-4xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.horarios-card h3 {
+    color: var(--secondary);
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-2xl);
+}
+
+.horarios-card ul {
+    list-style: none;
+    margin-bottom: var(--spacing-lg);
+}
+
+.horarios-card li {
+    margin-bottom: var(--spacing-sm);
+    color: var(--dark);
+    font-size: var(--font-size-lg);
+}
+
+.emergencia {
+    color: var(--primary);
+    font-weight: 500;
+    padding: var(--spacing-md);
+    background: rgba(49, 136, 178, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.ubicacion-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--light);
+}
+
+.ubicacion-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xl);
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.ubicacion-mapa-placeholder {
+    background: linear-gradient(135deg, #3188b2, #3ea682);
+    padding: var(--spacing-2xl);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    color: var(--white);
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.ubicacion-mapa-placeholder i {
+    font-size: 5rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.ubicacion-mapa-placeholder p {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.ubicacion-info {
+    padding: var(--spacing-xl);
+}
+
+.ubicacion-info h3 {
+    color: var(--primary);
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.ubicacion-info p {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    color: var(--gray);
+    font-size: var(--font-size-lg);
+}
+
+.ubicacion-info i {
+    color: var(--primary);
+    width: 24px;
+}
+
+.faq-rapido-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--white);
+}
+
+.faq-rapido-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.faq-rapido-item {
+    padding: var(--spacing-lg);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid var(--primary);
+}
+
+.faq-rapido-item h4 {
+    color: var(--secondary);
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-base);
+}
+
+.faq-rapido-item p {
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+@media (max-width: 968px) {
+    .contacto-rapido-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .faq-rapido-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .contacto-rapido-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ubicacion-card {
+        grid-template-columns: 1fr;
+    }
+    
+    .faq-rapido-grid {
+        grid-template-columns: 1fr;
+    }
+}

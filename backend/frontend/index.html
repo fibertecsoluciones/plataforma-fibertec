@@ -1,67 +1,186 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FiberTec · Iniciar sesión</title>
-<link rel="icon" href="/img/logo.png" />
-<link rel="stylesheet" href="/css/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiberTec · Inicio - Internet Rural de Alta Velocidad</title>
+    
+    <!-- Meta tags SEO -->
+    <meta name="description" content="FiberTec: Internet confiable para comunidades rurales en Moloacán. Ideal para home office, streaming y educación en línea.">
+    <meta name="keywords" content="internet rural Moloacán, fibra óptica, internet comunidades">
+    <meta name="author" content="FiberTec">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fibertec.mx">
+    <meta property="og:title" content="FiberTec · Internet para Comunidades Rurales">
+    <meta property="og:description" content="Conectamos Moloacán con internet de alta velocidad.">
+    
+    <!-- Fonts e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- CSS Principal -->
+    <link rel="stylesheet" href="/sitio/css/main.css">
 </head>
 <body>
+    <!-- Navbar (igual en todas las páginas) -->
+     <div id="header-placeholder"></div>
 
-<div class="login-envoltura">
-  <div class="login-tarjeta">
-    <img src="/img/logo.png" alt="FiberTec" class="marca" />
-    <h1>Panel de operación</h1>
-    <p class="login-sub">Conectando contigo — inicia sesión para continuar</p>
+    <main>
+        <!-- Hero Section -->
+        <section id="home" class="hero">
+            <div class="hero-particles"></div>
+            <div class="container">
+                <div class="hero-content">
+                    <span class="hero-badge">✨ Tecnología de última generación</span>
+                    <h1 class="hero-title">
+                        Conectamos tu hogar<br>
+                        con el <span class="gradient-text">futuro</span>
+                    </h1>
+                    <p class="hero-description">
+                        FiberTec lleva internet de alta velocidad a comunidades rurales de Moloacán. 
+                        Diseñado para quienes necesitan una conexión confiable, sin importar lo remoto de tu ubicación.
+                    </p>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <span class="stat-number">99.9%</span>
+                            <span class="stat-label">Uptime</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">24/7</span>
+                            <span class="stat-label">Soporte</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">+500</span>
+                            <span class="stat-label">Hogares</span>
+                        </div>
+                    </div>
+                    <div class="hero-cta">
+                        <a href="contacto.html" class="btn btn-primary">
+                            Contratar ahora
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        <a href="soluciones.html" class="btn btn-outline">
+                            Conocer más
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-shape"></div>
+                </div>
+            </div>
+        </section>
 
-    <div id="error-login" class="error-msg oculto"></div>
+        <!-- Vista previa de Soluciones -->
+        <section class="soluciones-preview">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-subtitle">¿Qué ofrecemos?</span>
+                    <h2 class="section-title">Nuestras <span class="gradient-text">Soluciones</span></h2>
+                    <p class="section-description">
+                        Conoce algunas de nuestras soluciones principales
+                    </p>
+                </div>
 
-    <form id="form-login">
-      <div class="campo">
-        <label for="usuario">Usuario</label>
-        <input type="text" id="usuario" autocomplete="username" required />
-      </div>
-      <div class="campo">
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" autocomplete="current-password" required />
-      </div>
-      <button type="submit" class="btn btn-primario" id="btn-login">Entrar</button>
-    </form>
-  </div>
-</div>
+                <div class="soluciones-grid">
+                    <div class="solucion-card">
+                        <div class="card-icon">
+                            <i class="fas fa-laptop-house"></i>
+                        </div>
+                        <h3>Home Office</h3>
+                        <p>Videollamadas sin cortes y conexión estable.</p>
+                    </div>
 
-<script src="/js/config.js"></script>
-<script src="/js/api.js"></script>
-<script>
-  // Si ya hay sesión activa, saltar directo a su pantalla correspondiente
-  if (API.token() && API.usuario()) {
-    window.location.href = API.paginaInicio(API.usuario().rol);
-  }
+                    <div class="solucion-card featured">
+                        <div class="card-badge">Popular</div>
+                        <div class="card-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <h3>Educación en línea</h3>
+                        <p>Clases virtuales sin interrupciones.</p>
+                    </div>
 
-  const form = document.getElementById('form-login');
-  const errorBox = document.getElementById('error-login');
-  const btn = document.getElementById('btn-login');
+                    <div class="solucion-card">
+                        <div class="card-icon">
+                            <i class="fas fa-film"></i>
+                        </div>
+                        <h3>Streaming 4K</h3>
+                        <p>Disfruta Netflix y Disney+ sin cortes.</p>
+                    </div>
+                </div>
+                
+                <div class="text-center" style="margin-top: var(--spacing-xl);">
+                    <a href="soluciones.html" class="btn btn-outline">Ver todas las soluciones <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </section>
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorBox.classList.add('oculto');
-    btn.disabled = true;
-    btn.textContent = 'Entrando…';
+        <!-- Vista previa de Planes -->
+        <section class="planes-preview">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-subtitle">Precios transparentes</span>
+                    <h2 class="section-title">Nuestros <span class="gradient-text">Planes</span></h2>
+                    <p class="section-description">
+                        Conoce nuestros planes más populares
+                    </p>
+                </div>
 
-    try {
-      const usuario = document.getElementById('usuario').value.trim();
-      const password = document.getElementById('password').value;
-      const data = await API.post('/api/auth/login', { usuario, password });
-      API.guardarSesion(data.token, data.usuario);
-      window.location.href = API.paginaInicio(data.usuario.rol);
-    } catch (err) {
-      errorBox.textContent = err.message;
-      errorBox.classList.remove('oculto');
-      btn.disabled = false;
-      btn.textContent = 'Entrar';
-    }
-  });
-</script>
+                <div class="planes-grid">
+                    <!-- Plan Navega -->
+                    <div class="plan-card">
+                        <div class="plan-header">
+                            <div class="plan-icon">🚀</div>
+                            <h3>Plan Navega</h3>
+                            <div class="plan-price">
+                                <span class="price">$400</span>
+                                <span class="period">/mes</span>
+                            </div>
+                            <div class="velocidad">10 MBPS</div>
+                        </div>
+                    </div>
+
+                    <!-- Plan Vuelo -->
+                    <div class="plan-card popular">
+                        <div class="plan-badge">MÁS ELEGIDO</div>
+                        <div class="plan-header">
+                            <div class="plan-icon">🪶</div>
+                            <h3>Plan Vuelo</h3>
+                            <div class="plan-price">
+                                <span class="price">$500</span>
+                                <span class="period">/mes</span>
+                            </div>
+                            <div class="velocidad">20 MBPS</div>
+                        </div>
+                    </div>
+
+                    <!-- Plan Elite -->
+                    <div class="plan-card">
+                        <div class="plan-header">
+                            <div class="plan-icon">👑</div>
+                            <h3>Plan Elite</h3>
+                            <div class="plan-price">
+                                <span class="price">$600</span>
+                                <span class="period">/mes</span>
+                            </div>
+                            <div class="velocidad">30 MBPS</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center" style="margin-top: var(--spacing-xl);">
+                    <a href="planes.html" class="btn btn-outline">Ver todos los planes <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+        <div id="footer-placeholder"></div>
+<script src="/sitio/js/loadComponents.js"></script>
+    <script src="/sitio/js/main.js"></script>
 </body>
 </html>

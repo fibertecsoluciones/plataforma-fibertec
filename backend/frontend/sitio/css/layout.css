@@ -1,0 +1,162 @@
+/* ========================================
+   LAYOUT - Contenedores y estructura
+   ======================================== */
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+}
+
+section {
+    padding: var(--spacing-3xl) 0;
+}
+
+.section-header {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto var(--spacing-2xl);
+}
+
+.section-subtitle {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(49, 136, 178, 0.1);
+    color: var(--primary);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.section-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+    color: var(--dark);
+}
+
+.section-description {
+    color: var(--gray);
+    font-size: var(--font-size-lg);
+}
+
+/* ========================================
+   TEXTO GRADIENTE - VERSIÓN MEJORADA
+   ======================================== */
+
+.gradient-text {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    
+    /* SOMBRAS para que resalte en cualquier fondo */
+    text-shadow: 
+        0 2px 5px rgba(49, 136, 178, 0.25),
+        0 4px 12px rgba(62, 166, 130, 0.2),
+        0 8px 20px rgba(0, 0, 0, 0.1);
+    
+    /* Mejor renderizado */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    
+    /* Para que funcione mejor el hover */
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+/* Efecto hover opcional */
+.gradient-text:hover {
+    text-shadow: 
+        0 4px 12px rgba(49, 136, 178, 0.4),
+        0 8px 24px rgba(62, 166, 130, 0.3),
+        0 12px 30px rgba(0, 0, 0, 0.15);
+    transform: scale(1.02);
+}
+
+/* VERSIÓN ESPECIAL PARA TÍTULOS GRANDES (h1, h2) */
+h1 .gradient-text,
+h2 .gradient-text,
+.section-title .gradient-text {
+    text-shadow: 
+        0 3px 8px rgba(49, 136, 178, 0.3),
+        0 6px 18px rgba(62, 166, 130, 0.25),
+        0 10px 25px rgba(0, 0, 0, 0.1);
+    font-weight: 800; /* Un poco más grueso */
+}
+
+/* VERSIÓN PARA FONDOS CLAROS (como en .section-header) */
+.section-header .gradient-text {
+    text-shadow: 
+        0 2px 8px rgba(49, 136, 178, 0.35),
+        0 5px 15px rgba(62, 166, 130, 0.25);
+}
+
+/* VERSIÓN PARA FONDOS OSCUROS (footer, hero con overlay) */
+.bg-dark .gradient-text,
+.footer .gradient-text,
+.hero .gradient-text {
+    text-shadow: 
+        0 2px 10px rgba(255, 255, 255, 0.3),
+        0 5px 20px rgba(49, 136, 178, 0.5),
+        0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* VERSIÓN CON BORDE SUTIL (opcional - más llamativo) */
+.gradient-text-outline {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    
+    /* Borde sutil */
+    -webkit-text-stroke: 1px rgba(49, 136, 178, 0.2);
+   
+    
+    text-shadow: 
+        0 2px 8px rgba(49, 136, 178, 0.3),
+        0 4px 15px rgba(62, 166, 130, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .gradient-text {
+        text-shadow: 
+            0 1px 3px rgba(49, 136, 178, 0.3),
+            0 2px 8px rgba(62, 166, 130, 0.2);
+    }
+    
+    h1 .gradient-text,
+    h2 .gradient-text {
+        text-shadow: 
+            0 2px 5px rgba(49, 136, 178, 0.3),
+            0 4px 12px rgba(62, 166, 130, 0.2);
+    }
+}
+
+@media (max-width: 480px) {
+    .gradient-text {
+        text-shadow: 
+            0 1px 2px rgba(49, 136, 178, 0.4),
+            0 2px 5px rgba(62, 166, 130, 0.25);
+    }
+}
+
+/* Grid system */
+.grid {
+    display: grid;
+    gap: var(--spacing-lg);
+}
+
+.grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}

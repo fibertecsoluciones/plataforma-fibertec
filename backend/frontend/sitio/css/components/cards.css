@@ -1,0 +1,215 @@
+/* ========================================
+   COMPONENTE: TARJETAS (CARDS)
+   ======================================== */
+
+/* Tarjetas de soluciones */
+.soluciones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.solucion-card {
+    background: var(--white);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.solucion-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary);
+}
+
+.solucion-card.featured {
+    background: var(--gradient);
+    color: var(--white);
+}
+
+.solucion-card.featured .card-icon {
+    color: var(--white);
+}
+
+.solucion-card.featured .card-features li {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.solucion-card.featured .card-features i {
+    color: var(--white);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.solucion-card h3 {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-sm);
+    color: var(--dark);
+}
+
+.solucion-card.featured h3 {
+    color: var(--white);
+}
+
+.solucion-card p {
+    color: var(--gray);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.6;
+}
+
+.solucion-card.featured p {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.card-features {
+    list-style: none;
+    margin-top: var(--spacing-md);
+}
+
+.card-features li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+}
+
+.card-features i {
+    color: var(--primary);
+    font-size: var(--font-size-md);
+}
+
+.card-badge {
+    position: absolute;
+    top: -12px;
+    right: var(--spacing-lg);
+    background: var(--secondary);
+    color: var(--white);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Tarjetas de valores (Nosotros) */
+.valores-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.valor {
+    text-align: center;
+    padding: var(--spacing-lg);
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.valor:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-colored);
+}
+
+.valor i {
+    font-size: var(--font-size-3xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.valor h4 {
+    margin-bottom: var(--spacing-xs);
+    color: var(--secondary);
+    font-size: var(--font-size-lg);
+}
+
+.valor p {
+    font-size: var(--font-size-sm);
+    color: var(--accent);
+    line-height: 1.5;
+}
+
+/* Tarjetas de información (Contacto) */
+.info-card {
+    background: var(--light);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.info-card:hover {
+    transform: translateX(5px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-colored);
+}
+
+.info-card i {
+    font-size: var(--font-size-2xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.info-card h4 {
+    color: var(--secondary);
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-lg);
+}
+
+.info-card a {
+    color: var(--dark);
+    text-decoration: none;
+    font-weight: 600;
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    transition: color 0.3s;
+    font-size: var(--font-size-lg);
+}
+
+.info-card a:hover {
+    color: var(--primary);
+}
+
+.info-card p {
+    font-size: var(--font-size-sm);
+    color: var(--accent);
+}
+
+/* Responsive para cards */
+@media (max-width: 768px) {
+    .valores-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-card:hover {
+        transform: translateY(-5px);
+    }
+}
+
+@media (max-width: 480px) {
+    .solucion-card {
+        padding: var(--spacing-lg);
+    }
+    
+    .valor {
+        padding: var(--spacing-md);
+    }
+    
+    .info-card a {
+        font-size: var(--font-size-base);
+    }
+}

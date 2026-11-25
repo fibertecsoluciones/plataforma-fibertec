@@ -178,7 +178,7 @@
           <tbody>
             ${lista.map(s => `
               <tr>
-                <td class="celda-tarjeta-titulo">${s.nombre}${s.notas ? `<div class="celda-meta">${s.notas}</div>` : ''}</td>
+                <td class="celda-tarjeta-titulo">${s.nombre}${s.origen === 'web' ? ' <span class="pill nueva" title="Llegó desde la página web">🌐 Web</span>' : ''}${s.email ? `<div class="celda-meta">✉️ ${s.email}</div>` : ''}${s.notas ? `<div class="celda-meta" style="white-space:pre-line;">${s.notas}</div>` : ''}</td>
                 <td data-label="Teléfono">${s.telefono || '—'}</td>
                 <td data-label="Zona">${s.zona_nombre || '—'}</td>
                 <td data-label="Capturada por">${s.capturado_por_nombre || '—'}</td>

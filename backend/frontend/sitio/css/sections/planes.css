@@ -1,0 +1,175 @@
+/* ========================================
+   SECCIÓN: PLANES FIBERTEC
+   ======================================== */
+
+.planes {
+    background: var(--light);
+    position: relative;
+}
+
+.planes::before {
+    content: '📡';
+    position: absolute;
+    font-size: 15rem;
+    opacity: 0.03;
+    right: -2%;
+    bottom: -5%;
+    transform: rotate(-15deg);
+    pointer-events: none;
+}
+
+.planes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Tarjeta de plan */
+.plan-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    position: relative;
+    border: 2px solid transparent;
+    text-align: center;
+}
+
+.plan-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary);
+}
+
+/* Plan destacado */
+.plan-card.popular {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-xl);
+    border: 2px solid var(--primary);
+}
+
+.plan-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gradient);
+    color: var(--white);
+    padding: var(--spacing-xs) var(--spacing-lg);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Iconos de planes */
+.plan-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.plan-card h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.plan-price {
+    margin: var(--spacing-sm) 0;
+}
+
+.price {
+    font-size: var(--font-size-4xl);
+    font-weight: 800;
+    color: var(--secondary);
+}
+
+.period {
+    color: var(--accent);
+    font-size: var(--font-size-sm);
+}
+
+.velocidad {
+    font-size: var(--font-size-2xl);
+    color: var(--primary);
+    font-weight: 700;
+    margin: var(--spacing-sm) 0;
+}
+
+/* Características */
+.plan-features {
+    margin: var(--spacing-lg) 0;
+}
+
+.plan-features ul {
+    list-style: none;
+}
+
+.plan-features li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+    color: var(--gray);
+}
+
+.plan-features i {
+    color: var(--secondary);
+    font-size: var(--font-size-lg);
+}
+
+/* Nota de planes */
+.planes-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xl);
+}
+
+.planes-note i {
+    color: var(--primary);
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .planes-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .planes-grid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .plan-card.popular {
+        transform: scale(1);
+    }
+    
+    .plan-card:hover {
+        transform: translateY(-5px);
+    }
+}
+
+@media (max-width: 480px) {
+    .plan-card {
+        padding: var(--spacing-lg);
+    }
+    
+    .price {
+        font-size: var(--font-size-3xl);
+    }
+    
+    .velocidad {
+        font-size: var(--font-size-xl);
+    }
+}

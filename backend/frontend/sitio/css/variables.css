@@ -1,0 +1,70 @@
+/* ========================================
+   VARIABLES GLOBALES - Colores y tipografía
+   ======================================== */
+
+:root {
+    /* Colores principales - PALETA FIBERTEC */
+    --primary: #3188b2;
+    --primary-dark: #256f94;
+    --secondary: #3ea682;
+    --secondary-dark: #338568;
+    --accent: #818181;
+    --accent-light: #9e9e9e;
+    
+    /* Escala de grises */
+    --dark: #2c3e50;
+    --gray: #5f6b7a;
+    --light: #f5f7fa;
+    --white: #ffffff;
+    
+    /* Gradientes */
+    --gradient: linear-gradient(135deg, #3188b2 0%, #3ea682 100%);
+    --gradient-alt: linear-gradient(135deg, #3ea682 0%, #3188b2 100%);
+    
+    /* Sombras */
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --shadow-colored: 0 10px 25px -5px rgba(62, 166, 130, 0.2);
+    
+    /* Tipografía */
+    --font-primary: 'Inter', sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 2rem;
+    --font-size-4xl: 2.5rem;
+    --font-size-5xl: 3rem;
+    
+    /* Espaciados */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    --spacing-2xl: 4rem;
+    --spacing-3xl: 6rem;
+    
+    /* Bordes */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-full: 9999px;
+    
+    /* Z-index */
+    --z-navbar: 1000;
+    --z-modal: 2000;
+    --z-tooltip: 3000;
+}
+
+/* Modo oscuro (opcional, preparado para futuro) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Aquí irían variables para modo oscuro si lo deseas */
+    }
+}

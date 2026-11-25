@@ -1,0 +1,50 @@
+/* Estilos específicos para el Menú del Admin */
+.grid-menu-admin {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 40px;
+    padding: 0 10px;
+}
+
+.card-admin {
+    background: white;
+    padding: 30px 20px;
+    border-radius: 20px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.card-admin:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 20px rgba(49, 136, 178, 0.15);
+    border-color: #3188b2;
+}
+
+.card-admin i {
+    font-size: 45px;
+    background: linear-gradient(135deg, #3188b2, #3ea682);
+    
+    /* 2. Recortamos el fondo al texto (con prefijo para compatibilidad) */
+    -webkit-background-clip: text; 
+    background-clip: text; 
+    
+    /* 3. Hacemos que el color original del texto sea transparente 
+       para que se vea el fondo de abajo */
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 15px;
+}
+
+.card-admin h3 {
+    color: #3188b2;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+}
+
+.card-admin p {
+    color: #64748b;
+    font-size: 0.9rem;
+}

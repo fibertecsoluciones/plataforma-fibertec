@@ -1,0 +1,291 @@
+/* ========================================
+   PÁGINA: SEGURIDAD - CÁMARAS
+   ======================================== */
+
+/* Hero */
+.camaras-hero {
+    padding: var(--spacing-3xl) 0;
+    background: linear-gradient(135deg, var(--white) 0%, var(--light) 100%);
+}
+
+.camaras-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
+    align-items: center;
+}
+
+.camaras-hero-content h2 {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.camaras-hero-content p {
+    font-size: var(--font-size-lg);
+    color: var(--gray);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.8;
+}
+
+.camaras-stats {
+    display: flex;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.camaras-hero-image {
+    background: var(--gradient);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-3xl);
+    text-align: center;
+    box-shadow: var(--shadow-xl);
+}
+
+.camaras-hero-image i {
+    font-size: 12rem;
+    color: white;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+}
+
+/* Beneficios */
+.camaras-beneficios {
+    padding: var(--spacing-3xl) 0;
+    background: var(--white);
+}
+
+.beneficios-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.beneficio-card {
+    padding: var(--spacing-xl);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.beneficio-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.beneficio-card i {
+    font-size: var(--font-size-4xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.beneficio-card h3 {
+    color: var(--secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.beneficio-card p {
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+}
+
+/* Tipos de cámaras */
+.camaras-tipos {
+    padding: var(--spacing-3xl) 0;
+    background: var(--light);
+}
+
+.tipos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+}
+
+.tipo-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    transition: all 0.3s;
+}
+
+.tipo-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-xl);
+}
+
+.tipo-card.destacado {
+    border: 2px solid var(--primary);
+    transform: scale(1.05);
+}
+
+.tipo-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gradient);
+    color: white;
+    padding: var(--spacing-xs) var(--spacing-lg);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.tipo-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.tipo-card h3 {
+    color: var(--primary);
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-sm);
+}
+
+.tipo-card p {
+    color: var(--gray);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tipo-card ul {
+    list-style: none;
+    margin-bottom: var(--spacing-lg);
+}
+
+.tipo-card li {
+    padding: var(--spacing-xs);
+    color: var(--dark);
+    font-size: var(--font-size-sm);
+}
+
+.precio-desde {
+    font-size: var(--font-size-xl);
+    color: var(--secondary);
+    font-weight: 700;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Paquetes combinados */
+.paquetes-combinados {
+    padding: var(--spacing-3xl) 0;
+    background: var(--white);
+}
+
+.paquetes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
+    max-width: 800px;
+    margin: var(--spacing-xl) auto 0;
+}
+
+.paquete-card {
+    background: var(--light);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    position: relative;
+}
+
+.paquete-card.destacado {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+}
+
+.paquete-incluye {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
+}
+
+.paquete-incluye .plan,
+.paquete-incluye .camara {
+    font-weight: 600;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: rgba(255,255,255,0.2);
+    border-radius: var(--radius-full);
+}
+
+.paquete-precio {
+    margin: var(--spacing-lg) 0;
+}
+
+.paquete-precio .precio {
+    font-size: var(--font-size-4xl);
+    font-weight: 800;
+}
+
+.paquete-precio .periodo {
+    font-size: var(--font-size-base);
+    opacity: 0.8;
+}
+
+.paquete-card ul {
+    list-style: none;
+    margin-bottom: var(--spacing-lg);
+}
+
+.paquete-card li {
+    padding: var(--spacing-xs);
+}
+
+/* Contacto rápido */
+.contacto-rapido-camaras {
+    padding: var(--spacing-2xl) 0;
+    background: var(--light);
+}
+
+.contacto-card {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: var(--spacing-2xl);
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.contacto-opciones {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    margin-top: var(--spacing-lg);
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .camaras-hero-grid,
+    .tipos-grid,
+    .paquetes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .beneficios-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .camaras-hero-image {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .beneficios-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .contacto-opciones {
+        flex-direction: column;
+    }
+    
+    .camaras-stats {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+}

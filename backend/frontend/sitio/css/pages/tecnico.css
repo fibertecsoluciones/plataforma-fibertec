@@ -1,0 +1,299 @@
+/* ========================================
+   ESTILOS PARA TÉCNICOS - FIBERTEC
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f7fa;
+    padding: 20px;
+}
+
+.container-tecnico {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header-tecnico {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #3188b2, #3ea682);
+    border-radius: 20px;
+    color: white;
+}
+
+.logo-tecnico {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.logo-tecnico span {
+    color: #fff;
+}
+
+.logo-tecnico span span {
+    color: #3ea682;
+}
+
+.header-tecnico h1 {
+    font-size: 28px;
+    margin: 10px 0;
+}
+
+.header-tecnico p {
+    opacity: 0.9;
+}
+
+/* Formulario */
+.form-tecnico {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.seccion-formulario {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.seccion-formulario:last-child {
+    border-bottom: none;
+}
+
+.seccion-formulario h2 {
+    font-size: 18px;
+    color: #3188b2;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.seccion-formulario h2 i {
+    color: #3ea682;
+}
+
+/* Campos */
+.campo {
+    margin-bottom: 15px;
+}
+
+.campo label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.3s;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+    outline: none;
+    border-color: #3188b2;
+    box-shadow: 0 0 0 3px rgba(49,136,178,0.1);
+}
+
+.coordenadas-input {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.coordenadas-input input {
+    flex: 1;
+    min-width: 120px;
+}
+
+.ayuda {
+    display: block;
+    font-size: 11px;
+    color: #818181;
+    margin-top: 5px;
+}
+
+/* Área de foto */
+.campo-foto {
+    margin-bottom: 20px;
+}
+
+.area-foto {
+    border: 2px dashed #e2e8f0;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #f8fafc;
+}
+
+.area-foto:hover {
+    border-color: #3188b2;
+    background: #f1f5f9;
+}
+
+.area-foto i {
+    font-size: 40px;
+    color: #3ea682;
+    margin-bottom: 10px;
+}
+
+.area-foto p {
+    color: #5f6b7a;
+    font-size: 14px;
+}
+
+.area-foto input {
+    display: none;
+}
+
+.preview-foto {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.preview-foto img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Botones */
+.botones-form {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.btn-primario,
+.btn-secundario {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primario {
+    background: linear-gradient(135deg, #3188b2, #3ea682);
+    color: white;
+}
+
+.btn-primario:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(49,136,178,0.3);
+}
+
+.btn-secundario {
+    background: #e2e8f0;
+    color: #2c3e50;
+}
+
+.btn-secundario:hover {
+    background: #cbd5e1;
+}
+
+/* Mensaje confirmación */
+.mensaje-confirmacion {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    display: none;
+}
+
+.mensaje-confirmacion.exito {
+    display: block;
+    background: rgba(62,166,130,0.1);
+    color: #3ea682;
+    border: 1px solid #3ea682;
+}
+
+.mensaje-confirmacion.error {
+    display: block;
+    background: rgba(255,99,99,0.1);
+    color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    
+    .header-tecnico h1 {
+        font-size: 24px;
+    }
+    
+    .form-tecnico {
+        padding: 20px;
+    }
+    
+    .botones-form {
+        flex-direction: column;
+    }
+    
+    .coordenadas-input {
+        flex-direction: column;
+    }
+}
+
+.btn-cerrar-sesion {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-cerrar-sesion:hover {
+    background: rgba(255,255,255,0.3);
+    transform: scale(1.05);
+}
+
+/* Para el header que tiene position relative */
+.header-pagos,
+.header-tecnico {
+    position: relative;
+}

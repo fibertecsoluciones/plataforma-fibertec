@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiberTec · Contacto - Internet en Moloacán</title>
+    
+    <!-- Meta tags SEO -->
+    <meta name="description" content="Contacta a FiberTec por teléfono, WhatsApp o formulario. Atención personalizada en Moloacán y comunidades rurales.">
+    <meta name="keywords" content="contacto FiberTec, teléfono internet Moloacán, WhatsApp 9211509583">
+    
+    <!-- Fonts e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- CSS Principal -->
+    <link rel="stylesheet" href="/sitio/css/main.css">
+</head>
+<body>
+    <!-- Navbar -->
+     <div id="header-placeholder"></div>
+
+    <main>
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title">Contacta con <span class="gradient-text">nosotros</span></h1>
+                <p class="page-description">
+                    Estamos aquí para ayudarte. Elige el medio que prefieras
+                </p>
+            </div>
+        </section>
+
+        <!-- Contacto Rápido -->
+        <section class="contacto-rapido-section">
+            <div class="container">
+                <div class="contacto-rapido-grid">
+                    <a href="tel:9211509583" class="contacto-rapido-card">
+                        <i class="fas fa-phone-alt"></i>
+                        <h3>Llamada telefónica</h3>
+                        <p>921 238 4004</p>
+                        <p class="horario">Lun-Vie 8am-8pm | Sáb 9am-2pm</p>
+                    </a>
+                    
+                    <a href="https://wa.me/529211509583" target="_blank" class="contacto-rapido-card whatsapp">
+                        <i class="fab fa-whatsapp"></i>
+                        <h3>WhatsApp</h3>
+                        <p>921 150 9583</p>
+                        <p class="horario">Respuesta inmediata</p>
+                    </a>
+                    
+                    <a href="https://wa.me/529212384004" target="_blank" class="contacto-rapido-card whatsapp-secundario">
+                        <i class="fab fa-whatsapp"></i>
+                        <h3>WhatsApp secundario</h3>
+                        <p>921 238 4004</p>
+                        <p class="horario">También disponible</p>
+                    </a>
+                    
+                    <a href="https://www.facebook.com/profile.php?id=61578377048595" target="_blank" class="contacto-rapido-card facebook">
+                        <i class="fab fa-facebook"></i>
+                        <h3>Facebook</h3>
+                        <p>@FiberTec</p>
+                        <p class="horario">Síguenos para novedades</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Formulario de Contacto -->
+        <section class="formulario-section">
+            <div class="container">
+                <div class="formulario-container">
+                    <h2 class="section-title">Envíanos un <span class="gradient-text">mensaje</span></h2>
+                    
+                    <form class="contacto-form-grande" id="contactoForm" data-tipo="contacto" novalidate>
+                        <input type="text" name="sitio_web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nombre">Nombre completo *</label>
+                                <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan Pérez">
+                            </div>
+                            <div class="form-group">
+                                <label for="telefono">Teléfono *</label>
+                                <input type="tel" id="telefono" name="telefono" required placeholder="921 150 9583">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email (opcional)</label>
+                                <input type="email" id="email" name="email" placeholder="juan@ejemplo.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="colonia">Colonia *</label>
+                                <input type="text" id="colonia" name="colonia" required placeholder="¿Dónde vives?">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="plan">Plan de interés</label>
+                            <select id="plan" name="plan">
+                                <option value="navega">Plan Navega - 10 Mbps / $400</option>
+                                <option value="vuelo">Plan Vuelo - 20 Mbps / $500</option>
+                                <option value="elite">Plan Elite - 30 Mbps / $600</option>
+                                <option value="info">Solo información / No sé cuál elegir</option>
+                                <option value="cobertura">Preguntar por cobertura</option>
+                                <option value="soporte">Soporte técnico / Reportar falla</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mensaje">Mensaje</label>
+                            <textarea id="mensaje" name="mensaje" rows="5" placeholder="Cuéntanos cómo podemos ayudarte..."></textarea>
+                        </div>
+                        
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="privacidad" required>
+                            <label for="privacidad">Acepto el aviso de privacidad y términos de servicio</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-large btn-full">
+                            <i class="fas fa-paper-plane"></i> Enviar mensaje
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Horarios de Atención -->
+        <section class="horarios-section">
+            <div class="container">
+                <div class="horarios-card">
+                    <i class="fas fa-clock"></i>
+                    <h3>Horarios de atención</h3>
+                    <ul>
+                        <li><strong>Lunes a Viernes:</strong> 8:00 am - 8:00 pm</li>
+                        <li><strong>Sábados:</strong> 9:00 am - 2:00 pm</li>
+                        <li><strong>Domingos:</strong> Cerrado (solo emergencias)</li>
+                    </ul>
+                    <p class="emergencia">* Para reportes de falla, WhatsApp disponible 24/7</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mapa de Ubicación -->
+        <section class="ubicacion-section">
+            <div class="container">
+                <h2 class="section-title">Nuestra <span class="gradient-text">ubicación</span></h2>
+                
+                <div class="ubicacion-card">
+                    <div class="ubicacion-mapa-placeholder">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <p>Moloacán, Veracruz</p>
+                        <small>Oficina principal</small>
+                    </div>
+                    
+                    <div class="ubicacion-info">
+                        <h3>Visítanos</h3>
+                        <p><i class="fas fa-map-pin"></i> Calle Principal #123, Col. Centro, Moloacán, Ver.</p>
+                        <p><i class="fas fa-clock"></i> Horario de oficina: 9am - 5pm</p>
+                        <a href="https://maps.google.com/?q=Moloacán+Veracruz" target="_blank" class="btn btn-outline">
+                            <i class="fas fa-directions"></i> Cómo llegar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Preguntas Frecuentes Rápidas -->
+        <section class="faq-rapido-section">
+            <div class="container">
+                <h2 class="section-title">Respuestas <span class="gradient-text">rápidas</span></h2>
+                
+                <div class="faq-rapido-grid">
+                    <div class="faq-rapido-item">
+                        <h4>¿Cuánto tarda la instalación?</h4>
+                        <p>Generalmente de 24 a 48 horas hábiles después de contratar.</p>
+                    </div>
+                    <div class="faq-rapido-item">
+                        <h4>¿Hay contrato forzoso?</h4>
+                        <p>No, puedes cancelar cuando quieras sin multas.</p>
+                    </div>
+                    <div class="faq-rapido-item">
+                        <h4>¿Aceptan pagos con tarjeta?</h4>
+                        <p>Por ahora efectivo y transferencia. Pronto tarjeta en línea.</p>
+                    </div>
+                    <div class="faq-rapido-item">
+                        <h4>¿Dan recibo de pago?</h4>
+                        <p>Sí, entregamos recibo físico o digital comprobando tu pago.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer (igual) -->
+      <div id="footer-placeholder"></div>
+<script src="/sitio/js/loadComponents.js"></script>
+    <script src="/sitio/js/main.js"></script>
+<script src="/sitio/js/formularios.js"></script>
+
+</body>
+</html>

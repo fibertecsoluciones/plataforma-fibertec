@@ -315,6 +315,8 @@ CREATE TABLE solicitudes_instalacion (
   cliente_generado_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
   latitud           NUMERIC(10,7),
   longitud          NUMERIC(10,7),
+  origen            VARCHAR(10) NOT NULL DEFAULT 'campo',  -- 'campo' o 'web' (formularios de la página pública)
+  email             VARCHAR(150),
   creado_en         TIMESTAMPTZ NOT NULL DEFAULT now(),
   actualizado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

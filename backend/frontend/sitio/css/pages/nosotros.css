@@ -1,0 +1,294 @@
+/* ========================================
+   PÁGINA: NOSOTROS
+   ======================================== */
+
+.historia-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--white);
+}
+
+.historia-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
+    align-items: center;
+}
+
+.historia-texto {
+    color: var(--gray);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.8;
+    font-size: var(--font-size-lg);
+}
+
+.historia-texto.destacado {
+    color: var(--primary);
+    font-style: italic;
+    font-weight: 500;
+    padding: var(--spacing-lg);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--primary);
+}
+
+.imagen-historia-placeholder {
+    background: var(--gradient);
+    padding: var(--spacing-3xl);
+    border-radius: var(--radius-xl);
+    text-align: center;
+    color: var(--white);
+    transform: rotate(5deg);
+    box-shadow: var(--shadow-xl);
+}
+
+.imagen-historia-placeholder i {
+    font-size: 8rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+.imagen-historia-placeholder span {
+    font-size: var(--font-size-3xl);
+    font-weight: 800;
+    display: block;
+}
+
+.mision-vision-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--light);
+}
+
+.mision-vision-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-2xl);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.mision-card, .vision-card {
+    padding: var(--spacing-2xl);
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s;
+}
+
+.mision-card:hover, .vision-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-xl);
+}
+
+.mision-card i, .vision-card i {
+    font-size: var(--font-size-5xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.mision-card h3, .vision-card h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.mision-card p, .vision-card p {
+    color: var(--gray);
+    line-height: 1.8;
+}
+
+.valores-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--white);
+}
+
+.valores-grid-detallado {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+}
+
+.valor-detalle {
+    padding: var(--spacing-xl);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.valor-detalle:hover {
+    border-color: var(--primary);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-colored);
+}
+
+.valor-icono {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-lg);
+}
+
+.valor-icono i {
+    font-size: var(--font-size-3xl);
+    color: var(--white);
+}
+
+.valor-detalle h3 {
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-xl);
+}
+
+.valor-detalle p {
+    color: var(--gray);
+    line-height: 1.6;
+}
+
+.equipo-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--light);
+}
+
+.equipo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+    margin: var(--spacing-xl) 0;
+}
+
+.miembro-equipo {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s;
+}
+
+.miembro-equipo:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.miembro-foto {
+    width: 120px;
+    height: 120px;
+    background: var(--gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-lg);
+}
+
+.miembro-foto i {
+    font-size: var(--font-size-5xl);
+    color: var(--white);
+}
+
+.miembro-equipo h3 {
+    color: var(--primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.miembro-equipo p {
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+}
+
+.equipo-nota {
+    text-align: center;
+    color: var(--accent);
+    font-style: italic;
+    margin-top: var(--spacing-lg);
+}
+
+.testimonios-section {
+    padding: var(--spacing-3xl) 0;
+    background: var(--white);
+}
+
+.testimonios-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+}
+
+.testimonio-card {
+    padding: var(--spacing-xl);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    position: relative;
+}
+
+.testimonio-card::before {
+    content: '"';
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-size: 5rem;
+    color: var(--primary);
+    opacity: 0.1;
+    font-family: serif;
+}
+
+.testimonio-estrellas {
+    color: #fbbf24;
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
+}
+
+.testimonio-texto {
+    color: var(--dark);
+    line-height: 1.8;
+    margin-bottom: var(--spacing-md);
+    font-style: italic;
+}
+
+.testimonio-autor {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+@media (max-width: 968px) {
+    .historia-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .valores-grid-detallado {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .equipo-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .testimonios-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .mision-vision-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .valores-grid-detallado {
+        grid-template-columns: 1fr;
+    }
+    
+    .equipo-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .testimonios-grid {
+        grid-template-columns: 1fr;
+    }
+}

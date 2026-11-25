@@ -1,0 +1,49 @@
+/* ========================================
+   FIBERTEC - ARCHIVO PRINCIPAL CSS
+   ======================================== */
+
+/* Variables globales */
+@import 'variables.css';
+
+/* Estilos base */
+@import 'base.css';
+
+/* Layout */
+@import 'layout.css';
+
+
+
+/* Componentes */
+@import 'components/buttons.css';
+@import 'components/navbar.css';
+@import 'components/cards.css';
+@import 'components/forms.css';
+@import 'components/whatsapp.css';  /* ← NUEVO */
+
+/* Secciones */
+@import 'sections/hero.css';
+@import 'sections/planes.css';
+@import 'sections/nosotros.css';
+@import 'sections/contacto.css';
+@import 'sections/footer.css';
+
+/* Páginas específicas */
+@import 'pages/home.css';
+@import 'pages/planes.css';
+@import 'pages/soluciones.css';
+@import 'pages/cobertura.css';
+@import 'pages/nosotros.css';
+@import 'pages/contacto.css';
+@import 'pages/seguridad.css';
+@import 'pages/tecnico.css';
+@import 'pages/lista-clientes.css';
+@import 'pages/control-pagos.css';
+@import 'pages/usuarios.css';
+
+
+  /* ← NUEVA LÍNEA */
+
+/* Responsive */
+@import 'responsive.css';
+
+

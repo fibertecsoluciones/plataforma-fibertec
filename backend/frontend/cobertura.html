@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiberTec · Cobertura en tu Comunidad</title>
+    
+    <!-- Meta tags SEO -->
+    <meta name="description" content="Verifica la cobertura de FiberTec. Internet disponible en Popotla, San Pedro Mezcalapa, El KM40, Pajaral y próximamente más comunidades.">
+    <meta name="keywords" content="cobertura internet, internet rural, Popotla, San Pedro Mezcalapa, KM40, Pajaral">
+    
+    <!-- Fonts e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- CSS Principal -->
+    <link rel="stylesheet" href="/sitio/css/main.css">
+    <!-- Leaflet CSS y JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+
+</head>
+<body>
+    <!-- Navbar -->
+    <div id="header-placeholder"></div>
+
+    <main>
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="container">
+                <h1 class="page-title">Cobertura en <span class="gradient-text">tu Comunidad</span></h1>
+                <p class="page-description">
+                    Expansión constante para llevar internet de calidad a más hogares
+                </p>
+            </div>
+        </section>
+
+        <!-- Buscador de Cobertura -->
+<section class="buscador-cobertura-section">
+    <div class="container">
+        <div class="buscador-card">
+            <h2>¿Ya estamos en tu colonia?</h2>
+            <p>Ingresa el nombre de tu colonia para verificarlo al instante</p>
+            
+            <div class="buscador-grande">
+                <input type="text" id="buscadorColonia" placeholder="Ej: Popotla, KM40, Pajaral, Filisola...">
+                <button id="btnBuscarCobertura" class="btn btn-primary btn-large">
+                    <i class="fas fa-search"></i> Verificar
+                </button>
+            </div>
+            
+            <div id="resultadoBusqueda" class="resultado-busqueda"></div>
+        </div>
+    </div>
+</section>
+
+ <!-- Mapa Interactivo REAL -->
+<section class="mapa-interactivo-section">
+    <div class="container">
+        <h2 class="section-title">Mapa de <span class="gradient-text">Cobertura</span></h2>
+        
+        <div class="mapa-container">
+            <div class="mapa-principal">
+                <div id="mapa-real" style="height: 500px; width: 100%; border-radius: var(--radius-lg);"></div>
+            </div>
+            
+            <div class="mapa-leyenda">
+                <h4>Zonas con cobertura:</h4>
+                <ul>
+                    <li><span class="punto-verde"></span> Popotla <span class="badge-nuevo">DISPONIBLE</span></li>
+                    <li><span class="punto-verde"></span> San Pedro Mezcalapa <span class="badge-nuevo">DISPONIBLE</span></li>
+                    <li><span class="punto-verde"></span> El KM40 <span class="badge-nuevo">DISPONIBLE</span></li>
+                    <li><span class="punto-verde"></span> Pajaral <span class="badge-nuevo">DISPONIBLE</span></li>
+                    <li><span class="punto-amarillo"></span> Filisola (próximamente)</li>
+                    <li><span class="punto-amarillo"></span> Pueblo Viejo (próximamente)</li>
+                    <li><span class="punto-amarillo"></span> La Concepción (próximamente)</li>
+                    <li><span class="punto-amarillo"></span> Tacomango (próximamente)</li>
+                    <li><span class="punto-amarillo"></span> San Martín (próximamente)</li>
+                </ul>
+                
+                <div class="expansion-nota">
+                    <i class="fas fa-hard-hat"></i>
+                    <p>Estamos trabajando para llegar a más comunidades. <strong>¡Pronto Filisola, La Concepción, Tacomango y San Martín!</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+        <!-- Listado Completo de Colonias -->
+<!-- Listado Completo de Colonias -->
+<section class="listado-colonias-section">
+    <div class="container">
+        <h2 class="section-title">Colonias con <span class="gradient-text">Cobertura</span></h2>
+        
+        <div class="colonias-grid">
+            <!-- COLONIAS ACTIVAS -->
+            <div class="colonia-card activa">
+                <i class="fas fa-check-circle"></i>
+                <h4>Popotla</h4>
+                <p>Disponible</p>
+            </div>
+            <div class="colonia-card activa">
+                <i class="fas fa-check-circle"></i>
+                <h4>San Pedro Mezcalapa</h4>
+                <p>Disponible</p>
+            </div>
+            <div class="colonia-card activa">
+                <i class="fas fa-check-circle"></i>
+                <h4>El KM40</h4>
+                <p>Disponible</p>
+            </div>
+            <div class="colonia-card activa">
+                <i class="fas fa-check-circle"></i>
+                <h4>Pajaral</h4>
+                <p>Disponible</p>
+            </div>
+            
+            <!-- PRÓXIMAS APERTURAS -->
+            <div class="colonia-card proximamente">
+                <i class="fas fa-clock"></i>
+                <h4>Filisola</h4>
+                <p>Próximamente</p>
+            </div>
+
+            <div class="colonia-card proximamente">
+                <i class="fas fa-clock"></i>
+                <h4>Pueblo Viejo</h4>
+                <p>Próximamente</p>
+            </div>
+
+            <div class="colonia-card proximamente">
+                <i class="fas fa-clock"></i>
+                <h4>La Concepción</h4>
+                <p>Próximamente</p>
+            </div>
+            <div class="colonia-card proximamente">
+                <i class="fas fa-clock"></i>
+                <h4>Tacomango</h4>
+                <p>Próximamente</p>
+            </div>
+            <div class="colonia-card proximamente">
+                <i class="fas fa-clock"></i>
+                <h4>San Martín</h4>
+                <p>Próximamente</p>
+            </div>
+        </div>
+        
+        <!-- Mensaje de expansión -->
+        <div class="expansion-mensaje">
+            <i class="fas fa-map-marked-alt"></i>
+            <p>Estamos creciendo para llevar internet a más comunidades. <strong>¡Muy pronto Filisola, La Concepción, Tacomango y San Martín!</strong></p>
+        </div>
+    </div>
+</section>
+
+        <!-- Solicitar Cobertura -->
+        <section class="solicitar-cobertura-section">
+            <div class="container">
+                <div class="solicitar-card">
+                    <h2>¿No encuentras tu colonia?</h2>
+                    <p>Déjanos tus datos y te avisaremos cuando lleguemos a tu zona</p>
+                    
+                    <form class="solicitar-form" id="solicitarCoberturaForm" data-tipo="cobertura">
+                        <input type="text" name="sitio_web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="text" name="nombre" placeholder="Tu nombre completo" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="tel" name="telefono" placeholder="Teléfono" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="text" name="colonia" placeholder="Colonia donde vives" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="email" name="email" placeholder="Email (opcional)">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <i class="fas fa-bell"></i> Notificarme cuando lleguen
+                        </button>
+                    </form>
+                    
+                    <p class="nota-legal">*Te contactaremos cuando tengamos cobertura en tu colonia</p>
+                </div>
+            </div>
+        </section>
+
+
+        
+
+
+
+    </main>
+
+    <!-- Footer -->
+    <div id="footer-placeholder"></div>
+    
+    <!-- Scripts -->
+<!-- Scripts -->
+<script src="/sitio/js/loadComponents.js"></script>
+<script src="/sitio/js/mapa-cobertura.js"></script>
+<script src="/sitio/js/buscador-cobertura.js"></script>  <!-- ← NUEVO -->
+<script src="/sitio/js/main.js"></script>
+<script src="/sitio/js/formularios.js"></script>
+</body>
+</html>

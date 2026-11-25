@@ -24,7 +24,7 @@ const API = {
   cerrarSesion() {
     localStorage.removeItem('ft_token');
     localStorage.removeItem('ft_usuario');
-    window.location.href = '/index.html';
+    window.location.href = '/login.html';
   },
 
   // Petición JSON estándar
@@ -105,7 +105,7 @@ function protegerPagina(rolesPermitidos) {
   const token = API.token();
   const usuario = API.usuario();
   if (!token || !usuario) {
-    window.location.href = '/index.html';
+    window.location.href = '/login.html';
     return null;
   }
   // Cobranza solo puede estar en Pagos: cualquier otra página lo regresa ahí (sin avisos ni ciclos)

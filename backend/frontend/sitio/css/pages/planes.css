@@ -1,0 +1,276 @@
+/* ========================================
+   PÁGINA: PLANES (VERSIÓN COMPLETA)
+   ======================================== */
+
+.page-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--white);
+    padding: var(--spacing-3xl) 0;
+    text-align: center;
+    margin-top: 80px;
+}
+
+.page-title {
+    font-size: var(--font-size-5xl);
+    font-weight: 800;
+    margin-bottom: var(--spacing-md);
+}
+
+.page-description {
+    font-size: var(--font-size-xl);
+    max-width: 600px;
+    margin: 0 auto;
+    opacity: 0.9;
+}
+
+.planes-page {
+    padding: var(--spacing-3xl) 0;
+    background: var(--light);
+}
+
+.planes-grid-full {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-3xl);
+}
+
+.plan-card-full {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.plan-card-full:hover {
+    transform: translateY(-15px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-xl);
+}
+
+.plan-card-full.popular {
+    border: 2px solid var(--primary);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-colored);
+    z-index: 2;
+}
+
+.plan-card-full.popular:hover {
+    transform: scale(1.05) translateY(-15px);
+}
+
+.plan-badge-super {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gradient);
+    color: var(--white);
+    padding: var(--spacing-xs) var(--spacing-xl);
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-colored);
+    white-space: nowrap;
+}
+
+.plan-icon-large {
+    font-size: 5rem;
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.plan-card-full h2 {
+    text-align: center;
+    font-size: var(--font-size-3xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.plan-velocidad-destacada {
+    text-align: center;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.plan-precio-grande {
+    text-align: center;
+    font-size: var(--font-size-4xl);
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.plan-precio-grande span {
+    font-size: var(--font-size-base);
+    color: var(--gray);
+    font-weight: normal;
+}
+
+.plan-caracteristicas-completas {
+    list-style: none;
+    margin-bottom: var(--spacing-xl);
+}
+
+.plan-caracteristicas-completas li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-xs) 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.plan-caracteristicas-completas li:last-child {
+    border-bottom: none;
+}
+
+.plan-caracteristicas-completas i {
+    font-size: var(--font-size-lg);
+}
+
+.plan-caracteristicas-completas li i.fa-check-circle {
+    color: var(--secondary);
+}
+
+.plan-caracteristicas-completas li i.fa-times-circle {
+    color: var(--accent);
+}
+
+.plan-caracteristicas-completas li.disabled {
+    color: var(--accent);
+    opacity: 0.7;
+}
+
+.plan-cta {
+    text-align: center;
+}
+
+.btn-large {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: var(--font-size-lg);
+    width: 100%;
+}
+
+.plan-nota {
+    font-size: var(--font-size-xs);
+    color: var(--accent);
+    margin-top: var(--spacing-sm);
+}
+
+/* Tabla comparativa */
+.planes-comparativa {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.planes-comparativa h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+}
+
+.tabla-comparativa {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-comparativa th {
+    background: var(--gradient);
+    color: var(--white);
+    padding: var(--spacing-md);
+    font-weight: 600;
+}
+
+.tabla-comparativa td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.tabla-comparativa tr:hover td {
+    background: var(--light);
+}
+
+/* FAQ */
+.planes-faq {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.planes-faq h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--primary);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+}
+
+.faq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+}
+
+.faq-item {
+    padding: var(--spacing-lg);
+    background: var(--light);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--primary);
+}
+
+.faq-item h4 {
+    color: var(--secondary);
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-lg);
+}
+
+.faq-item p {
+    color: var(--gray);
+    line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .planes-grid-full {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+    }
+    
+    .plan-card-full.popular {
+        transform: scale(1);
+    }
+    
+    .plan-card-full.popular:hover {
+        transform: translateY(-15px);
+    }
+    
+    .faq-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-title {
+        font-size: var(--font-size-3xl);
+    }
+    
+    .page-description {
+        font-size: var(--font-size-base);
+    }
+    
+    .tabla-comparativa {
+        display: block;
+        overflow-x: auto;
+    }
+}
