@@ -29,9 +29,10 @@ function registrarEnvio(ip) {
   marcas.push(ahora); envios.set(ip, marcas);
 }
 
-const PLANES = { navega: 'NAVEGA', vuelo: 'VUELO', elite: 'ELITE' };
+const PLANES = { navega: 'NAVEGA', vuelo: 'VUELO', elite: 'ELITE', paquete_navega: 'NAVEGA', paquete_vuelo: 'VUELO' };
 const ETIQUETA_PLAN = {
   navega: 'Plan Navega', vuelo: 'Plan Vuelo', elite: 'Plan Elite',
+  paquete_navega: 'Paquete Navega + 1 cámara ($570)', paquete_vuelo: 'Paquete Vuelo + 2 cámaras ($830)',
   info: 'Solo información', cobertura: 'Preguntar por cobertura', soporte: 'Soporte técnico / reportar falla'
 };
 const limpiar = (v, max) => String(v === undefined || v === null ? '' : v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max);

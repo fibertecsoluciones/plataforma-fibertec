@@ -471,3 +471,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .mk--hit .mk__pin { animation: mk-ping 1.2s ease-out 3; }
 @keyframes mk-ping { 0% { box-shadow: 0 0 0 0 rgba(245,168,43,.9); } 100% { box-shadow: 0 0 0 22px rgba(245,168,43,0); } }
 @media (prefers-reduced-motion: reduce) { .mk--hit .mk__pin { animation: none; } }
+
+/* Condiciones de los paquetes */
+.condiciones { margin-top: 36px; padding: 24px 28px; background: #fff; border: 1px solid var(--line-strong); border-radius: 16px; }
+.condiciones h3 { font-size: 1.05rem; margin: 0 0 14px; }
+.condiciones ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+@media (min-width: 720px) { .condiciones ul { grid-template-columns: 1fr 1fr; gap: 28px; } }
+.condiciones li { display: flex; gap: 12px; align-items: flex-start; color: var(--ink-soft); }
+.condiciones li .ic { flex: none; width: 22px; height: 22px; margin-top: 2px; color: var(--green-deep); }
+.condiciones strong { color: var(--ink); }
