@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
   L.control.layers({ 'Satélite': vistaSatelite, 'Mapa': calles }, null, { collapsed: false, position: 'topright' }).addTo(map);
 
   var marcadores = {};
-  window.FT_COLONIAS.forEach(function (c) {
+  var enMapa = window.FT_COLONIAS.filter(function (c) { return c.estado === 'activa' && c.coords; });
+  enMapa.forEach(function (c) {
     var m = L.marker(c.coords, {
       title: c.nombre,
       icon: L.divIcon({ className: '', iconSize: [0, 0],
@@ -37,13 +38,13 @@ document.addEventListener('DOMContentLoaded', function () {
     marcadores[c.id] = m;
   });
 
-  map.fitBounds(window.FT_COLONIAS.map(function (c) { return c.coords; }), { padding: [60, 60] });
+  map.fitBounds(enMapa.map(function (c) { return c.coords; }), { padding: [60, 60] });
   function lejos() { el.classList.toggle('z-lejos', map.getZoom() < 14); }
   map.on('zoomend', lejos);
   lejos();
 
   document.addEventListener('ft:colonia', function (e) {
-    var c = e.detail; if (!c) return;
+    var c = e.detail; if (!c || !marcadores[c.id]) return;
     map.flyTo(c.coords, 14, { duration: 1.1 });
     document.querySelectorAll('.mk--hit').forEach(function (n) { n.classList.remove('mk--hit'); });
     var mk = marcadores[c.id] && marcadores[c.id].getElement();
