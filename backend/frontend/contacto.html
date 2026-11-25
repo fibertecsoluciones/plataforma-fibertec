@@ -1,205 +1,122 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FiberTec · Contacto - Internet en Moloacán</title>
-    
-    <!-- Meta tags SEO -->
-    <meta name="description" content="Contacta a FiberTec por teléfono, WhatsApp o formulario. Atención personalizada en Moloacán y comunidades rurales.">
-    <meta name="keywords" content="contacto FiberTec, teléfono internet Moloacán, WhatsApp 9211509583">
-    
-    <!-- Fonts e Iconos -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- CSS Principal -->
-    <link rel="stylesheet" href="/sitio/css/main.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contacto: WhatsApp, teléfono y formulario | FiberTec</title>
+<meta name="description" content="Contacta a FiberTec por WhatsApp al 921 150 9583, por teléfono al 921 238 4004 o con el formulario. Atendemos en Moloacán, Veracruz.">
+<link rel="canonical" href="https://www.fibertec.com.mx/contacto.html">
+<meta name="theme-color" content="#10303a">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_MX">
+<meta property="og:site_name" content="FiberTec">
+<meta property="og:title" content="Contacto: WhatsApp, teléfono y formulario | FiberTec">
+<meta property="og:description" content="Contacta a FiberTec por WhatsApp al 921 150 9583, por teléfono al 921 238 4004 o con el formulario. Atendemos en Moloacán, Veracruz.">
+<meta property="og:url" content="https://www.fibertec.com.mx/contacto.html">
+<meta property="og:image" content="https://www.fibertec.com.mx/sitio/img/logo.png">
+<link rel="icon" type="image/png" href="/sitio/img/favicon.png">
+<link rel="preload" href="/sitio/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/sitio/fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/sitio/css/sitio.css?v=3">
+
 </head>
 <body>
-    <!-- Navbar -->
-     <div id="header-placeholder"></div>
-
-    <main>
-        <!-- Page Header -->
-        <section class="page-header">
-            <div class="container">
-                <h1 class="page-title">Contacta con <span class="gradient-text">nosotros</span></h1>
-                <p class="page-description">
-                    Estamos aquí para ayudarte. Elige el medio que prefieras
-                </p>
-            </div>
-        </section>
-
-        <!-- Contacto Rápido -->
-        <section class="contacto-rapido-section">
-            <div class="container">
-                <div class="contacto-rapido-grid">
-                    <a href="tel:9211509583" class="contacto-rapido-card">
-                        <i class="fas fa-phone-alt"></i>
-                        <h3>Llamada telefónica</h3>
-                        <p>921 238 4004</p>
-                        <p class="horario">Lun-Vie 8am-8pm | Sáb 9am-2pm</p>
-                    </a>
-                    
-                    <a href="https://wa.me/529211509583" target="_blank" class="contacto-rapido-card whatsapp">
-                        <i class="fab fa-whatsapp"></i>
-                        <h3>WhatsApp</h3>
-                        <p>921 150 9583</p>
-                        <p class="horario">Respuesta inmediata</p>
-                    </a>
-                    
-                    <a href="https://wa.me/529212384004" target="_blank" class="contacto-rapido-card whatsapp-secundario">
-                        <i class="fab fa-whatsapp"></i>
-                        <h3>WhatsApp secundario</h3>
-                        <p>921 238 4004</p>
-                        <p class="horario">También disponible</p>
-                    </a>
-                    
-                    <a href="https://www.facebook.com/profile.php?id=61578377048595" target="_blank" class="contacto-rapido-card facebook">
-                        <i class="fab fa-facebook"></i>
-                        <h3>Facebook</h3>
-                        <p>@FiberTec</p>
-                        <p class="horario">Síguenos para novedades</p>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Formulario de Contacto -->
-        <section class="formulario-section">
-            <div class="container">
-                <div class="formulario-container">
-                    <h2 class="section-title">Envíanos un <span class="gradient-text">mensaje</span></h2>
-                    
-                    <form class="contacto-form-grande" id="contactoForm" data-tipo="contacto" novalidate>
-                        <input type="text" name="sitio_web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="nombre">Nombre completo *</label>
-                                <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan Pérez">
-                            </div>
-                            <div class="form-group">
-                                <label for="telefono">Teléfono *</label>
-                                <input type="tel" id="telefono" name="telefono" required placeholder="921 150 9583">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="email">Email (opcional)</label>
-                                <input type="email" id="email" name="email" placeholder="juan@ejemplo.com">
-                            </div>
-                            <div class="form-group">
-                                <label for="colonia">Colonia *</label>
-                                <input type="text" id="colonia" name="colonia" required placeholder="¿Dónde vives?">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="plan">Plan de interés</label>
-                            <select id="plan" name="plan">
-                                <option value="navega">Plan Navega - 10 Mbps / $400</option>
-                                <option value="vuelo">Plan Vuelo - 20 Mbps / $500</option>
-                                <option value="elite">Plan Elite - 30 Mbps / $600</option>
-                                <option value="info">Solo información / No sé cuál elegir</option>
-                                <option value="cobertura">Preguntar por cobertura</option>
-                                <option value="soporte">Soporte técnico / Reportar falla</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="mensaje">Mensaje</label>
-                            <textarea id="mensaje" name="mensaje" rows="5" placeholder="Cuéntanos cómo podemos ayudarte..."></textarea>
-                        </div>
-                        
-                        <div class="form-checkbox">
-                            <input type="checkbox" id="privacidad" required>
-                            <label for="privacidad">Acepto el aviso de privacidad y términos de servicio</label>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-large btn-full">
-                            <i class="fas fa-paper-plane"></i> Enviar mensaje
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </section>
-
-        <!-- Horarios de Atención -->
-        <section class="horarios-section">
-            <div class="container">
-                <div class="horarios-card">
-                    <i class="fas fa-clock"></i>
-                    <h3>Horarios de atención</h3>
-                    <ul>
-                        <li><strong>Lunes a Viernes:</strong> 8:00 am - 8:00 pm</li>
-                        <li><strong>Sábados:</strong> 9:00 am - 2:00 pm</li>
-                        <li><strong>Domingos:</strong> Cerrado (solo emergencias)</li>
-                    </ul>
-                    <p class="emergencia">* Para reportes de falla, WhatsApp disponible 24/7</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Mapa de Ubicación -->
-        <section class="ubicacion-section">
-            <div class="container">
-                <h2 class="section-title">Nuestra <span class="gradient-text">ubicación</span></h2>
-                
-                <div class="ubicacion-card">
-                    <div class="ubicacion-mapa-placeholder">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <p>Moloacán, Veracruz</p>
-                        <small>Oficina principal</small>
-                    </div>
-                    
-                    <div class="ubicacion-info">
-                        <h3>Visítanos</h3>
-                        <p><i class="fas fa-map-pin"></i> Calle Principal #123, Col. Centro, Moloacán, Ver.</p>
-                        <p><i class="fas fa-clock"></i> Horario de oficina: 9am - 5pm</p>
-                        <a href="https://maps.google.com/?q=Moloacán+Veracruz" target="_blank" class="btn btn-outline">
-                            <i class="fas fa-directions"></i> Cómo llegar
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Preguntas Frecuentes Rápidas -->
-        <section class="faq-rapido-section">
-            <div class="container">
-                <h2 class="section-title">Respuestas <span class="gradient-text">rápidas</span></h2>
-                
-                <div class="faq-rapido-grid">
-                    <div class="faq-rapido-item">
-                        <h4>¿Cuánto tarda la instalación?</h4>
-                        <p>Generalmente de 24 a 48 horas hábiles después de contratar.</p>
-                    </div>
-                    <div class="faq-rapido-item">
-                        <h4>¿Hay contrato forzoso?</h4>
-                        <p>No, puedes cancelar cuando quieras sin multas.</p>
-                    </div>
-                    <div class="faq-rapido-item">
-                        <h4>¿Aceptan pagos con tarjeta?</h4>
-                        <p>Por ahora efectivo y transferencia. Pronto tarjeta en línea.</p>
-                    </div>
-                    <div class="faq-rapido-item">
-                        <h4>¿Dan recibo de pago?</h4>
-                        <p>Sí, entregamos recibo físico o digital comprobando tu pago.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Footer (igual) -->
-      <div id="footer-placeholder"></div>
-<script src="/sitio/js/loadComponents.js"></script>
-    <script src="/sitio/js/main.js"></script>
-<script src="/sitio/js/formularios.js"></script>
-
+<a class="skip" href="#contenido">Saltar al contenido</a>
+<header class="site-header">
+  <div class="wrap site-header__in">
+    <a class="logo" href="/" aria-label="FiberTec, ir al inicio"><img src="/sitio/img/logo.png" alt="FiberTec, conectando contigo" width="160" height="40"></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="menu" aria-label="Abrir menú"><svg class="ic ic-menu" aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-menu"/></svg><svg class="ic ic-x" aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-x"/></svg></button>
+    <nav class="nav" id="menu" aria-label="Principal">
+      <ul class="nav__list"><li><a class="nav__link" href="/">Inicio</a></li><li><a class="nav__link" href="/planes.html">Planes</a></li><li><a class="nav__link" href="/soluciones.html">Soluciones</a></li><li><a class="nav__link" href="/cobertura.html">Cobertura</a></li><li><a class="nav__link" href="/seguridad.html">Cámaras</a></li><li><a class="nav__link" href="/nosotros.html">Nosotros</a></li><li><a class="nav__link" href="/contacto.html" aria-current="page">Contacto</a></li></ul>
+      <a class="btn btn--wa nav__cta" href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg> Escríbenos por WhatsApp</a>
+    </nav>
+    <a class="btn btn--wa btn--sm site-header__cta" href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg> WhatsApp</a>
+  </div>
+</header>
+<main id="contenido">
+<section class="page-head"><div class="wrap page-head__in">
+  <h1>Contáctanos</h1>
+  <p>Escríbenos por el medio que prefieras. Para reportar una falla, WhatsApp responde las 24 horas.</p>
+  
+</div></section>
+<section class="section"><div class="wrap split split--wide-right">
+  <div>
+    <div class="medios"><a class="medio" href="tel:9212384004"><span class="medio__icon"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-phone"/></svg></span><div><span>Llamada telefónica</span><strong>921 238 4004</strong><span>Lunes a viernes de 8 am a 8 pm, sábados de 9 am a 2 pm</span></div></a><a class="medio" href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener"><span class="medio__icon"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg></span><div><span>WhatsApp</span><strong>921 150 9583</strong><span>Respuesta inmediata. Para fallas, las 24 horas</span></div></a><a class="medio" href="https://wa.me/529212384004" target="_blank" rel="noopener"><span class="medio__icon"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg></span><div><span>WhatsApp secundario</span><strong>921 238 4004</strong><span>También disponible</span></div></a><a class="medio" href="https://www.facebook.com/profile.php?id=61578377048595" target="_blank" rel="noopener"><span class="medio__icon"><svg class="ic ic--fill" aria-hidden="true"><use href="/sitio/img/iconos.svg#i-facebook"/></svg></span><div><span>Facebook</span><strong>FiberTec</strong><span>Síguenos para novedades</span></div></a></div>
+    <h3 style="margin:36px 0 12px">Horarios de atención</h3>
+    <dl class="horario">
+      <div><dt>Lunes a viernes</dt><dd>8:00 am a 8:00 pm</dd></div>
+      <div><dt>Sábados</dt><dd>9:00 am a 2:00 pm</dd></div>
+      <div><dt>Domingos</dt><dd>Cerrado, solo emergencias</dd></div>
+    </dl>
+    <p style="margin-top:14px;color:var(--ink-soft)">Atendemos en Moloacán, Veracruz.</p>
+  </div>
+  <div class="form__panel">
+    <h2 style="font-size:1.7rem;margin-bottom:20px">Envíanos un mensaje</h2>
+    <form class="form" id="contactoForm" data-tipo="contacto" novalidate>
+      <input type="text" name="sitio_web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+      <div class="form__row">
+        <div><label for="nombre">Nombre completo</label><input type="text" id="nombre" name="nombre" required autocomplete="name" placeholder="Ej. Juan Pérez"></div>
+        <div><label for="telefono">Teléfono</label><input type="tel" id="telefono" name="telefono" required autocomplete="tel" inputmode="tel" placeholder="921 150 9583"></div>
+      </div>
+      <div class="form__row">
+        <div><label for="colonia">Colonia o comunidad</label><input type="text" id="colonia" name="colonia" required placeholder="¿Dónde vives?"></div>
+        <div><label for="email">Correo (opcional)</label><input type="email" id="email" name="email" autocomplete="email" placeholder="juan@ejemplo.com"></div>
+      </div>
+      <div><label for="plan">¿Qué necesitas?</label>
+        <select id="plan" name="plan"><option value="navega">Plan Navega: 120 Mbps por $400</option><option value="vuelo">Plan Vuelo: 250 Mbps por $500</option><option value="elite">Plan Elite: 500 Mbps por $800</option><option value="info">Solo información, no sé cuál elegir</option><option value="cobertura">Preguntar por cobertura</option><option value="soporte">Soporte técnico o reportar una falla</option></select></div>
+      <div><label for="mensaje">Mensaje (opcional)</label><textarea id="mensaje" name="mensaje" rows="4" placeholder="Cuéntanos cómo podemos ayudarte"></textarea></div>
+      <div class="form__check"><input type="checkbox" id="privacidad" required><label for="privacidad">Acepto el aviso de privacidad y los términos de servicio.</label></div>
+      <button class="btn btn--primary btn--block" type="submit"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-send"/></svg> Enviar mensaje</button>
+    </form>
+  </div>
+</div></section>
+<section class="section section--paper"><div class="wrap split split--wide-right">
+  <div class="section__head"><h2>Respuestas rápidas</h2></div>
+  <div class="faq-list"><details class="faq"><summary>¿Cuánto tarda la instalación?<svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-chevron-down"/></svg></summary><p>Generalmente de 24 a 48 horas hábiles después de contratar.</p></details><details class="faq"><summary>¿Hay contrato forzoso?<svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-chevron-down"/></svg></summary><p>No. Puedes cancelar cuando quieras, sin multas.</p></details><details class="faq"><summary>¿Aceptan pagos con tarjeta?<svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-chevron-down"/></svg></summary><p>Por ahora aceptamos efectivo, transferencia y depósito en OXXO. Pronto, tarjeta en línea.</p></details><details class="faq"><summary>¿Dan recibo de pago?<svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-chevron-down"/></svg></summary><p>Sí, entregamos recibo físico o digital que comprueba tu pago.</p></details></div>
+</div></section>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="site-footer__grid">
+      <div class="site-footer__brand">
+        <a class="logo" href="/" aria-label="FiberTec, ir al inicio"><img src="/sitio/img/logo.png" alt="FiberTec" width="160" height="40"></a>
+        <p>Internet de fibra óptica para hogares y negocios de Moloacán y sus comunidades.</p>
+        <div class="social">
+          <a href="https://www.facebook.com/profile.php?id=61578377048595" target="_blank" rel="noopener" aria-label="FiberTec en Facebook"><svg class="ic ic--fill" aria-hidden="true"><use href="/sitio/img/iconos.svg#i-facebook"/></svg></a>
+          <a href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <h4>Servicio</h4>
+        <ul>
+          <li><a href="/planes.html">Planes</a></li>
+          <li><a href="/soluciones.html">Soluciones</a></li>
+          <li><a href="/cobertura.html">Cobertura</a></li>
+          <li><a href="/seguridad.html">Cámaras de seguridad</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>FiberTec</h4>
+        <ul>
+          <li><a href="/nosotros.html">Nosotros</a></li>
+          <li><a href="/contacto.html">Contacto</a></li>
+        </ul>
+      </div>
+      <div class="site-footer__contact">
+        <h4>Contacto</h4>
+        <ul>
+          <li><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-map-pin"/></svg><span>Moloacán, Veracruz</span></li>
+          <li><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg><a href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener">921 150 9583 (WhatsApp)</a></li>
+          <li><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-phone"/></svg><a href="tel:9212384004">921 238 4004</a></li>
+          <li><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-mail"/></svg><a href="mailto:contacto@fibertec.mx">contacto@fibertec.mx</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="site-footer__legal"><span>&copy; 2026 FiberTec. Todos los derechos reservados.</span><span>Conectando contigo</span></div>
+  </div>
+</footer>
+<a class="wa-float" href="https://wa.me/529211509583?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20internet%20de%20FiberTec." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp"><svg class="ic " aria-hidden="true" focusable="false"><use href="/sitio/img/iconos.svg#i-message-circle"/></svg></a>
+<script src="/sitio/js/sitio.js?v=3"></script>
+<script src="/sitio/js/formularios.js?v=3"></script>
 </body>
 </html>

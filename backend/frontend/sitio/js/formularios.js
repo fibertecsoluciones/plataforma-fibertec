@@ -9,15 +9,11 @@
     let caja = form.querySelector('.form-estado');
     if (!caja) {
       caja = document.createElement('div');
-      caja.className = 'form-estado';
       caja.setAttribute('role', 'status');
-      caja.style.cssText = 'margin-top:16px;padding:12px 16px;border-radius:8px;font-size:15px;line-height:1.4;';
       form.appendChild(caja);
     }
+    caja.className = 'form-estado ' + (ok ? 'form-estado--ok' : 'form-estado--error');
     caja.textContent = mensaje;
-    caja.style.background = ok ? '#e8f7f1' : '#fdeceb';
-    caja.style.color = ok ? '#1f7a5a' : '#b3261e';
-    caja.style.border = '1px solid ' + (ok ? '#b9e5d4' : '#f5c2bf');
   }
 
   function conectar(form) {
@@ -33,7 +29,7 @@
 
       const textoOriginal = boton.innerHTML;
       boton.disabled = true;
-      boton.innerHTML = 'Enviando…';
+      boton.textContent = 'Enviando…';
 
       try {
         const resp = await fetch('/api/publico/solicitud', {
@@ -48,7 +44,7 @@
           ? '¡Listo! Guardamos tus datos y te avisaremos cuando lleguemos a tu colonia.'
           : '¡Gracias! Recibimos tu mensaje y te contactaremos pronto.', true);
         form.reset();
-        boton.innerHTML = '¡Enviado! <i class="fas fa-check"></i>';
+        boton.textContent = '¡Enviado!';
         setTimeout(() => { boton.innerHTML = textoOriginal; boton.disabled = false; }, 4000);
       } catch (err) {
         const msg = /whatsapp/i.test(err.message) ? err.message : err.message + ' También puedes escribirnos por WhatsApp al 921 150 9583.';
