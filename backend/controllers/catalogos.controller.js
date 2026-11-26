@@ -227,7 +227,39 @@ async function getInventarioCategorias(req, res) {
   res.json(r.rows);
 }
 
+// ---------- AVISO DE FALLAS EN LA PÁGINA WEB ----------
+async function getAvisoSitio(req, res) {
+  try {
+    const r = await db.query('SELECT mensaje, tipo, activo, actualizado_en FROM aviso_sitio WHERE id = 1');
+    res.json(r.rows[0] || { mensaje: '', tipo: 'falla', activo: false });
+  } catch (err) {
+    if (err.code === '42P01') return res.status(500).json({ error: 'Falta correr la migración 028 (aviso del sitio).' });
+    throw err;
+  }
+}
+
+async function guardarAvisoSitio(req, res) {
+  const mensaje = String(req.body.mensaje || '').trim().replace(/\s+/g, ' ');
+  const tipo = req.body.tipo === 'info' ? 'info' : 'falla';
+  const activo = req.body.activo === true;
+  if (mensaje.length > 250) return res.status(400).json({ error: 'El aviso puede tener máximo 250 caracteres.' });
+  if (activo && !mensaje) return res.status(400).json({ error: 'Escribe el mensaje del aviso antes de publicarlo.' });
+  try {
+    const r = await db.query(
+      `INSERT INTO aviso_sitio (id, mensaje, tipo, activo, actualizado_en) VALUES (1, $1, $2, $3, NOW())
+       ON CONFLICT (id) DO UPDATE SET mensaje = $1, tipo = $2, activo = $3, actualizado_en = NOW()
+       RETURNING mensaje, tipo, activo, actualizado_en`,
+      [mensaje, tipo, activo]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    if (err.code === '42P01') return res.status(500).json({ error: 'Falta correr la migración 028 (aviso del sitio).' });
+    throw err;
+  }
+}
+
 module.exports = {
+  getAvisoSitio, guardarAvisoSitio,
   getZonas, crearZona, actualizarZona, eliminarZona,
   getPlanes, crearPlan, actualizarPlan, eliminarPlan,
   getTecnicos, crearUsuario, actualizarUsuario, eliminarUsuario,

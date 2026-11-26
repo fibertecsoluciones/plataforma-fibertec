@@ -4,6 +4,9 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 
 router.use(requireAuth);
 
+router.get('/aviso-sitio', requireRole('admin'), ctrl.getAvisoSitio);
+router.put('/aviso-sitio', requireRole('admin'), ctrl.guardarAvisoSitio);
+
 router.get('/zonas', ctrl.getZonas);
 router.post('/zonas', requireRole('admin'), ctrl.crearZona);
 router.put('/zonas/:id', requireRole('admin'), ctrl.actualizarZona);

@@ -616,3 +616,13 @@ INSERT INTO ingresos_categorias (nombre) VALUES
 
 -- Usuario admin inicial: usuario "admin" / password "admin123" (CAMBIAR EN PRODUCCIÓN)
 -- El hash se genera en el script backend/db/seed_admin.js
+
+-- Aviso de fallas generales para la página web pública (migración 028)
+CREATE TABLE IF NOT EXISTS aviso_sitio (
+  id             INT PRIMARY KEY CHECK (id = 1),
+  mensaje        VARCHAR(250) NOT NULL DEFAULT '',
+  tipo           VARCHAR(10)  NOT NULL DEFAULT 'falla',
+  activo         BOOLEAN      NOT NULL DEFAULT FALSE,
+  actualizado_en TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+INSERT INTO aviso_sitio (id) VALUES (1) ON CONFLICT (id) DO NOTHING;

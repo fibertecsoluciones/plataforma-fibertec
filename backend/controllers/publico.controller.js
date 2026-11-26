@@ -112,4 +112,15 @@ async function crearSolicitudWeb(req, res) {
   }
 }
 
-module.exports = { crearSolicitudWeb };
+// Aviso de fallas generales que se muestra en la página. Nunca debe romper el sitio.
+async function obtenerAviso(req, res) {
+  res.set('Cache-Control', 'no-store');
+  try {
+    const r = await db.query('SELECT mensaje, tipo FROM aviso_sitio WHERE id = 1 AND activo = TRUE');
+    res.json({ aviso: r.rows[0] && r.rows[0].mensaje ? r.rows[0] : null });
+  } catch (err) {
+    res.json({ aviso: null });
+  }
+}
+
+module.exports = { crearSolicitudWeb, obtenerAviso };

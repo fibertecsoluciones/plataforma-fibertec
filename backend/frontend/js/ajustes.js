@@ -30,6 +30,22 @@
       <div class="tarjeta-cuerpo tabla-envoltura" id="tabla-tecnicos"><div class="cargando">Cargando…</div></div>
     </div>
 
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera"><h3>Aviso en la página web</h3></div>
+      <div class="tarjeta-cuerpo">
+        <p class="texto-suave" style="margin-bottom:12px">Úsalo para avisar de una falla general (por ejemplo, un corte en una comunidad). Se muestra arriba en todas las páginas del sitio hasta que lo quites.</p>
+        <div class="campo ancho-total"><label>Mensaje (máx. 250 caracteres)</label>
+          <textarea id="av-mensaje" rows="2" maxlength="250" placeholder="Ej. Hoy hay un corte de servicio en Popotla. Estamos trabajando para restablecerlo."></textarea></div>
+        <div class="campo"><label>Tipo</label>
+          <select id="av-tipo"><option value="falla">Falla o corte (ámbar)</option><option value="info">Información (azul)</option></select></div>
+        <div class="flex-gap" style="margin-top:12px">
+          <button class="btn btn-verde btn-sm" id="av-publicar">Publicar aviso</button>
+          <button class="btn btn-secundario btn-sm" id="av-quitar">Quitar aviso</button>
+        </div>
+        <p id="av-estado" class="texto-suave" style="margin-top:10px"></p>
+      </div>
+    </div>
+
     <div id="modal-contenedor"></div>
   `;
 
@@ -37,7 +53,37 @@
   document.getElementById('btn-nuevo-plan').addEventListener('click', () => abrirModalPlan());
   document.getElementById('btn-nuevo-usuario').addEventListener('click', () => abrirModalUsuario());
 
-  await Promise.all([cargarZonas(), cargarPlanes(), cargarTecnicos()]);
+  await Promise.all([cargarZonas(), cargarPlanes(), cargarTecnicos(), cargarAviso()]);
+
+  // ==========================================================
+  // AVISO EN LA PÁGINA WEB
+  // ==========================================================
+  async function cargarAviso() {
+    const est = document.getElementById('av-estado');
+    try {
+      const a = await API.get('/api/catalogos/aviso-sitio');
+      document.getElementById('av-mensaje').value = a.mensaje || '';
+      document.getElementById('av-tipo').value = a.tipo || 'falla';
+      est.textContent = a.activo ? '🟢 Hay un aviso publicado en la página.' : 'No hay aviso publicado.';
+    } catch (e) {
+      est.textContent = e.message || 'No se pudo cargar el aviso.';
+    }
+  }
+  async function guardarAviso(activo) {
+    const est = document.getElementById('av-estado');
+    try {
+      await API.put('/api/catalogos/aviso-sitio', {
+        mensaje: document.getElementById('av-mensaje').value,
+        tipo: document.getElementById('av-tipo').value,
+        activo
+      });
+      est.textContent = activo ? '🟢 Aviso publicado. Ya se ve en la página.' : 'Aviso quitado de la página.';
+    } catch (e) {
+      est.textContent = e.message || 'No se pudo guardar el aviso.';
+    }
+  }
+  document.getElementById('av-publicar').addEventListener('click', () => guardarAviso(true));
+  document.getElementById('av-quitar').addEventListener('click', () => guardarAviso(false));
 
   // ==========================================================
   // ZONAS
